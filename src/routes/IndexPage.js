@@ -1,30 +1,42 @@
-import { Button } from "antd";
+import { Button, Upload } from "antd";
 import React from "react";
 import { connect } from "dva";
-// import styles from "./IndexPage.css";
+import styles from "./IndexPage.css";
 import ScleScript from "../components/scleScript";
+
+const { Dragger } = Upload;
+
+const dprops = {
+  name: "file",
+  multiple: true,
+  showUploadList: false,
+  beforeUpload(file) {
+    TestLocalFile(file);
+    return false;
+  },
+};
 
 function IndexPage(props) {
   return (
     <div className="container">
+      <Dragger {...dprops} className={styles.container2}>
+        <br />
+        <br />
+        <br />
+        <Button type="primary">测试引入后的按钮样式</Button>
+        <p>单击或拖动文件到此区域上载</p>
+        <br />
+        <br />
+        <br />
+      </Dragger>
+      {/* <input name="测试" type="file" onChange={TestLocalFile} /> */}
       <canvas id="glcanvas" width="800" height="600"></canvas>
       <canvas id="text" width="800" height="600"></canvas>
-      <input name="测试" type="file" onChange={TestLocalFile} />
       <ScleScript />
-      <Button type="primary">glcanvas</Button>
     </div>
   );
 }
 
-let {
-  //   sclereader,
-  //   g_nCleBufferlength,
-  // //   g_arrayByteBuffer,
-  //   g_arrayCleBuffer,
-  //   localTimeTimeID,
-  //   ParseCleStream,
-  //   startRender,
-} = window;
 var sclereader, localTimeTimeID;
 function StartLoadSCLEFile() {
   // 去掉定时器的方法
@@ -38,7 +50,6 @@ function StartLoadSCLEFile() {
   }
   // 清除缓存
 
-  
   // eslint-disable-next-line no-undef
   g_arrayCleBuffer = null;
   // eslint-disable-next-line no-undef
@@ -54,17 +65,17 @@ function StartLoadSCLEFile() {
   // eslint-disable-next-line no-undef
   startRender();
 }
-function TestLocalFile(e) {
+function TestLocalFile(file) {
   // 按字节读取文件内容，结果用ArrayBuffer对象表示
   sclereader = new FileReader();
-  sclereader.readAsArrayBuffer(e.target.files[0]);
+  sclereader.readAsArrayBuffer(file);
 
   sclereader.onload = function () {
-  // eslint-disable-next-line no-undef
+    // eslint-disable-next-line no-undef
     g_nCleBufferlength = this.result.byteLength;
-  // eslint-disable-next-line no-undef
+    // eslint-disable-next-line no-undef
     g_arrayByteBuffer = this.result;
-  // eslint-disable-next-line no-undef
+    // eslint-disable-next-line no-undef
     g_arrayCleBuffer = new DataView(this.result, 0, g_nCleBufferlength);
 
     // 循环执行，每隔0.1秒钟执行一次
