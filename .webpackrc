@@ -1,0 +1,6 @@
+{ 
+    "entry": { "index": ["@babel/polyfill", "./src/index.js"] },
+    "extraBabelPlugins": [
+        ["import", { "libraryName": "antd", "libraryDirectory": "es", "style": "css" }]
+    ]
+ }

@@ -1,0 +1,51 @@
+Arguments: 
+  C:\Program Files\nodejs\node.exe C:\Users\A\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js add babel-polyfill
+
+PATH: 
+  C:\Program Files (x86)\NetSarang\Xshell 7\;C:\ProgramData\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;E:\Java\jdk1.8.0_221\bin;E:\Java\jdk1.8.0_221\jre\bin;E:\apache-maven-3.6.2\bin;F:\mongodb\bin;F:\Redis;D:\Program Files\java\jdk1.8.0_131\bin;D:\apache-maven-3.6.2\bin;C:\Program Files\Pandoc\;C:\Program Files\TortoiseGit\bin;C:\Program Files\Git\cmd;D:\Go\bin;C:\Program Files\nodejs\;D:\Scripts\;D:\;C:\Users\A\AppData\Local\Microsoft\WindowsApps;D:\Program Files\JetBrains\IntelliJ IDEA 2019.2.3\bin;C:\Users\A\.deno\bin;C:\Users\A\go\bin;C:\Program Files (x86)\mysql-8.0.21-winx64\bin;C:\Users\A\AppData\Roaming\npm;d:\Users\A\AppData\Local\Programs\Microsoft VS Code\bin
+
+Yarn version: 
+  1.22.4
+
+Node version: 
+  14.12.0
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: ENOENT: no such file or directory, copyfile 'C:\Users\A\AppData\Local\Yarn\Cache\v6\npm-pify-4.0.1-4b2cd25c50d598735c50292224fd8c6df41e3231-integrity\node_modules\pify\index.js' -> 'C:\Users\A\Desktop\ADFUSDK\scle\node_modules\af-webpack\node_modules\pify\index.js'
+
+npm manifest: 
+  {
+    "private": true,
+    "scripts": {
+      "start": "roadhog server",
+      "build": "roadhog build",
+      "lint": "eslint --ext .js src test",
+      "precommit": "npm run lint"
+    },
+    "dependencies": {
+      "dva": "^2.4.1",
+      "react": "^16.2.0",
+      "react-dom": "^16.2.0"
+    },
+    "devDependencies": {
+      "babel-plugin-dva-hmr": "^0.3.2",
+      "eslint": "^4.14.0",
+      "eslint-config-umi": "^0.1.1",
+      "eslint-plugin-flowtype": "^2.34.1",
+      "eslint-plugin-import": "^2.6.0",
+      "eslint-plugin-jsx-a11y": "^5.1.1",
+      "eslint-plugin-react": "^7.1.0",
+      "husky": "^0.12.0",
+      "redbox-react": "^1.4.3",
+      "roadhog": "^2.5.0-beta.4"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

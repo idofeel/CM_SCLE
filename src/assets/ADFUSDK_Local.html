@@ -1,0 +1,190 @@
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="webgl.css" type="text/css">
+
+        <!--获得键盘事件-->
+        <script type="text/javascript" src="js/jquery-1.9.1.min.js"></script>
+        <script type="text/javascript">
+        $(document).ready(function() {   
+            $(document).keydown(function(event){
+                if(event.keyCode==8 || (event.keyCode>=0x21 && event.keyCode<=0x28)){
+                    try {  
+                        // 处理三模显示事件
+                        return false;
+                    } catch(err) {                    
+                    }
+                }
+            });
+        });
+        </script>
+        <!-- <style>
+            #glcanvas {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+        </style>-->
+    </head>
+
+    <body>	
+        <table border="2">
+            <tr>
+                <td><input name="测试" value="测试"  type="file" onChange="TestLocalFile(this)" /></td>
+                <td><input name="背景色" value="背景色:" type="text" size="8" disabled/></td>
+                <td>
+                    <select name="背景" onchange="setBackground(this.options.selectedIndex)">
+                        <option value="淡蓝色">淡蓝色</option>
+                        <option value="浅白色">浅白色</option>
+                        <option value="银灰色">银灰色</option>
+                    </select>
+                </td>
+                <td><button name="移动零件" onclick="moveModel()">移动零件</button></td>
+                <td><input name="材质" value="颜色:" type="text" size="6" disabled/></td>
+                <td>
+                    <select name="颜色" onchange="setMaterial(this.options.selectedIndex)">
+                        <option value="亮绿色">亮绿色</option>
+                        <option value="深绿色">深绿色</option>
+                        <option value="黄色">黄色</option>
+                        <option value="粉色">粉色</option>
+                    </select>
+                </td>
+                <td><input name="透明度" value="透明度:" type="text" size="8" disabled/></td>
+                <td>
+                    <select name="透明度" onchange="setTransparent(this.options.selectedIndex)">
+                        <option value="0.0">0.0</option>
+                        <option value="0.5">0.5</option>
+                        <option value="1.0">1.0</option>
+                    </select>
+                </td>
+                <td><button name="隐藏" onclick="setVisible()">隐藏</button></td>
+                <td><input name="视图" value="视图:" type="text" size="6" disabled/></td>
+                <td>
+                    <select name="视图" onchange="setView(this.options.selectedIndex)">
+                        <option value="正视图">正视图</option>
+                        <option value="后视图">后视图</option>
+                        <option value="左视图">左视图</option>
+                        <option value="右视图">右视图</option>
+                        <option value="俯视图">俯视图</option>
+                        <option value="仰视图">仰视图</option>
+                        <option value="等轴侧">等轴侧</option>
+                    </select>
+                </td>
+                <td><button name="复位" onclick="setHome()">复位</button></td>
+                <td><button name="动画" onclick="setAnimationStart()">动画</button></td>
+                <td><button name="暂停" onclick="animPause()">暂停</button></td>
+            </tr>
+        </table>
+        <div class="container">
+            <canvas id="glcanvas" width="800" height="600"></canvas>
+            <canvas id="text" width="800" height="600"></canvas>
+        </div>
+    </body>
+
+    <script type="text/javascript" src="js/SCLELoader/ADFBaseDef.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFGeomDef.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFSceneDef.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFCleParser.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFMath.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFGlobal.js"></script>
+    <script type="text/javascript" src="js/SCLELoader/ADFUSDK.js"></script>  
+    <script type="text/javascript" src="js/SCLERender/glmatrix.js"></script>
+    <script type="text/javascript" src="js/SCLERender/GLSL.js"></script>
+    <script type="text/javascript" src="js/SCLERender/Global.js"></script>
+    <script type="text/javascript" src="js/SCLERender/SceneToGLData.js"></script>
+    <script type="text/javascript" src="js/SCLERender/Camera.js"></script>
+    <script type="text/javascript" src="js/SCLERender/GLProgram.js"></script>
+    <script type="text/javascript" src="js/SCLERender/GLRunTime.js"></script>
+    <script type="text/javascript" src="js/SCLERender/EventAction.js"></script>
+
+    <script type="text/javascript" language="javascript">   
+        var sclereader;
+        var localTimeTimeID;
+
+        function StartLoadSCLEFile() {
+            // 去掉定时器的方法
+            window.clearTimeout(localTimeTimeID); 
+                      
+            // 解析cle文件
+            var bResult = ParseCleStream();
+            if (bResult) {
+                // alert("An error occurred while transferring the file.");
+            }
+            // 清除缓存                        
+            delete g_arrayCleBuffer;
+            g_arrayCleBuffer = null;
+            g_arrayByteBuffer = null;
+
+            delete this.result;
+            this.result = null;
+
+            delete sclereader;
+            sclereader = null;     
+
+            // 绘制三维模型
+            startRender();			
+        }
+        
+        function TestLocalFile(e){
+            // 按字节读取文件内容，结果用ArrayBuffer对象表示
+            sclereader = new FileReader();
+            sclereader.readAsArrayBuffer(e.files[0]);        
+
+            sclereader.onload = function() {
+                g_nCleBufferlength = this.result.byteLength;
+                g_arrayByteBuffer = this.result;
+                g_arrayCleBuffer = new DataView(this.result, 0, g_nCleBufferlength);
+                
+                // 循环执行，每隔0.1秒钟执行一次
+                localTimeTimeID = window.setInterval(StartLoadSCLEFile, 100);            
+            }		
+        }
+
+    // 璁＄畻鐗╀欢涓栫晫鐭╅樀
+        /*var matWldOut = new ADF_BASEMATRIX();
+        for (var i = 0; i < g_sceneData.stuObjSaveDataMgr._arrObjSaveData.length; i++)
+        {
+            var j = 0;
+            for (j = 0; j < g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData.length; j++)
+            {
+              if (g_sceneData.stuObjSaveDataMgr._arrObjSaveData[i]._uObjectID == g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData[j]._uObjectID)
+                break;
+            }
+
+            for (var k = 10; k < 100; k = k+10)
+            {		
+              // 璁＄畻鐗╀欢涓栫晫鐭╅樀
+              CalculateObjectWldMatrix(k, g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData[j], g_sceneData.stuObjSaveDataMgr._arrObjSaveData[i]._matLocal, 
+                                        g_sceneData.stuObjSaveDataMgr._arrObjSaveData[i]._matWorld, matWldOut);
+            }
+        }
+
+        // 璁＄畻鐗╀欢閫忔槑搴﹀姩鐢荤殑闈為�鏄庣殑(alpha鍊�锛�娴嬭瘯ok
+       var fNoTransparency = 0;
+       for (var i = 0; i < g_sceneData.stuObjSaveDataMgr._arrObjSaveData.length; i++)
+       {
+            var j = 0;
+            for (j = 0; j < g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData.length; j++)
+            {
+              if (g_sceneData.stuObjSaveDataMgr._arrObjSaveData[i]._uObjectID == g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData[j]._uObjectID)
+                break;
+            }
+
+            for (var k = 10; k < 100; k = k+10)
+            {		
+              // 璁＄畻鐗╀欢閫忔槑搴﹀姩鐢荤殑闈為�鏄庣殑(alpha鍊�
+              fNoTransparency = CalculateObjectNoTransparency(k, g_sceneData.stuAnimSaveDataMgr._arrObjAnimSaveData[j]);
+            }
+       }
+
+        // 璁＄畻鎽勫儚鏈哄姩鐢荤殑鏁版嵁锛�娴嬭瘯ok
+        var stuCameraOut = new ADF_CAMERA()  
+        for (var k = 100; k < 200; k = k+10)
+        {		                
+            CalculateCameraDataByKeyFrame(k, g_sceneData.stuCameraSaveDataMgr._arrCameraAnimSaveData, stuCameraOut);
+        }*/
+
+        // js代码简化工具网址
+        // http://pagespeed.webkaka.com/youhua/js/
+    </script>
+</html>
