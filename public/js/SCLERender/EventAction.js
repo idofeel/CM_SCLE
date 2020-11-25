@@ -1,4 +1,4 @@
-const canvas = document.querySelector('#glcanvas'); console.log(canvas); var gl = canvas.getContext('webgl2'); var isWebgl2 = true; if (!gl) {
+const canvas = document.querySelector('#glcanvas'); var gl = canvas.getContext('webgl2'); var isWebgl2 = true; if (!gl) {
     gl = canvas.getContext('webgl')
     if (!gl) { gl = canvas.getContext('experimental-webgl'); }
     isWebgl2 = false;

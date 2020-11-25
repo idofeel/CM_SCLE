@@ -6,7 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scle Demo</title>
   <link rel="stylesheet" href="index.css" />
-  <script>
+  <style>
+    * {
+      touch-action: none;
+    }
+  </style>
+  <!-- <script>
     var importScripts = {
       asyncScript: [
         { "url": "./js/SCLELoader/ADFBaseDef.js" },
@@ -28,18 +33,29 @@
         { "url": "./js/SCLERender/EventAction.js" }
       ]
     }
-  </script>
+  </script> -->
 </head>
 
 <body>
   <div id="scleRoot"></div>
+  <!-- 加载js -->
   <script src="index.js"></script>
-  <script>
-    // 当 scle 文件准备好以后
-    window.addEventListener('scleloaded', event => {
-      console.log('scle插件已经准备好了');
-    })
-  </script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFBaseDef.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFGeomDef.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFSceneDef.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFCleParser.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFMath.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFGlobal.js"></script>
+  <script type="text/javascript" src="./js/SCLELoader/ADFUSDK.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/glmatrix.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/GLSL.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/Global.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/SceneToGLData.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/Camera.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/GLProgram.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/GLRunTime.js"></script>
+  <script type="text/javascript" src="./js/SCLERender/EventAction.js"></script>
+
 </body>
 
 </html>

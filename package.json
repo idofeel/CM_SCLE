@@ -8,11 +8,12 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.12.1",
-    "antd": "^4.7.3",
+    "antd": "^3.26.19",
     "babel-plugin-import": "^1.13.1",
     "dva": "^2.4.1",
     "jszip": "^3.5.0",
     "react": "^16.2.0",
+    "react-color": "^2.19.3",
     "react-dom": "^16.2.0",
     "react-load-script": "^0.0.6"
   },

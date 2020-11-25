@@ -2,4 +2,5 @@
 html, body, :global(#scleRoot) {
   height: 100%;
   overflow: hidden;
+  
 }

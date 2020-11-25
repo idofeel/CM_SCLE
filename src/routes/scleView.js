@@ -1,14 +1,20 @@
-import React, { PureComponent } from 'react';
-import { Progress } from 'antd'
+import React, { Component, PureComponent } from 'react';
+import { Drawer, message, Progress } from 'antd'
 import { queryString } from '../utils';
 import Scle from './scle'
 import './scle.less'
-import { getByRequest } from './scleControl';
+import SCLE_CONTROLLER from './scleControl';
+import ScleToolsBar from './scleTools/scleToolsBar';
 
 const logo = require('../assets/images/downloadAppIcon.png')
 
-
 export default class scleView extends PureComponent {
+    constructor(props) {
+        super(props)
+        this.SCLE = new SCLE_CONTROLLER({
+            onProgress: this.onProgress.bind(this)
+        })
+    }
     state = {
         loading: true,
         percent: 0
@@ -34,13 +40,15 @@ export default class scleView extends PureComponent {
                     <canvas id="glcanvas" width="800" height="600"></canvas>
                     <canvas id="text" width="800" height="600"></canvas>
                 </>
-                {/* loading */}
-
-                <Scle onLoaded={() => this.onReady()} />
+                <ScleToolsBar></ScleToolsBar>
+                {/* <Scle onLoaded={() => this.onReady()} /> */}
             </div>
         );
     }
 
+    componentDidMount() {
+        this.openScle()
+    }
 
     // 脚本全部加载完成
     onReady() {
@@ -57,14 +65,37 @@ export default class scleView extends PureComponent {
         if (link) {
             this.openLink(link);
             return
+        } else {
+            message.warning('请输入正确的链接')
+        }
+    }
+
+    onProgress(evt) {
+        if (evt.lengthComputable) {
+            let percentComplete = evt.loaded / evt.total;
+            /* eslint-disable */
+            g_nCleBufferlength = evt.total;
+            // g_loaded_pos = evt.loaded;
+
+            this.setState({
+                percent: Math.floor(percentComplete * 100)
+            })
+
+            if (percentComplete === 1) {
+                this.setState({
+                    loading: false
+                }, window.canvasOnResize)
+            }
         }
     }
     // 从link 打开
     openLink(link) {
         window.g_strResbaseUrl = link.replace(/(.scle|.zip)$/, '/');
-        getByRequest(link)
-        this.setState({
-            loading: false
-        }, window.canvasOnResize)
+        this.SCLE.getByRequest(link)
     }
 }
+
+
+// class scleView extends SCLE_CONTROLLER extends Component{
+
+// }
