@@ -16,4 +16,4 @@ app.model(require('./models/global').default);
 app.router(require('./router').default);
 
 // 5. Start
-app.start('#scleRoot');
+app.start('#scleView');

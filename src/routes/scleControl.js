@@ -71,9 +71,14 @@ class SCLE_CONTROLLER {
 
         // 绘制三维模型
         startRender();
-        window.cleStreamReady && cleStreamReady();
+        let custom = new CustomEvent('cleStreamReady', { detail: {} })
+        window.dispatchEvent(custom)
+        // window.cleStreamReady && cleStreamReady();
     }
 }
+
+
+
 
 
 /**
