@@ -1,7 +1,17 @@
-import { Icon, message, Popover, Radio, Slider, Tabs, Tooltip } from "antd";
+import {
+  Drawer,
+  Icon,
+  message,
+  Popover,
+  Radio,
+  Slider,
+  Tabs,
+  Tooltip,
+} from "antd";
 import { Component, PureComponent } from "react";
 import { ChromePicker } from "react-color";
 import { fullScreen, exitFullscreen, IEVersion } from "../../utils/Browser";
+import ScleAttrTree from "../scleAttrTree/ScleAttrTree";
 import "./scleTools.less";
 
 const IconFont = Icon.createFromIconfontCN({
@@ -9,19 +19,21 @@ const IconFont = Icon.createFromIconfontCN({
 });
 const { TabPane } = Tabs;
 
+message.config({
+  maxCount: 1,
+});
 export default class scleTools extends PureComponent {
   static defaultProps = {
     attrTreeShow: () => {},
   };
 
-  
   #tools = [
     { type: "home", title: "复位", onClick: () => window.setHome() },
     { type: "drag", title: "移动零件" },
     {
       type: "apartment",
       title: "属性",
-      onClick: () => this.props.attrTreeShow(),
+      onClick: () => this.drawerShow(),
     },
     { type: "eye", title: "隐藏" },
     { type: "bg-colors", title: "颜色", popover: () => this.renderColor() },
@@ -83,6 +95,7 @@ export default class scleTools extends PureComponent {
     },
     playPercent: 0,
     alpha: 1,
+    drawerVisible: false,
   };
 
   totalFrames = 0;
@@ -101,7 +114,7 @@ export default class scleTools extends PureComponent {
       }
     );
   }
-
+  //   cleStreamReady
   cleStreamReady() {
     this.totalFrames = window.getTotalFrames();
     window.setAnmiIcon = this.setAnmiIcon;
@@ -110,17 +123,38 @@ export default class scleTools extends PureComponent {
 
   render() {
     return (
-      <div className="scleToolsBar">
-        <Tabs
-          activeKey={this.state.activeTab}
-          tabPosition="bottom"
-          animated={false}
-          onChange={(activeTab) => this.setState({ activeTab })}
+      <>
+        <Drawer
+          title={null}
+          closable={false}
+          mask={false}
+          placement="left"
+          width="auto"
+          visible={this.state.drawerVisible}
+          getContainer={false}
+          bodyStyle={{ padding: 0 }}
+          style={{ position: "absolute"}}
         >
-          {this.renderTools()}
-        </Tabs>
-      </div>
+          <ScleAttrTree></ScleAttrTree>
+        </Drawer>
+        <div className="scleToolsBar">
+          <Tabs
+            activeKey={this.state.activeTab}
+            tabPosition="bottom"
+            animated={false}
+            onChange={(activeTab) => this.setState({ activeTab })}
+          >
+            {this.renderTools()}
+          </Tabs>
+        </div>
+      </>
     );
+  }
+
+  drawerShow() {
+    this.setState({
+      drawerVisible: true,
+    });
   }
 
   renderTools() {

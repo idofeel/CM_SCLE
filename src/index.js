@@ -1,6 +1,6 @@
 import "@babel/polyfill";
 import dva from 'dva';
-import './index.css';
+import './index.less';
 import './webgl.css'
 
 // 1. Initialize

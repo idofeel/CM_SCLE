@@ -1,8 +1,6 @@
-import { message } from "antd";
 import React, { Component } from "react";
 import Script from "react-load-script";
 import Tools from "../utils/loadScript";
-import request from '../utils/request';
 
 
 export default class ScleContainer extends Component {

@@ -43,20 +43,7 @@ export default class scleView extends PureComponent {
           <canvas id="glcanvas" width="800" height="600"></canvas>
           <canvas id="text" width="800" height="600"></canvas>
         </>
-        <Drawer
-          title={null}
-          closable={false}
-          mask={false}
-          placement="left"
-          width="auto"
-          visible={this.state.drawerVisible}
-          getContainer={false}
-          bodyStyle={{ padding: 0 }}
-          style={{ position: "absolute" }}
-        >
-          <ScleAttrTree></ScleAttrTree>
-        </Drawer>
-        <ScleToolsBar attrTreeShow={() => this.attrTreeShow()}></ScleToolsBar>
+        <ScleToolsBar></ScleToolsBar>
       </div>
     );
   }
@@ -65,12 +52,7 @@ export default class scleView extends PureComponent {
     this.openScle();
   }
 
-  //   事件处理
-  attrTreeShow() {
-    this.setState({
-      drawerVisible: !this.state.drawerVisible,
-    });
-  }
+ 
 
   // 脚本全部加载完成
   onReady() {
