@@ -24,7 +24,11 @@ export default class scleView extends PureComponent {
   render() {
     return (
       <div className="container">
-        {this.state.loading && (
+        <>
+          <canvas id="glcanvas" width="800" height="600"></canvas>
+          <canvas id="text" width="800" height="600"></canvas>
+        </>
+        {this.state.loading ? (
           <div className="scle_loading">
             <div className="scle_loadImg">
               <img src={logo} alt="loading" />
@@ -34,16 +38,12 @@ export default class scleView extends PureComponent {
                   "100%": "#87d068",
                 }}
                 percent={this.state.percent}
+                status="active"
               />
+              <p>模型下载中...</p>
             </div>
           </div>
-        )}
-
-        <>
-          <canvas id="glcanvas" width="800" height="600"></canvas>
-          <canvas id="text" width="800" height="600"></canvas>
-        </>
-        <ScleToolsBar></ScleToolsBar>
+        ) : <ScleToolsBar></ScleToolsBar>}
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default class scleView extends PureComponent {
     this.openScle();
   }
 
- 
+
 
   // 脚本全部加载完成
   onReady() {

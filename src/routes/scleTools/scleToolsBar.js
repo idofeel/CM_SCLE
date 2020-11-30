@@ -132,7 +132,7 @@ export default class scleTools extends PureComponent {
           visible={this.state.drawerVisible}
           getContainer={false}
           bodyStyle={{ padding: 0 }}
-          style={{ position: "absolute" }}
+          className="cleTreeDrawer"
         >
           <ScleAttrTree></ScleAttrTree>
         </Drawer>
