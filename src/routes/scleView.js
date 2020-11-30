@@ -7,6 +7,7 @@ import ScleToolsBar from "./scleTools/scleToolsBar";
 import ScleAttrTree from "./scleAttrTree/ScleAttrTree";
 
 import "./scle.less";
+import { IsPhone } from "../utils/Browser";
 
 const logo = require("../assets/images/downloadAppIcon.png");
 export default class scleView extends PureComponent {
@@ -16,14 +17,32 @@ export default class scleView extends PureComponent {
       onProgress: this.onProgress.bind(this),
     });
   }
+  fullScreenEl = null;
+  #customStyle = false;
   state = {
     loading: true,
     percent: 0,
     drawerVisible: false,
+    isFullScreen: false,
+    containerStyle: {
+      width: 0,
+      height: 0,
+    },
   };
   render() {
     return (
-      <div className="container">
+        <>
+      <div
+        className={
+          this.state.isFullScreen ? "fullScreen container" : "container"
+        }
+        ref={(el) => (this.fullScreenEl = el)}
+        style={
+          !this.state.isFullScreen
+            ? this.state.containerStyle
+            : { width: "100%", height: "100%" }
+        }
+      >
         <>
           <canvas id="glcanvas" width="800" height="600"></canvas>
           <canvas id="text" width="800" height="600"></canvas>
@@ -43,23 +62,77 @@ export default class scleView extends PureComponent {
               <p>模型下载中...</p>
             </div>
           </div>
-        ) : <ScleToolsBar></ScleToolsBar>}
+        ) : (
+          <ScleToolsBar
+            onFullScreen={(f) => this.onFullScreen(f)}
+          ></ScleToolsBar>
+        )}
       </div>
+      <div className="scleDesc" style={{
+          height:this.state.containerStyle.height,
+          width: IsPhone()? '100%': '20%'
+          }}>
+            名称： xxxxxxxxxxxxxxxxxxxxx
+      </div>
+      </>
     );
   }
 
   componentDidMount() {
+    this.#customStyle = !!this.fullScreenEl.offsetWidth;
     this.openScle();
+    this.eventHandle();
+    this.resizeContainer();
+  }
+  eventHandle() {
+    this.fullScreenEl.addEventListener("transitionend", function () {
+      window.canvasOnResize();
+    });
+
+    window.isPhone = IsPhone();
+    window.history.pushState(null, null, document.URL);
+    window.addEventListener("popstate", function () {
+      window.history.pushState(null, null, document.URL);
+    });
+
+    window.addEventListener("resize", () => {
+      this.resizeContainer();
+    });
   }
 
+  resizeContainer() {
+    // 默认值
+    if (!this.#customStyle) {
+      let width = "100%",
+        height = "100%";
+      if (IsPhone()) {
+        height = 450;
+      } else {
+        height = window.innerHeight;
+        width = "80%";
+      }
 
-
-  // 脚本全部加载完成
-  onReady() {
-    let custom = new CustomEvent("scleloaded", { detail: {} });
-    window.dispatchEvent(custom);
-    this.openScle();
+      this.setState({
+        containerStyle: {
+          width,
+          height,
+        },
+      });
+    }
   }
+
+  onFullScreen(isFullScreen) {
+    this.setState({
+      isFullScreen,
+    });
+  }
+
+  //   // 脚本全部加载完成
+  //   onReady() {
+  //     let custom = new CustomEvent("scleloaded", { detail: {} });
+  //     window.dispatchEvent(custom);
+  //     this.openScle();
+  //   }
 
   // 打开scle 文件
   openScle() {
@@ -74,11 +147,11 @@ export default class scleView extends PureComponent {
     }
   }
 
-  onProgress(evt) {
+  async onProgress(evt) {
     if (evt.lengthComputable) {
       let percentComplete = evt.loaded / evt.total;
       /* eslint-disable */
-      g_nCleBufferlength = evt.total;
+      window.g_nCleBufferlength = evt.total;
       // g_loaded_pos = evt.loaded;
 
       this.setState({
@@ -92,8 +165,14 @@ export default class scleView extends PureComponent {
           },
           window.canvasOnResize
         );
+        await this.sleep(250);
+        window.canvasOnResize();
       }
     }
+  }
+
+  async sleep(time) {
+    return new Promise((r1, r2) => setTimeout(r1, time));
   }
   // 从link 打开
   openLink(link) {

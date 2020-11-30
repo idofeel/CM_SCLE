@@ -1,85 +1,93 @@
 /* eslint-disable */
 
-import JSZip from 'jszip'
+import JSZip from "jszip";
 /**
- * 
+ *
  */
 class SCLE_CONTROLLER {
-    g_sclehttp = null
-    #g_loaded_pos = 0
-    NetTimeTimeID = null
+  g_sclehttp = null;
+  #g_loaded_pos = 0;
+  NetTimeTimeID = null;
 
-    constructor({ onProgress = () => { } }) {
-        this.updateProgress = onProgress
+  constructor({ onProgress = () => {} }) {
+    this.updateProgress = onProgress;
+  }
+  getByRequest(url) {
+    this.g_sclehttp = new XMLHttpRequest();
+    this.g_sclehttp.addEventListener("progress", this.updateProgress, false);
+    this.g_sclehttp.addEventListener("load", this.transferComplete, false);
+    this.g_sclehttp.addEventListener("error", this.transferFailed, false);
+    this.g_sclehttp.addEventListener("abort", this.transferCanceled, false);
+    this.g_sclehttp.open("GET", url, true); // true 表示异步，false表示同步
+    this.g_sclehttp.responseType = "arraybuffer"; // XMLHttpRequest Level 2 规范中新加入了 responseType 属性 ，使得发送和接收二进制数据变得更加容易
+    this.g_sclehttp.onreadystatechange = (e) => this.readcleStreamChange(e);
+    this.g_sclehttp.send();
+    return this;
+  }
+  // updateProgress(evt) {
+
+  // }
+  transferComplete(evt) {}
+  transferFailed(evt) {}
+
+  readcleStreamChange(evt) {
+    if (this.g_sclehttp.readyState === 4 && this.g_sclehttp.status === 200) {
+      // 4 = "loaded" // 200 = OK
+      // 兼容写法
+      const new_zip = new JSZip();
+      new_zip.loadAsync(this.g_sclehttp.response).then((zip) => {
+        const key = function () {
+          for (let i in zip.files) {
+            return i;
+          }
+        };
+        zip.files[key()].async("arraybuffer").then((data) => {
+          g_arrayByteBuffer = data;
+          g_arrayCleBuffer = new DataView(
+            g_arrayByteBuffer,
+            0,
+            g_arrayByteBuffer.byteLength
+          );
+          window.g_nCleBufferlength = g_arrayByteBuffer.byteLength;
+          // 循环执行，每隔0.1秒钟执行一次
+          this.NetTimeTimeID = setInterval(() => {
+            this.starLoadNetCLEFile();
+          }, 100);
+        });
+      });
     }
-    getByRequest(url) {
-        this.g_sclehttp = new XMLHttpRequest();
-        this.g_sclehttp.addEventListener("progress", this.updateProgress, false);
-        this.g_sclehttp.addEventListener("load", this.transferComplete, false);
-        this.g_sclehttp.addEventListener("error", this.transferFailed, false);
-        this.g_sclehttp.addEventListener("abort", this.transferCanceled, false);
-        this.g_sclehttp.open("GET", url, true);                                  // true 表示异步，false表示同步
-        this.g_sclehttp.responseType = "arraybuffer";           // XMLHttpRequest Level 2 规范中新加入了 responseType 属性 ，使得发送和接收二进制数据变得更加容易 
-        this.g_sclehttp.onreadystatechange = (e) => this.readcleStreamChange(e);
-        this.g_sclehttp.send();
-        return this
-    }
-    // updateProgress(evt) {
+  }
 
-    // }
-    transferComplete(evt) { }
-    transferFailed(evt) { }
+  transferCanceled(evt) {}
 
-    readcleStreamChange(evt) {
-        if (this.g_sclehttp.readyState === 4 && this.g_sclehttp.status === 200) { // 4 = "loaded" // 200 = OK		
-            // 兼容写法
-            const new_zip = new JSZip();
-            new_zip.loadAsync(this.g_sclehttp.response).then((zip) => {
-                const key = function () {
-                    for (let i in zip.files) {
-                        return i
-                    }
-                }
-                zip.files[key()].async('arraybuffer').then((data) => {
-                    g_arrayByteBuffer = data;
-                    g_arrayCleBuffer = new DataView(g_arrayByteBuffer, 0, g_arrayByteBuffer.byteLength);
-                    g_nCleBufferlength = g_arrayByteBuffer.byteLength;
-                    // 循环执行，每隔0.1秒钟执行一次
-                    this.NetTimeTimeID = setInterval(() => { this.starLoadNetCLEFile() }, 100);
-                });
-            });
-        }
+  starLoadNetCLEFile() {
+    // 去掉定时器的方法
+    window.clearTimeout(this.NetTimeTimeID);
+    // 解析cle文件
+    var bResult = ParseCleStream();
+    if (bResult) {
+      // alert("An error occurred while transferring the file.");
     }
 
-    transferCanceled(evt) { }
+    // 释放内存
+    // console.log(g_sclehttp);
+    // g_sclehttp.response = null;
+    g_arrayByteBuffer = null;
+    g_arrayCleBuffer = null;
+    this.g_sclehttp = null;
 
-    starLoadNetCLEFile() {
-        // 去掉定时器的方法
-        window.clearTimeout(this.NetTimeTimeID);
-        // 解析cle文件
-        var bResult = ParseCleStream()
-        if (bResult) {
-            // alert("An error occurred while transferring the file.");
-        }
+    // 绘制三维模型
+    startRender();
 
-        // 释放内存
-        // console.log(g_sclehttp);
-        // g_sclehttp.response = null;
-        g_arrayByteBuffer = null;
-        g_arrayCleBuffer = null;
-        this.g_sclehttp = null;
+    // let custom = new CustomEvent('cleStreamReady', { detail: {} })
+    // window.dispatchEvent(custom)
 
-        // 绘制三维模型
-        startRender();
-        let custom = new CustomEvent('cleStreamReady', { detail: {} })
-        window.dispatchEvent(custom)
-        // window.cleStreamReady && cleStreamReady();
-    }
+    var event = document.createEvent("CustomEvent");
+    event.initCustomEvent("cleStreamReady", true, true, {detail: {}})
+    window.dispatchEvent(event)
+    // window.cleStreamReady && cleStreamReady();
+  }
 }
-
-
-
-
 
 /**
  * 
@@ -184,7 +192,7 @@ function StarLoadNetCLEFile() {
 
 */
 
-export default SCLE_CONTROLLER
+export default SCLE_CONTROLLER;
 
 // export { getByRequest }
 

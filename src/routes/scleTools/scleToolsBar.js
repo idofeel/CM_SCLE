@@ -10,7 +10,12 @@ import {
 } from "antd";
 import { Component, PureComponent } from "react";
 import { ChromePicker } from "react-color";
-import { fullScreen, exitFullscreen, IEVersion } from "../../utils/Browser";
+import {
+  fullScreen,
+  exitFullscreen,
+  IEVersion,
+  IsPhone,
+} from "../../utils/Browser";
 import ScleAttrTree from "../scleAttrTree/ScleAttrTree";
 import "./scleTools.less";
 
@@ -23,11 +28,12 @@ message.config({
   maxCount: 1,
 });
 export default class scleTools extends PureComponent {
-
   #tools = [
     { type: "home", title: "复位", onClick: () => window.setHome() },
     {
-      type: "drag", title: "移动零件", onClick: () => this.isPickNull(() => window.moveModel())
+      type: "drag",
+      title: "移动零件",
+      onClick: () => this.isPickNull(() => window.moveModel()),
     },
     {
       type: "apartment",
@@ -100,6 +106,8 @@ export default class scleTools extends PureComponent {
   totalFrames = 0;
 
   componentDidMount() {
+    window.isPhone = IsPhone();
+
     window.addEventListener("cleStreamReady", this.cleStreamReady.bind(this), {
       passive: false,
     });
@@ -126,12 +134,13 @@ export default class scleTools extends PureComponent {
         <Drawer
           title={null}
           closable={false}
-          mask={false}
+          mask={true}
           placement="left"
           width="auto"
           visible={this.state.drawerVisible}
           getContainer={false}
           bodyStyle={{ padding: 0 }}
+          onClose={() => this.hideDrawer()}
           className="cleTreeDrawer"
         >
           <ScleAttrTree></ScleAttrTree>
@@ -155,7 +164,12 @@ export default class scleTools extends PureComponent {
       drawerVisible: !this.state.drawerVisible,
     });
   }
-
+  hideDrawer() {
+    this.setState({
+      drawerVisible: false,
+      activeTab: null,
+    });
+  }
   renderTools() {
     const { tools } = this.state;
     return tools.map((item, index) => (
@@ -188,8 +202,8 @@ export default class scleTools extends PureComponent {
             {this.renderToolsIcon(item, index)}
           </Popover>
         ) : (
-            this.renderToolsIcon(item, index)
-          )}
+          this.renderToolsIcon(item, index)
+        )}
       </Tooltip>
     );
   }
@@ -291,20 +305,20 @@ export default class scleTools extends PureComponent {
             />
           ))
         ) : (
-            <Radio.Group
-              defaultValue={0}
-              buttonStyle="solid"
-              onChange={(item) => {
-                window.setView(item.target.value);
-              }}
-            >
-              {viewDirections.map((item) => (
-                <Radio.Button value={item.value} key={item.value}>
-                  {item.title}
-                </Radio.Button>
-              ))}
-            </Radio.Group>
-          )}
+          <Radio.Group
+            defaultValue={0}
+            buttonStyle="solid"
+            onChange={(item) => {
+              window.setView(item.target.value);
+            }}
+          >
+            {viewDirections.map((item) => (
+              <Radio.Button value={item.value} key={item.value}>
+                {item.title}
+              </Radio.Button>
+            ))}
+          </Radio.Group>
+        )}
       </div>
     );
   }
@@ -319,14 +333,14 @@ export default class scleTools extends PureComponent {
         }}
       />
     ) : (
-        <Icon
-          type={item.type}
-          onClick={() => {
-            this.changeVisible(!item.visible, index);
-            this.toolsClickHandle(item, index);
-          }}
-        />
-      );
+      <Icon
+        type={item.type}
+        onClick={() => {
+          this.changeVisible(!item.visible, index);
+          this.toolsClickHandle(item, index);
+        }}
+      />
+    );
   }
 
   // player
@@ -365,17 +379,23 @@ export default class scleTools extends PureComponent {
 
     if (item.type === "fullscreen") {
       newTools[index] = { type: "fullscreen-exit", title: "退出全屏" };
+      console.log(this);
+      this.props.onFullScreen(true);
       fullScreen();
+      //   window.canvasOnResize();
     }
     if (item.type === "fullscreen-exit") {
       newTools[index] = { type: "fullscreen", title: "全屏" };
+      this.props.onFullScreen(false);
       exitFullscreen();
     }
 
-    this.setState({
-      tools: [...newTools],
-    }, () => item.onClick && item.onClick());
-
+    this.setState(
+      {
+        tools: [...newTools],
+      },
+      () => item.onClick && item.onClick()
+    );
   }
 
   pickObjectParameters() {
@@ -398,13 +418,13 @@ export default class scleTools extends PureComponent {
     });
   }
 
-  isPickNull = (callback = () => { }) => {
+  isPickNull = (callback = () => {}) => {
     if (window.getPickStatus() < 1) {
       this.setState({
-        activeTab: null
-      })
-      return message.info("需先选中模型")
-    };
+        activeTab: null,
+      });
+      return message.info("需先选中模型");
+    }
     callback();
   };
 
@@ -413,13 +433,13 @@ export default class scleTools extends PureComponent {
     const newTools = this.state.tools;
     const newStatus = isPause
       ? {
-        type: "play-circle",
-        title: "播放",
-      }
+          type: "play-circle",
+          title: "播放",
+        }
       : {
-        type: "pause-circle",
-        title: "暂停",
-      };
+          type: "pause-circle",
+          title: "暂停",
+        };
 
     this.setState({
       tools: newTools.map((item) => {

@@ -88,9 +88,7 @@ export default class ScleAttrTree extends PureComponent {
 
   renderTabBar(DefaultTabBarProps, DefaultTabBar) {
     return (
-      <Affix offsetTop={0.1}>
         <DefaultTabBar {...DefaultTabBarProps} />
-      </Affix>
     );
   }
 
@@ -178,7 +176,6 @@ export default class ScleAttrTree extends PureComponent {
   //   cleStreamReady
   loadTree() {
     window.setPickObjectParameters = this.pickObjectParameters;
-
     const treeData = [this.getTreeNodeData(window.g_GLData.GLModelTreeNode)];
     this.setState({
       treeData,
