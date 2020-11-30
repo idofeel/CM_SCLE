@@ -23,17 +23,16 @@ message.config({
   maxCount: 1,
 });
 export default class scleTools extends PureComponent {
-  static defaultProps = {
-    attrTreeShow: () => {},
-  };
 
   #tools = [
     { type: "home", title: "复位", onClick: () => window.setHome() },
-    { type: "drag", title: "移动零件" },
+    {
+      type: "drag", title: "移动零件", onClick: () => this.isPickNull(() => window.moveModel())
+    },
     {
       type: "apartment",
       title: "属性",
-      onClick: () => this.drawerShow(),
+      onClick: () => this.drawerToggle(),
     },
     { type: "eye", title: "隐藏" },
     { type: "bg-colors", title: "颜色", popover: () => this.renderColor() },
@@ -133,7 +132,7 @@ export default class scleTools extends PureComponent {
           visible={this.state.drawerVisible}
           getContainer={false}
           bodyStyle={{ padding: 0 }}
-          style={{ position: "absolute"}}
+          style={{ position: "absolute" }}
         >
           <ScleAttrTree></ScleAttrTree>
         </Drawer>
@@ -151,9 +150,9 @@ export default class scleTools extends PureComponent {
     );
   }
 
-  drawerShow() {
+  drawerToggle() {
     this.setState({
-      drawerVisible: true,
+      drawerVisible: !this.state.drawerVisible,
     });
   }
 
@@ -189,8 +188,8 @@ export default class scleTools extends PureComponent {
             {this.renderToolsIcon(item, index)}
           </Popover>
         ) : (
-          this.renderToolsIcon(item, index)
-        )}
+            this.renderToolsIcon(item, index)
+          )}
       </Tooltip>
     );
   }
@@ -292,20 +291,20 @@ export default class scleTools extends PureComponent {
             />
           ))
         ) : (
-          <Radio.Group
-            defaultValue={0}
-            buttonStyle="solid"
-            onChange={(item) => {
-              window.setView(item.target.value);
-            }}
-          >
-            {viewDirections.map((item) => (
-              <Radio.Button value={item.value} key={item.value}>
-                {item.title}
-              </Radio.Button>
-            ))}
-          </Radio.Group>
-        )}
+            <Radio.Group
+              defaultValue={0}
+              buttonStyle="solid"
+              onChange={(item) => {
+                window.setView(item.target.value);
+              }}
+            >
+              {viewDirections.map((item) => (
+                <Radio.Button value={item.value} key={item.value}>
+                  {item.title}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          )}
       </div>
     );
   }
@@ -320,14 +319,14 @@ export default class scleTools extends PureComponent {
         }}
       />
     ) : (
-      <Icon
-        type={item.type}
-        onClick={() => {
-          this.changeVisible(!item.visible, index);
-          this.toolsClickHandle(item, index);
-        }}
-      />
-    );
+        <Icon
+          type={item.type}
+          onClick={() => {
+            this.changeVisible(!item.visible, index);
+            this.toolsClickHandle(item, index);
+          }}
+        />
+      );
   }
 
   // player
@@ -375,8 +374,8 @@ export default class scleTools extends PureComponent {
 
     this.setState({
       tools: [...newTools],
-    });
-    item.onClick && item.onClick();
+    }, () => item.onClick && item.onClick());
+
   }
 
   pickObjectParameters() {
@@ -399,8 +398,13 @@ export default class scleTools extends PureComponent {
     });
   }
 
-  isPickNull = (callback = () => {}) => {
-    if (window.getPickStatus() < 1) return message.info("需先选中模型");
+  isPickNull = (callback = () => { }) => {
+    if (window.getPickStatus() < 1) {
+      this.setState({
+        activeTab: null
+      })
+      return message.info("需先选中模型")
+    };
     callback();
   };
 
@@ -409,13 +413,13 @@ export default class scleTools extends PureComponent {
     const newTools = this.state.tools;
     const newStatus = isPause
       ? {
-          type: "play-circle",
-          title: "播放",
-        }
+        type: "play-circle",
+        title: "播放",
+      }
       : {
-          type: "pause-circle",
-          title: "暂停",
-        };
+        type: "pause-circle",
+        title: "暂停",
+      };
 
     this.setState({
       tools: newTools.map((item) => {
