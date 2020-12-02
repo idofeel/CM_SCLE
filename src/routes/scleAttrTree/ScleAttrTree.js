@@ -1,5 +1,5 @@
 import { PureComponent } from "react";
-import { Table, Tabs, Tree, Affix } from "antd";
+import { Table, Tabs, Tree } from "antd";
 import "./scleAttrTree.less";
 import { IsPhone } from "../../utils/Browser";
 
@@ -87,9 +87,7 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   renderTabBar(DefaultTabBarProps, DefaultTabBar) {
-    return (
-        <DefaultTabBar {...DefaultTabBarProps} />
-    );
+    return <DefaultTabBar {...DefaultTabBarProps} />;
   }
 
   renderTreeNodes(treeData) {
@@ -173,9 +171,8 @@ export default class ScleAttrTree extends PureComponent {
     );
   }
 
-  //   cleStreamReady
+  //   scleStreamReady
   loadTree() {
-    window.setPickObjectParameters = this.pickObjectParameters;
     const treeData = [this.getTreeNodeData(window.g_GLData.GLModelTreeNode)];
     this.setState({
       treeData,
@@ -188,6 +185,33 @@ export default class ScleAttrTree extends PureComponent {
     });
   }
 
+  setVisible(visible) {
+    let { treeNodeCheckedKeys } = this.state;
+
+    const visibleKeys = this.setTreeVisible(
+      this.state.treeData,
+      window.pickObjectIndexs,
+      visible
+    );
+    treeNodeCheckedKeys = visible
+      ? treeNodeCheckedKeys.concat(visibleKeys)
+      : treeNodeCheckedKeys.filter((item) => visibleKeys.indexOf(item) < 0);
+    this.setState({
+      treeNodeCheckedKeys,
+    });
+  }
+
+  setTreeVisible(data, keys, visible, visibleKeys = []) {
+    for (let i = 0; i < data.length; i++) {
+      if (keys.indexOf(data[i].objIndex) > -1) {
+        visibleKeys.push(data[i].key + "");
+      }
+      if (data[i].child.length) {
+        this.setTreeVisible(data[i].child, keys, visible, visibleKeys);
+      }
+    }
+    return visibleKeys;
+  }
   /**
    *
    * @param data
@@ -198,7 +222,7 @@ export default class ScleAttrTree extends PureComponent {
       expandedKeys = [],
       treeNodeSelectKeys = [];
 
-    findParentKeys.map((item) => {
+    findParentKeys.forEach((item) => {
       const { parentKeys } = item;
       treeNodeSelectKeys.push(parentKeys[parentKeys.length - 1]);
       expandedKeys = expandedKeys.concat(item.parentKeys);
@@ -231,16 +255,14 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   pickObjectParameters = () => {
-    // console.log('??????????');
-    // console.log(pickObjectIndexs, pickObjectVisible, pickObjectTransparent);
     if (
       !window.pickObjectIndexs ||
       (window.pickObjectIndexs && !window.pickObjectIndexs.length)
     ) {
       this.setState({
         treeNodeSelectKeys: [],
-        isVisible: !!window.pickObjectVisible,
-        alphaRange: window.pickObjectTransparent,
+        // isVisible: !!window.pickObjectVisible,
+        // alphaRange: window.pickObjectTransparent,
       });
       return;
     }
@@ -305,15 +327,55 @@ export default class ScleAttrTree extends PureComponent {
       return indexs;
     }
   };
+
+  disableContextmenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  };
+  keyup = (e) => {
+    this.keyCode = 0;
+    if (this.state.multipleSelcet) {
+      this.setState({
+        multipleSelcet: false,
+      });
+    }
+  };
+  keydown = (e) => {
+    if (e.keyCode === 17) {
+      this.keyCode = 17;
+
+      this.setState({
+        multipleSelcet: true,
+      });
+    }
+  };
   //   ---------------------
   componentDidMount() {
-    window.addEventListener("cleStreamReady", this.loadTree.bind(this), {
+    window.addEventListener("scleStreamReady", this.loadTree.bind(this), {
       passive: false,
     });
+    window.addEventListener(
+      "pickParams",
+      this.pickObjectParameters.bind(this),
+      { passive: false }
+    );
+    window.addEventListener("keydown", this.keydown);
+    window.addEventListener("keyup", this.keyup);
+    document.addEventListener("contextmenu", this.disableContextmenu);
   }
   componentWillUnmount() {
-    window.removeEventListener("cleStreamReady", this.loadTree.bind(this), {
+    window.removeEventListener("scleStreamReady", this.loadTree.bind(this), {
       passive: false,
     });
+
+    window.removeEventListener(
+      "pickParams",
+      this.pickObjectParameters.bind(this),
+      { passive: false }
+    );
+    document.removeEventListener("contextmenu", this.disableContextmenu);
+    window.removeEventListener("keyup", this.keyup);
+    window.removeEventListener("keydown", this.keydown);
   }
 }

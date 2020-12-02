@@ -1,10 +1,9 @@
-import React, { Component, PureComponent } from "react";
-import { Drawer, message, Progress } from "antd";
+import React, {  PureComponent } from "react";
+import {  message, Progress } from "antd";
 import { queryString } from "../utils";
 
 import SCLE_CONTROLLER from "./scleControl";
 import ScleToolsBar from "./scleTools/scleToolsBar";
-import ScleAttrTree from "./scleAttrTree/ScleAttrTree";
 
 import "./scle.less";
 import { IsPhone } from "../utils/Browser";
@@ -18,126 +17,101 @@ export default class scleView extends PureComponent {
     });
   }
   fullScreenEl = null;
-  #customStyle = false;
   state = {
     loading: true,
     percent: 0,
     drawerVisible: false,
     isFullScreen: false,
-    containerStyle: {
-      width: 0,
-      height: 0,
-    },
   };
   render() {
     return (
-        <>
-      <div
-        className={
-          this.state.isFullScreen ? "fullScreen container" : "container"
-        }
-        ref={(el) => (this.fullScreenEl = el)}
-        style={
-          !this.state.isFullScreen
-            ? this.state.containerStyle
-            : { width: "100%", height: "100%" }
-        }
-      >
-        <>
-          <canvas id="glcanvas" width="800" height="600"></canvas>
-          <canvas id="text" width="800" height="600"></canvas>
-        </>
-        {this.state.loading ? (
-          <div className="scle_loading">
-            <div className="scle_loadImg">
-              <img src={logo} alt="loading" />
-              <Progress
-                strokeColor={{
-                  "0%": "#108ee9",
-                  "100%": "#87d068",
-                }}
-                percent={this.state.percent}
-                status="active"
-              />
-              <p>模型下载中...</p>
+      <>
+        <div
+          className={
+            this.state.isFullScreen ? "fullScreen container" : "container"
+          }
+          ref={(el) => (this.fullScreenEl = el)}
+        >
+          <>
+            <canvas id="glcanvas" width="800" height="600"></canvas>
+            <canvas id="text" width="800" height="600"></canvas>
+          </>
+          {this.state.loading ? (
+            <div className="scle_loading">
+              <div className="scle_loadImg">
+                <img src={logo} alt="loading" />
+                <Progress
+                  strokeColor={{
+                    "0%": "#108ee9",
+                    "100%": "#87d068",
+                  }}
+                  percent={this.state.percent}
+                  status="active"
+                />
+                <p>模型下载中...</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <ScleToolsBar
-            onFullScreen={(f) => this.onFullScreen(f)}
-          ></ScleToolsBar>
-        )}
-      </div>
-      <div className="scleDesc" style={{
-          height:this.state.containerStyle.height,
-          width: IsPhone()? '100%': '20%'
-          }}>
-            名称： xxxxxxxxxxxxxxxxxxxxx
-      </div>
+          ) : (
+            <ScleToolsBar></ScleToolsBar>
+          )}
+        </div>
       </>
     );
   }
 
   componentDidMount() {
-    this.#customStyle = !!this.fullScreenEl.offsetWidth;
     this.openScle();
-    this.eventHandle();
-    this.resizeContainer();
+    window.addEventListener("scleStreamReady", () => {
+      this.eventHandle();
+    });
   }
   eventHandle() {
     this.fullScreenEl.addEventListener("transitionend", function () {
-      window.canvasOnResize();
+      window.canvasOnResize && window.canvasOnResize();
     });
-
     window.isPhone = IsPhone();
-    window.history.pushState(null, null, document.URL);
-    window.addEventListener("popstate", function () {
-      window.history.pushState(null, null, document.URL);
-    });
 
-    window.addEventListener("resize", () => {
-      this.resizeContainer();
-    });
-  }
+    // window.history.pushState(null, null, document.URL);
+    // window.addEventListener("popstate", function () {
+    //   window.history.pushState(null, null, document.URL);
+    // });
 
-  resizeContainer() {
-    // 默认值
-    if (!this.#customStyle) {
-      let width = "100%",
-        height = "100%";
-      if (IsPhone()) {
-        height = 450;
-      } else {
-        height = window.innerHeight;
-        width = "80%";
-      }
+    // window.addEventListener("fullscreenchange", () => {
+    //   this.setState({
+    //     isFullScreen: !!document.fullscreenElement,
+    //   });
+    // });
 
-      this.setState({
-        containerStyle: {
-          width,
-          height,
-        },
+    // window.addEventListener("MSFullscreenChange", () => {
+    //   this.setState({
+    //     isFullScreen: document.msFullscreenElement != null,
+    //   });
+    // });
+
+    [
+      "fullscreenchange",
+      "webkitfullscreenchange",
+      "mozfullscreenchange",
+      "MSFullscreenChange",
+    ].forEach((item, index) => {
+      window.addEventListener(item, () => {
+        this.setState({
+          isFullScreen:
+            document.fullScreen ||
+            document.mozFullScreen ||
+            document.webkitIsFullScreen ||
+            !!document.msFullscreenElement,
+        },async ()=>{
+           await this.sleep(10)
+            window.canvasOnResize()
+        });
       });
-    }
-  }
-
-  onFullScreen(isFullScreen) {
-    this.setState({
-      isFullScreen,
     });
   }
-
-  //   // 脚本全部加载完成
-  //   onReady() {
-  //     let custom = new CustomEvent("scleloaded", { detail: {} });
-  //     window.dispatchEvent(custom);
-  //     this.openScle();
-  //   }
 
   // 打开scle 文件
   openScle() {
-    const { pid, title, link, lic } = queryString(window.location.href);
-    console.log(link);
+    const { title, link } = queryString(window.location.href);
     document.title = title || "三维模型";
     if (link) {
       this.openLink(link);
@@ -150,7 +124,6 @@ export default class scleView extends PureComponent {
   async onProgress(evt) {
     if (evt.lengthComputable) {
       let percentComplete = evt.loaded / evt.total;
-      /* eslint-disable */
       window.g_nCleBufferlength = evt.total;
       // g_loaded_pos = evt.loaded;
 
@@ -163,10 +136,10 @@ export default class scleView extends PureComponent {
           {
             loading: false,
           },
-          window.canvasOnResize
+          () => window.canvasOnResize && window.canvasOnResize()
         );
         await this.sleep(250);
-        window.canvasOnResize();
+        window.canvasOnResize && window.canvasOnResize();
       }
     }
   }

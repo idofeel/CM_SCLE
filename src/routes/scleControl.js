@@ -79,13 +79,19 @@ class SCLE_CONTROLLER {
     // 绘制三维模型
     startRender();
 
-    // let custom = new CustomEvent('cleStreamReady', { detail: {} })
+    // let custom = new CustomEvent('scleStreamReady', { detail: {} })
     // window.dispatchEvent(custom)
 
     var event = document.createEvent("CustomEvent");
-    event.initCustomEvent("cleStreamReady", true, true, {detail: {}})
-    window.dispatchEvent(event)
-    // window.cleStreamReady && cleStreamReady();
+    event.initCustomEvent("scleStreamReady", true, true, { detail: {} });
+    window.dispatchEvent(event);
+    // window.scleStreamReady && scleStreamReady();
+
+    window.setPickObjectParameters = function () {
+      let event = document.createEvent("CustomEvent");
+      event.initCustomEvent("pickParams", true, true, { detail: {} });
+      window.dispatchEvent(event);
+    };
   }
 }
 
@@ -184,10 +190,10 @@ function StarLoadNetCLEFile() {
 
     // 绘制三维模型
     startRender && startRender();
-    cleStreamReady && cleStreamReady();
+    scleStreamReady && scleStreamReady();
 }
 
-// const cleStreamReady = function () { } // 
+// const scleStreamReady = function () { } // 
 
 
 */

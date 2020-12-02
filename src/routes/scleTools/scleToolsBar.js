@@ -28,6 +28,11 @@ message.config({
   maxCount: 1,
 });
 export default class scleTools extends PureComponent {
+  #toolsKeyIndex = {
+    visible: 3,
+    alphaIndex: 5,
+    fullScreen: 9,
+  };
   #tools = [
     { type: "home", title: "复位", onClick: () => window.setHome() },
     {
@@ -40,7 +45,7 @@ export default class scleTools extends PureComponent {
       title: "属性",
       onClick: () => this.drawerToggle(),
     },
-    { type: "eye", title: "隐藏" },
+    { type: "eye-invisible", title: "隐藏" },
     { type: "bg-colors", title: "颜色", popover: () => this.renderColor() },
     {
       type: "icon-toumingdu",
@@ -108,21 +113,60 @@ export default class scleTools extends PureComponent {
   componentDidMount() {
     window.isPhone = IsPhone();
 
-    window.addEventListener("cleStreamReady", this.cleStreamReady.bind(this), {
-      passive: false,
+    // window.addEventListener("fullscreenchange", () =>
+    //   this.fullScreenHandle(!!document.fullscreenElement)
+    // );
+    // // IE
+    // window.addEventListener("MSFullscreenChange", () =>
+    //   this.fullScreenHandle(document.msFullscreenElement != null)
+    // );
+
+    [
+      "fullscreenchange",
+      "webkitfullscreenchange",
+      "mozfullscreenchange",
+      "MSFullscreenChange",
+    ].forEach((item, index) => {
+      window.addEventListener(item, () => {
+        this.fullScreenHandle(
+          document.fullScreen ||
+            document.mozFullScreen ||
+            document.webkitIsFullScreen ||
+            !!document.msFullscreenElement
+        );
+      });
     });
-  }
-  componentWillUnmount() {
-    window.removeEventListener(
-      "cleStreamReady",
-      this.cleStreamReady.bind(this),
+
+    window.addEventListener(
+      "scleStreamReady",
+      this.scleStreamReady.bind(this),
       {
         passive: false,
       }
     );
+
+    window.addEventListener(
+      "pickParams",
+      this.pickObjectParameters.bind(this),
+      { passive: false }
+    );
   }
-  //   cleStreamReady
-  cleStreamReady() {
+  componentWillUnmount() {
+    window.removeEventListener(
+      "scleStreamReady",
+      this.scleStreamReady.bind(this),
+      {
+        passive: false,
+      }
+    );
+    window.removeEventListener(
+      "pickParams",
+      this.pickObjectParameters.bind(this),
+      { passive: false }
+    );
+  }
+  //   scleStreamReady
+  scleStreamReady() {
     this.totalFrames = window.getTotalFrames();
     window.setAnmiIcon = this.setAnmiIcon;
     window.getCurFrame = (CurFrame) => this.getCurFrame(CurFrame);
@@ -143,7 +187,7 @@ export default class scleTools extends PureComponent {
           onClose={() => this.hideDrawer()}
           className="cleTreeDrawer"
         >
-          <ScleAttrTree></ScleAttrTree>
+          <ScleAttrTree ref={(el) => (this.sclAttrTree = el)}></ScleAttrTree>
         </Drawer>
         <div className="scleToolsBar">
           <Tabs
@@ -177,34 +221,35 @@ export default class scleTools extends PureComponent {
         tab={
           item.tabComponent
             ? item.tabComponent(item, index)
-            : this.renderPopover(item, index)
+            : IsPhone()?this.renderPopover(item, index): this.renderTipsPopover(item, index)
         }
         key={item.type}
       ></TabPane>
     ));
   }
 
-  renderPopover(item, index) {
+  renderTipsPopover(item, index) {
     return (
-      <Tooltip title={item.title}>
-        {item.popover ? (
-          <Popover
-            content={item.popover()}
-            trigger="click"
-            visible={item.visible}
-            onVisibleChange={(visible) => {
-              //   if (index === 5) {
-              //     return;
-              //   }
-              this.changeVisible(visible, index);
-            }}
-          >
-            {this.renderToolsIcon(item, index)}
-          </Popover>
-        ) : (
-          this.renderToolsIcon(item, index)
-        )}
-      </Tooltip>
+      <Tooltip title={item.title}>{this.renderPopover(item, index)}</Tooltip>
+    );
+  }
+  renderPopover(item, index) {
+    return item.popover ? (
+      <Popover
+        content={item.popover()}
+        trigger="click"
+        visible={item.visible}
+        onVisibleChange={(visible) => {
+          if (this.state.activeTab === "icon-toumingdu") {
+            return;
+          }
+          this.changeVisible(visible, index);
+        }}
+      >
+        {this.renderToolsIcon(item, index)}
+      </Popover>
+    ) : (
+      this.renderToolsIcon(item, index)
     );
   }
 
@@ -366,11 +411,27 @@ export default class scleTools extends PureComponent {
   // 工具栏 触发事件统一处理
   toolsClickHandle(item, index) {
     const newTools = this.state.tools;
+
     if (item.type === "eye") {
-      //
-      newTools[index].type = "eye";
-      window.setVisible(!newTools[index].pickObjectVisible);
-      newTools[index].pickObjectVisible = !newTools[index].pickObjectVisible;
+      this.isPickNull(() => {
+        newTools[index].type = "eye-invisible";
+        newTools[index].title = "隐藏";
+        window.setVisible(true);
+        newTools[index].pickObjectVisible = true;
+        if (this.sclAttrTree.setVisible) {
+          this.sclAttrTree.setVisible(true);
+        }
+      });
+    } else if (item.type === "eye-invisible") {
+      this.isPickNull(() => {
+        newTools[index].type = "eye";
+        newTools[index].title = "显示";
+        window.setVisible(false);
+        newTools[index].pickObjectVisible = false;
+        if (this.sclAttrTree.setVisible) {
+          this.sclAttrTree.setVisible(false);
+        }
+      });
     }
 
     if (item.type === "pause-circle" || item.type === "play-circle") {
@@ -379,14 +440,14 @@ export default class scleTools extends PureComponent {
 
     if (item.type === "fullscreen") {
       newTools[index] = { type: "fullscreen-exit", title: "退出全屏" };
-      console.log(this);
-      this.props.onFullScreen(true);
+      //   console.log(this);
+      //   this.props.onFullScreen(true);
       fullScreen();
       //   window.canvasOnResize();
     }
     if (item.type === "fullscreen-exit") {
       newTools[index] = { type: "fullscreen", title: "全屏" };
-      this.props.onFullScreen(false);
+      //   this.props.onFullScreen(false);
       exitFullscreen();
     }
 
@@ -398,8 +459,26 @@ export default class scleTools extends PureComponent {
     );
   }
 
+  fullScreenHandle(fullScreen) {
+    const icon = fullScreen ? "fullscreen-exit" : "fullscreen";
+    const newTools = this.state.tools;
+    const fullScreenIndex = this.#toolsKeyIndex.fullScreen;
+    newTools[fullScreenIndex].type = icon;
+    this.setState({ tools: [...newTools], activeTab: null });
+  }
+
   pickObjectParameters() {
-    console.log("pickObjectParameters");
+    const icon = window.pickObjectVisible ? "eye-invisible" : "eye";
+    const newTools = this.state.tools;
+    const { visible: visibleIndex, alphaIndex } = this.#toolsKeyIndex;
+    newTools[visibleIndex].type = icon;
+    newTools[visibleIndex].title = icon === "eye" ? "显示" : "隐藏";
+    newTools[alphaIndex].visible = false;
+    this.setState({
+      tools: [...newTools],
+      activeTab: null,
+      alpha: window.pickObjectTransparent,
+    });
   }
 
   //   停止播放
