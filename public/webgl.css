@@ -1,0 +1,25 @@
+/*
+    * 自定义修改scleView 大小及样式
+    *
+    */
+#scleView {
+	min-width: 80%;
+	height: 100%;
+	float: left;
+}
+.content {
+	display: inline-block;
+	width: 20%;
+	height: 100%;
+	padding: 20px;
+	overflow: auto;
+	word-break: break-all;
+}
+
+#scleView.mobile + .content {
+	width: 100%;
+}
+#scleView.mobile {
+	width: 100%;
+	height: 450px;
+}
