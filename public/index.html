@@ -3,7 +3,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;"
+			name="viewport"
+		/>
 		<meta name="theme-color" content="#000000" />
 		<meta
 			name="description"
@@ -11,14 +14,14 @@
 		/>
 		<link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
 		<link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-        <link rel="stylesheet" href="webgl.css" />
+		<link rel="stylesheet" href="webgl.css" />
 		<title>Scle Model</title>
 	</head>
 	<body>
 		<noscript>您需要启用JavaScript来运行这个应用程序。</noscript>
 		<div id="scleView"></div>
-        <div class="content">名称：CMOnline开发包，精彩内容可以自行配置！</div>
-			<!--
+		<div class="content">名称：CMOnline开发包，精彩内容可以自行配置！</div>
+		<!--
         <script type="text/javascript" src="./js/SCLELoader/ADFBaseDef.js"></script>
         <script type="text/javascript" src="./js/SCLELoader/ADFGeomDef.js"></script>
         <script type="text/javascript" src="./js/SCLELoader/ADFSceneDef.js"></script>
@@ -37,6 +40,48 @@
      -->
 	</body>
 </html>
+<!--  自定义修改 -->
+<script>
+	// 移动端设备
+	const mobile =
+		/(iPhone|iPad|iPod|iOS|Android|ipad)/i.test(navigator.userAgent) ||
+		(/(Macintosh)/i.test(navigator.userAgent) && 'ontouchend' in document)
+	if (mobile) {
+		// 自定义设置移动端样式
+		document.getElementById('scleView').className = 'mobile'
+	}
+
+	/**
+	 * 事件监听
+	 */
+	window.addEventListener('scleStreamReady', function () {
+		console.log('SCLE 准备就绪')
+	})
+
+	document.addEventListener('touchstart', function (event) {
+		if (event.touches.length > 1) {
+			event.preventDefault()
+		}
+	})
+
+	var lastTouchEnd = 0
+	document.addEventListener(
+		'touchend',
+		function (event) {
+			var now = new Date().getTime()
+			if (now - lastTouchEnd <= 300) {
+				event.preventDefault()
+			}
+			lastTouchEnd = now
+		},
+		false
+	)
+
+	document.addEventListener('gesturestart', function (event) {
+		event.preventDefault()
+	})
+</script>
+
 <!--  SCLE 解析脚本  -->
 <script type="text/javascript" src="./js/SCLELoader/ADFBaseDef.js"></script>
 <script type="text/javascript" src="./js/SCLELoader/ADFGeomDef.js"></script>
@@ -53,20 +98,3 @@
 <script type="text/javascript" src="./js/SCLERender/GLProgram.js"></script>
 <script type="text/javascript" src="./js/SCLERender/GLRunTime.js"></script>
 <script type="text/javascript" src="./js/SCLERender/EventAction.js"></script>
-<script>
-  // 移动端设备
-  const mobile =
-    /(iPhone|iPad|iPod|iOS|Android|ipad)/i.test(navigator.userAgent) ||
-    (/(Macintosh)/i.test(navigator.userAgent) && "ontouchend" in document);
-  if (mobile) {
-    // 自定义设置移动端样式
-    document.getElementById("scleView").className = "mobile";
-  }
-
-  /**
-   * 事件监听
-   */
-  window.addEventListener("scleStreamReady", function () {
-    console.log("SCLE 准备就绪");
-  });
-</script>
