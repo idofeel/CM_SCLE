@@ -5,8 +5,10 @@ import './index.css';
 // import reportWebVitals from './reportWebVitals';
 import Scle from './routes/scleView';
 
-// 兼容IE11 
 import "react-app-polyfill/ie11"
+import "react-app-polyfill/stable"
+
+// 兼容IE11 
 
 ReactDOM.render(
     <Scle />,
