@@ -1,0 +1,58 @@
+/*
+    * 自定义修改scleView 大小及样式
+    *
+    */
+#scleView {
+	/* 给SCLE设定宽高 */
+	min-width: 80%; 
+	height: 100%;
+	float: left;
+}
+.content {
+	/* display: inline-block; */
+	width: 20%;
+	height: 100%;
+	padding: 10px;
+	overflow: auto;
+	word-break: break-all;
+}
+
+#scleView.mobile + .content {
+    width: 100%;
+    height: auto;
+}
+#scleView.mobile {
+	width: 100%;
+	height: 450px;
+}
+
+
+
+.upload-group{
+    display: flex;
+}
+
+.upload-group .ant-upload{
+    margin-left: 10px;
+}
+
+.partListTable{
+    width: 100%;
+    text-align: center;
+}
+
+#sceneNode{
+    margin: 10px 0;
+    width: 200px;
+    line-height: 1.5;
+    border-bottom: 1px solid #d9d9d9;
+}
+
+#partListHeader > tr > th,#partList > tr > td {
+    padding:10px 5px;
+    text-align: center;
+}
+
+#partListHeader > tr > th:nth-child(1),#partListHeader > tr > th:nth-child(3){
+    width: 48px;
+}

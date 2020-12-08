@@ -352,9 +352,14 @@ export default class ScleAttrTree extends PureComponent {
   };
   //   ---------------------
   componentDidMount() {
-    window.addEventListener("scleStreamReady", this.loadTree.bind(this), {
-      passive: false,
-    });
+    if(window.g_GLData){
+        this.loadTree()
+    }else{
+        window.addEventListener("scleStreamReady", ()=>this.loadTree(), {
+            passive: false,
+        });
+    }
+
     window.addEventListener(
       "pickParams",
       this.pickObjectParameters.bind(this),

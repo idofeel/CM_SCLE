@@ -19,8 +19,10 @@ import {
 import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
 import './scleTools.less'
 
+
 const IconFont = Icon.createFromIconfontCN({
-	scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
+	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
+	scriptUrl: './js/localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
 
@@ -105,7 +107,8 @@ export default class scleTools extends PureComponent {
 		},
 		playPercent: 0,
 		alpha: 1,
-		drawerVisible: false
+        drawerVisible: false
+
 	}
 
 	totalFrames = 0
