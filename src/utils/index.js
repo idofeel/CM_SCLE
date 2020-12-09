@@ -2,7 +2,7 @@
 
 function scleCustomEvent(name, detail) {
 	const event = document.createEvent('CustomEvent')
-	event.initCustomEvent(name, true, true, { detail })
+	event.initCustomEvent(name, true, true, detail)
     window.dispatchEvent(event)
 }
 

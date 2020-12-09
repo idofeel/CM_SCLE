@@ -69,8 +69,8 @@
 			window.animTerminal()
 			return
 		}
-		window.g_nAnimationStart = data.Start
-		window.g_nAnimationEnd = data.End
+		window.g_nAnimationStart = data.Start * 1
+        window.g_nAnimationEnd = data.End * 1
 		window.animTerminal()
 		window.PlaySceneAnimation()
 	}

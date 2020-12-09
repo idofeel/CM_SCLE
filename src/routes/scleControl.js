@@ -10,12 +10,14 @@ class SCLE_CONTROLLER {
 	#g_loaded_pos = 0
 	NetTimeTimeID = null
 
-	constructor({ onProgress = () => {} }) {
-		this.updateProgress = onProgress
+	constructor(props = { onProgress: () => {} }) {
+		// this.updateProgress = props.onProgress || () => {}
 	}
 	getByRequest(url) {
 		this.g_sclehttp = new XMLHttpRequest()
-		this.g_sclehttp.addEventListener('progress', this.updateProgress, false)
+		this.g_sclehttp.addEventListener('progress', (evt) => {
+            scleCustomEvent('updateProgress', evt)
+        }, false)
 		this.g_sclehttp.addEventListener('load', this.transferComplete, false)
 		this.g_sclehttp.addEventListener('error', this.transferFailed, false)
 		this.g_sclehttp.addEventListener('abort', this.transferCanceled, false)
@@ -88,8 +90,8 @@ class SCLE_CONTROLLER {
 
 		// var event = document.createEvent('CustomEvent')
 		// event.initCustomEvent('scleStreamReady', true, true, { detail: {} })
-        // window.dispatchEvent(event)
-        scleCustomEvent('scleStreamReady')
+		// window.dispatchEvent(event)
+		scleCustomEvent('scleStreamReady')
 		// window.scleStreamReady && scleStreamReady();
 
 		window.setPickObjectParameters = function () {
@@ -102,7 +104,7 @@ class SCLE_CONTROLLER {
 	loadLocalFile(e) {
 		this.sclereader = new FileReader()
 		this.sclereader.readAsArrayBuffer(e.files[0])
-        const self = this;
+		const self = this
 		this.sclereader.onload = function () {
 			// 兼容写法
 			var new_zip = new JSZip()
@@ -122,35 +124,38 @@ class SCLE_CONTROLLER {
 					g_nCleBufferlength = g_arrayByteBuffer.byteLength
 
 					// 循环执行，每隔0.1秒钟执行一次
-					window.localTimeTimeID = window.setInterval(self.StartLoadSCLEFile.bind(self), 100)
+					window.localTimeTimeID = window.setInterval(
+						self.StartLoadSCLEFile.bind(self),
+						100
+					)
 				})
 			})
 		}
-    }
-    StartLoadSCLEFile() {
-        // 去掉定时器的方法
-        window.clearTimeout(window.localTimeTimeID); 
-                  
-        // 解析cle文件
-        var bResult = ParseCleStream();
-        if (bResult) {
-            // alert("An error occurred while transferring the file.");
-        }
-        // 清除缓存                        
-        // delete g_arrayCleBuffer;
-        g_arrayCleBuffer = null;
-        g_arrayByteBuffer = null;
+	}
+	StartLoadSCLEFile() {
+		// 去掉定时器的方法
+		window.clearTimeout(window.localTimeTimeID)
 
-        delete this.result;
-        this.result = null;
+		// 解析cle文件
+		var bResult = ParseCleStream()
+		if (bResult) {
+			// alert("An error occurred while transferring the file.");
+		}
+		// 清除缓存
+		// delete g_arrayCleBuffer;
+		g_arrayCleBuffer = null
+		g_arrayByteBuffer = null
 
-        delete this.sclereader;
-        this.sclereader = null;
+		delete this.result
+		this.result = null
 
-        // 绘制三维模型
-        startRender();			
-        scleCustomEvent('scleStreamReady')
-    }
+		delete this.sclereader
+		this.sclereader = null
+
+		// 绘制三维模型
+		startRender()
+		scleCustomEvent('scleStreamReady')
+	}
 }
 
 /**
@@ -255,8 +260,8 @@ function StarLoadNetCLEFile() {
 
 
 */
-
-export default SCLE_CONTROLLER
+window.Scle = new SCLE_CONTROLLER()
+export default window.Scle
 
 // export { getByRequest }
 
