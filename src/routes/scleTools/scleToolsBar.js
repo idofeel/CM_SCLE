@@ -8,7 +8,7 @@ import {
 	Tabs,
 	Tooltip
 } from 'antd'
-import { Component, PureComponent } from 'react'
+import { PureComponent } from 'react'
 import { ChromePicker } from 'react-color'
 import {
 	fullScreen,
@@ -18,7 +18,6 @@ import {
 } from '../../utils/Browser'
 import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
 import './scleTools.less'
-
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
@@ -107,8 +106,7 @@ export default class scleTools extends PureComponent {
 		},
 		playPercent: 0,
 		alpha: 1,
-        drawerVisible: false
-
+		drawerVisible: false
 	}
 
 	totalFrames = 0
@@ -123,7 +121,6 @@ export default class scleTools extends PureComponent {
 		// window.addEventListener("MSFullscreenChange", () =>
 		//   this.fullScreenHandle(document.msFullscreenElement != null)
 		// );
-
 		;[
 			'fullscreenchange',
 			'webkitfullscreenchange',
@@ -179,6 +176,7 @@ export default class scleTools extends PureComponent {
 			this.pickObjectParameters.bind(this),
 			{ passive: false }
 		)
+		this.setState = () => {}
 	}
 	//   scleStreamReady
 	scleStreamReady() {
@@ -568,29 +566,19 @@ export default class scleTools extends PureComponent {
 	}
 }
 
-class DivBox extends Component {
-	static defaultProps = {
-		up: {},
-		down: {},
-		left: {},
-		right: {},
-		forward: {},
-		back: {}
-	}
-	render() {
-		const { up, down, left, right, forward, back } = this.props
+function DivBox(props) {
+	const { up, down, left, right, forward, back } = props
 
-		return (
-			<Tooltip title={this.props.title}>
-				<div className="box" {...this.props}>
-					<div className="up" style={up}></div>
-					<div className="down" style={down}></div>
-					<div className="left" style={left}></div>
-					<div className="right" style={right}></div>
-					<div className="forward" style={forward}></div>
-					<div className="back" style={back}></div>
-				</div>
-			</Tooltip>
-		)
-	}
+	return (
+		<Tooltip title={props.title}>
+			<div className="box" {...props}>
+				<div className="up" style={up}></div>
+				<div className="down" style={down}></div>
+				<div className="left" style={left}></div>
+				<div className="right" style={right}></div>
+				<div className="forward" style={forward}></div>
+				<div className="back" style={back}></div>
+			</div>
+		</Tooltip>
+	)
 }

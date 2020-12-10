@@ -1,15 +1,16 @@
-import React, { PureComponent, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { message, Progress } from 'antd'
 import { queryString, scleCustomEvent } from '../utils'
-
-// import SCLE_CONTROLLER from './scleControl'
 import ScleToolsBar from './scleTools/scleToolsBar'
-import './scle.less'
 import { IsPhone } from '../utils/Browser'
+
+import  './scleControl'
+import './scle.less'
 
 const logo = require('../assets/images/downloadAppIcon.png')
 
 function ScleView() {
+
 	const [isFullScreen, setFullscreen] = useState(false)
 	const [loading, setLoading] = useState(true)
 	const [isHttp] = useState(window.location.origin.startsWith('http'))
@@ -83,37 +84,35 @@ function ScleView() {
 	}, [])
 
 	return (
-		<>
-			<div
-				className={isFullScreen ? 'fullScreen container' : 'container'}
-				ref={containerRef}
-			>
-				<>
-					<canvas id="glcanvas" width="800" height="600"></canvas>
-					<canvas id="text" width="800" height="600"></canvas>
-				</>
-				{loading ? (
-					<div className="scle_loading">
-						{isHttp ? (
-							<div className="scle_loadImg">
-								<img src={logo.default} alt="loading" />
-								<Progress
-									strokeColor={{
-										'0%': '#108ee9',
-										'100%': '#87d068'
-									}}
-									percent={percent}
-									status="active"
-								/>
-								<p>模型下载中...</p>
-							</div>
-						) : null}
-					</div>
-				) : (
-					<ScleToolsBar></ScleToolsBar>
-				)}
-			</div>
-		</>
+        <div
+            className={isFullScreen ? 'fullScreen container' : 'container'}
+            ref={containerRef}
+        >
+            <>
+                <canvas id="glcanvas" width="800" height="600"></canvas>
+                <canvas id="text" width="800" height="600"></canvas>
+            </>
+            {loading ? (
+                <div className="scle_loading">
+                    {isHttp ? (
+                        <div className="scle_loadImg">
+                            <img src={logo.default} alt="loading" />
+                            <Progress
+                                strokeColor={{
+                                    '0%': '#108ee9',
+                                    '100%': '#87d068'
+                                }}
+                                percent={percent}
+                                status="active"
+                            />
+                            <p>模型下载中...</p>
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <ScleToolsBar></ScleToolsBar>
+            )}
+        </div>
 	)
 }
 
