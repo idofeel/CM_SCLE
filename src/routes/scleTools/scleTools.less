@@ -11,10 +11,19 @@
 		padding: 10px 20px;
 		box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
 		border-radius: 10px;
-		.ant-tabs-bar {
+		.ant-tabs-nav {
 			border: none;
 			margin: 0;
 			text-align: center;
+			&::before {
+				border: none;
+			}
+		}
+		.ant-tabs-nav-list {
+            margin: 0 auto;
+            display: flex;
+            flex: 1 auto;
+            justify-content: center;
 		}
 		.ant-tabs-tab {
 			font-size: 1.2rem;
@@ -53,7 +62,7 @@
 }
 
 .progressSlider {
-	width: 300px;
+	// width: 300px;
 	margin: 0;
 	padding: 0;
 }
@@ -137,6 +146,20 @@
 		width: 220px;
 	}
 	.progressSlider {
-		width: 120px;
+		// width: 120px;
+	}
+}
+
+.ant-tabs-dropdown-menu {
+	background: hsla(0, 0%, 100%, 0.6);
+	.ant-tabs-dropdown-menu-item {
+		min-width: auto;
+		text-align: center;
+		span {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-right: 0;
+            vertical-align: middle;
+		}
 	}
 }

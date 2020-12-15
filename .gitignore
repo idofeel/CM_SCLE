@@ -2,7 +2,7 @@
 
 # dependencies
 /node_modules
-# /public/js
+/public/js
 # /public/Resource
 /public/ef59.scle
 

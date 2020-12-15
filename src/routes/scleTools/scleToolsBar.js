@@ -1,6 +1,6 @@
 import {
 	Drawer,
-	Icon,
+	// Icon,
 	message,
 	Popover,
 	Radio,
@@ -18,7 +18,7 @@ import {
 } from '../../utils/Browser'
 import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
 import './scleTools.less'
-
+import { Icon } from '@ant-design/compatible';
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
 	scriptUrl: './js/localiconfont/iconfont.js'
@@ -208,7 +208,7 @@ export default class scleTools extends PureComponent {
 					<Tabs
 						activeKey={this.state.activeTab}
 						tabPosition="bottom"
-						animated={false}
+                        animated={false}
 						onChange={(activeTab) => this.setState({ activeTab })}
 					>
 						{this.renderTools()}

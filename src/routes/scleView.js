@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { message, Progress } from 'antd'
 import { queryString, scleCustomEvent } from '../utils'
-// import ScleToolsBar from './scleTools/scleToolsBar'
+import ScleToolsBar from './scleTools/scleToolsBar'
 import { IsPhone } from '../utils/Browser'
-import ScleTools from './scleTools/ScleTools'
+// import ScleTools from './scleTools/ScleTools'
 
 import  './scleControl'
 import './scle.less'
@@ -111,7 +111,7 @@ function ScleView() {
                     ) : null}
                 </div>
             ) : (
-                <ScleTools/>
+                <ScleToolsBar/>
             )}
         </div>
 	)
