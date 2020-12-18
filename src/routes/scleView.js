@@ -1,20 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { message, Progress } from 'antd'
+import { message, Popover, Progress, Table } from 'antd'
 import { queryString, scleCustomEvent } from '../utils'
 import ScleToolsBar from './scleTools/scleToolsBar'
 import { IsPhone } from '../utils/Browser'
 
-import  './scleControl'
+import './scleControl'
 import './scle.less'
+import scleControl from './scleControl'
 
 const logo = require('../assets/images/downloadAppIcon.png')
 
 function ScleView() {
-
 	const [isFullScreen, setFullscreen] = useState(false)
 	const [loading, setLoading] = useState(true)
 	const [isHttp] = useState(window.location.origin.startsWith('http'))
 	const [percent, setPercent] = useState(0)
+	const [notation, setNotation] = useState({})
+	const [showTools, toggleTools] = useState(true)
+	const [coordinates, setCoords] = useState({
+		content: '',
+		x: 0,
+		y: 0
+	})
+
+	const [visible, setVisible] = useState(false)
 
 	const containerRef = useRef()
 
@@ -39,6 +48,40 @@ function ScleView() {
 				window.canvasOnResize()
 			})
 		})
+	}
+
+	scleControl.toggleTools = (bl) => toggleTools(bl)
+	scleControl.setTips = (options) => {
+		if (!options.objID) return
+		setNotation({ ...options, type: options.type || null })
+		const pos = window.getObjectsCenter(options.objID)[0]
+		// 设置提示数据
+		let top = pos.y,
+			left = pos.x
+
+		if (options.type === 'table') {
+			// 表格形式
+			top = 0
+			left = 0
+		} else if (options.type === 'lead') {
+			// 引线批注
+			top -= 85
+		}
+		// 设置批注样式
+		setCoords({
+			top,
+			left,
+			content: options.content
+		})
+		setVisible(true)
+	}
+
+	scleControl.refreshNotation = (parmas) => {
+		scleControl.setTips({ ...notation, ...parmas })
+	}
+
+	scleControl.setTipsVisible = (bl) => {
+		setVisible(bl)
 	}
 
 	const openScle = () => {
@@ -81,38 +124,84 @@ function ScleView() {
 			loadingChage(false)
 			addScleEvent()
 		})
+
+		window.addEventListener('resize', () => {
+			scleControl.refreshNotation()
+		})
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
+	const onVisibleChange = () => {
+		if (notation.type === 'table') {
+			// setNotation({
+			// 	type: null
+			// })
+		} else {
+			setVisible(false)
+		}
+	}
+
 	return (
-        <div
-            className={isFullScreen ? 'fullScreen container' : 'container'}
-            ref={containerRef}
-        >
-            <>
-                <canvas id="glcanvas" width="800" height="600"></canvas>
-                <canvas id="text" width="800" height="600"></canvas>
-            </>
-            {loading ? (
-                <div className="scle_loading">
-                    {isHttp ? (
-                        <div className="scle_loadImg">
-                            <img src={logo.default} alt="loading" />
-                            <Progress
-                                strokeColor={{
-                                    '0%': '#108ee9',
-                                    '100%': '#87d068'
-                                }}
-                                percent={percent}
-                                status="active"
-                            />
-                            <p>模型下载中...</p>
-                        </div>
-                    ) : null}
-                </div>
-            ) : (
-                <ScleToolsBar></ScleToolsBar>
-            )}
-        </div>
+		<div
+			className={isFullScreen ? 'fullScreen container' : 'container'}
+			ref={containerRef}
+		>
+			<>
+				<canvas id="glcanvas" width="800" height="600"></canvas>
+				<canvas id="text" width="800" height="600"></canvas>
+			</>
+			{loading ? (
+				<div className="scle_loading">
+					{isHttp ? (
+						<div className="scle_loadImg">
+							<img src={logo.default} alt="loading" />
+							<Progress
+								strokeColor={{
+									'0%': '#108ee9',
+									'100%': '#87d068'
+								}}
+								percent={percent}
+								status="active"
+							/>
+							<p>模型下载中...</p>
+						</div>
+					) : null}
+				</div>
+			) : (
+				showTools && <ScleToolsBar></ScleToolsBar>
+			)}
+			{visible && notation.type !== null && (
+				<Popover
+					content={coordinates.content}
+					title={null}
+					placement="top"
+					trigger="click"
+					visible={true}
+					overlayClassName={`scleViewPopver ${
+						notation.type === 'lead' ? 'hideArrow' : ''
+					}`}
+					onVisibleChange={onVisibleChange}
+				>
+					<div
+						className={`gltext ${
+							notation.type === 'lead' ? 'gltext2' : ''
+						}`}
+						style={{
+							top: coordinates.top,
+							left: coordinates.left
+						}}
+					></div>
+				</Popover>
+			)}
+
+			{notation.type === 'table' && (
+				<div className="gltext" style={notation.tableStyle}>
+					<Table {...notation} />
+				</div>
+			)}
+
+			{/* getobjectscenter */}
+		</div>
 	)
 }
 

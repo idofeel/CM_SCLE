@@ -18,6 +18,7 @@ import {
 } from '../../utils/Browser'
 import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
 import './scleTools.less'
+import { scleCustomEvent } from '../../utils'
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
@@ -135,8 +136,10 @@ export default class scleTools extends PureComponent {
 						!!document.msFullscreenElement
 				)
 			})
-		})
-
+        })
+        if(window.g_GLData){
+            this.scleStreamReady()
+        }
 		window.addEventListener(
 			'scleStreamReady',
 			this.scleStreamReady.bind(this),
@@ -161,8 +164,15 @@ export default class scleTools extends PureComponent {
 				this.setState({ activeTab: null, tools: [...newTools] })
 			},
 			{ passive: false }
-		)
-	}
+        )
+        
+		window.addEventListener('stopAnimation',() => {
+            // this.playerStop()
+            this.setState({
+                tools: [...this.#playerTools]
+            })
+        })
+    }
 	componentWillUnmount() {
 		window.removeEventListener(
 			'scleStreamReady',
@@ -303,6 +313,7 @@ export default class scleTools extends PureComponent {
 				tipFormatter={(e) => e + '%'}
 				onChange={(playPercent) => {
 					this.setState({ playPercent })
+                 
 					window.setCurFrame(this.totalFrames * (playPercent / 100))
 				}}
 			/>
@@ -417,7 +428,7 @@ export default class scleTools extends PureComponent {
 			newTools[index] = {
 				type: 'pause-circle',
 				title: '暂停'
-			}
+            }
 			window.setAnimationStart()
 		}
 		if (item.type === 'pause-circle') {
@@ -426,7 +437,8 @@ export default class scleTools extends PureComponent {
 				title: '播放'
 			}
 			window.animPause()
-		}
+        }
+        
 		this.setState({ tools: newTools })
 	}
 
@@ -505,6 +517,7 @@ export default class scleTools extends PureComponent {
 
 	//   停止播放
 	playerStop() {
+        scleCustomEvent('playerStop')
 		window.animTerminal()
 		this.setState({
 			tools: [...this.#tools]
