@@ -106,6 +106,8 @@ this.setObjectMatrixByIndex=function(index,matrix){if(index<0||index>=this.m_arr
 mat4.multiply(this.m_arrObjectMatrix[index],this.modelMatrix,matrix);}
 this.getObjectModelMatrix=function(nObjectIndex){if(nObjectIndex<0||nObjectIndex>=this.m_GLObjectSet._arrObjectSet.length){return mat4.create();}
 return this.m_arrObjectMatrix[nObjectIndex];}
+this.getObjectOriginMatrix=function(nObjectIndex){if(nObjectIndex<0||nObjectIndex>=this.m_GLObjectSet._arrObjectSet.length){return mat4.create();}
+this.m_GLObjectSet._arrObjectSet[nObjectIndex].GetAnimMatrix(this.uCurFrame,this.animMatrix);return this.animMatrix;}
 this.setObjectTransparent=function(){if(this.m_arrObjectTransparent.length==0){for(let i=0;i<this.m_GLObjectSet._arrObjectSet.length;i++){let tempTrans=this.m_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);if(tempTrans>-0.5){this.m_arrObjectTransparent.push(tempTrans);this.switchObjectTranList(i,tempTrans);}
 else{this.m_arrObjectTransparent.push(1.0);this.switchObjectTranList(i,1.0);}}}else{for(let i=0;i<this.m_GLObjectSet._arrObjectSet.length;i++){let tempTrans=this.m_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);if(tempTrans>-0.5){this.m_arrObjectTransparent[i]=tempTrans;}else{this.m_arrObjectTransparent[i]=1.0;}
 this.switchObjectTranList(i,this.m_arrObjectTransparent[i]);}}}

@@ -8,6 +8,7 @@
 			name="viewport"
 		/>
 		<meta name="theme-color" content="#000000" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,Chrome=1" />
 		<meta
 			name="description"
 			content="Web site created using create-react-app"
@@ -16,12 +17,13 @@
 		<link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 		<link rel="stylesheet" href="index.css" />
 		<title>Scle Model</title>
+		<script type="text/javascript" src="./index.js"></script>
 	</head>
 	<body>
 		<noscript>您需要启用JavaScript来运行这个应用程序。</noscript>
 		<div id="scleView"></div>
 		<div class="content">
-            <div class="upload-group">
+			<div class="upload-group">
 				<div
 					class="ant-upload ant-upload-select ant-upload-select-text"
 				>
@@ -85,15 +87,15 @@
 					>
 				</div>
 			</div>
-            <div>
-            	批注样式：
-                <select id="notationNode">
+			<div>
+				批注样式：
+				<select id="notationNode">
 					<option value="">请选择</option>
 					<option value="default">默认（无引线批注）</option>
 					<option value="lead">引线批注</option>
 					<option value="table">表格</option>
 				</select>
-            </div>
+			</div>
 			<div>
 				场景事件：
 				<select id="sceneNode">
@@ -134,48 +136,6 @@
      -->
 	</body>
 </html>
-<!--  自定义修改 -->
-<script>
-	// 移动端设备
-	const mobile =
-		/(iPhone|iPad|iPod|iOS|Android|ipad)/i.test(navigator.userAgent) ||
-		(/(Macintosh)/i.test(navigator.userAgent) && 'ontouchend' in document)
-	if (mobile) {
-		// 自定义设置移动端样式
-		document.getElementById('scleView').className = 'mobile'
-	}
-
-	/**
-	 * 事件监听
-	 */
-	window.addEventListener('scleStreamReady', function () {
-		console.log('SCLE 准备就绪')
-	})
-
-	document.addEventListener('touchstart', function (event) {
-		if (event.touches.length > 1) {
-			event.preventDefault()
-		}
-	})
-
-	var lastTouchEnd = 0
-	document.addEventListener(
-		'touchend',
-		function (event) {
-			var now = new Date().getTime()
-			if (now - lastTouchEnd <= 300) {
-				event.preventDefault()
-			}
-			lastTouchEnd = now
-		},
-		false
-	)
-
-	document.addEventListener('gesturestart', function (event) {
-		event.preventDefault()
-	})
-</script>
-
 <!--  SCLE 解析脚本  -->
 <script type="text/javascript" src="./js/SCLELoader/ADFBaseDef.js"></script>
 <script type="text/javascript" src="./js/SCLELoader/ADFGeomDef.js"></script>

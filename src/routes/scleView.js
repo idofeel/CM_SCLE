@@ -1,13 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { message, Popover, Progress, Table } from 'antd'
-import { queryString, scleCustomEvent } from '../utils'
+import { queryString } from '../utils'
 import ScleToolsBar from './scleTools/scleToolsBar'
 import { IsPhone } from '../utils/Browser'
-
-import './scleControl'
 import './scle.less'
 import scleControl from './scleControl'
-
 const logo = require('../assets/images/downloadAppIcon.png')
 
 function ScleView() {
@@ -50,38 +47,41 @@ function ScleView() {
 		})
 	}
 
-	scleControl.toggleTools = (bl) => toggleTools(bl)
-	scleControl.setTips = (options) => {
-		if (!options.objID) return
-		setNotation({ ...options, type: options.type || null })
-		const pos = window.getObjectsCenter(options.objID)[0]
-		// 设置提示数据
-		let top = pos.y,
-			left = pos.x
+	const addScleAPi = () => {
+		scleControl.toggleTools = (bl) => toggleTools(bl)
 
-		if (options.type === 'table') {
-			// 表格形式
-			top = 0
-			left = 0
-		} else if (options.type === 'lead') {
-			// 引线批注
-			top -= 85
+		scleControl.setTips = (options) => {
+			if (!options.objID) return
+			setNotation({ ...options, type: options.type || null })
+			const pos = window.getObjectsCenter(options.objID)[0]
+			// 设置提示数据
+			let top = pos.y,
+				left = pos.x
+
+			if (options.type === 'table') {
+				// 表格形式
+				top = 0
+				left = 0
+			} else if (options.type === 'lead') {
+				// 引线批注
+				top -= 85
+			}
+			// 设置批注样式
+			setCoords({
+				top,
+				left,
+				content: options.content
+			})
+			setVisible(true)
 		}
-		// 设置批注样式
-		setCoords({
-			top,
-			left,
-			content: options.content
-		})
-		setVisible(true)
-	}
 
-	scleControl.refreshNotation = (parmas) => {
-		scleControl.setTips({ ...notation, ...parmas })
-	}
+		scleControl.refreshNotation = (parmas) => {
+			scleControl.setTips({ ...notation, ...parmas })
+		}
 
-	scleControl.setTipsVisible = (bl) => {
-		setVisible(bl)
+		scleControl.setTipsVisible = (bl) => {
+			setVisible(bl)
+		}
 	}
 
 	const openScle = () => {
@@ -117,9 +117,13 @@ function ScleView() {
 	useEffect(() => {
 		window.addEventListener('updateProgress', onProgress)
 
-		scleCustomEvent('scleViewOnReady')
+		// scleCustomEvent('scleViewOnReady')
 
-		if (isHttp) openScle()
+		window.addEventListener('load', () => {
+            if (isHttp) openScle()
+            addScleAPi()
+		})
+
 		window.addEventListener('scleStreamReady', () => {
 			loadingChage(false)
 			addScleEvent()

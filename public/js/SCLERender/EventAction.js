@@ -2,7 +2,7 @@ const canvas=document.querySelector('#glcanvas');var gl=canvas.getContext('webgl
 if(!gl){gl=canvas.getContext('experimental-webgl');}
 isWebgl2=false;}
 var textCanvas=document.querySelector("#text");var gl2d=textCanvas.getContext("2d");var container=document.getElementsByClassName("container");var offsetLeft=container[0].offsetLeft;var offsetTop=container[0].offsetTop;var isPhone=false;var isPhoneMove=false;var glRunTime=new GLRunTime();var bgImage=["./Resource/Background/blue.jpg","./Resource/Background/white.jpg","./Resource/Background/grey.jpg",];var isLockCavans=false;var isShiftDown=false;var isKeyTap=false;var lastObjectIndex=-1;var objectIndex=-1;var pickObjectIndexs=null;var pickObjectVisible=false;var pickObjectTransparent=0.0;var pickObjectMaterial=null;var isMove=false;const ANIMRUN=0;const ANIMPAUSE=1;const ANIMEND=2;const ANIMTERMINAL=3;var animationClock=null;var animationStatus=ANIMTERMINAL;var uTotalFrame=0;var uCurFrame=0;var uSleepTime=30;var curDate=null;var lastTime=0;var isDigitalTwinMode=false;var initRenderFlag=false;function startRender(){if(!gl){return;}
-glRunTime.initRender();initRenderFlag=true;function render(){glRunTime.draw();requestAnimationFrame(render);}
+glRunTime.initRender();initRenderFlag=true;function render(){glRunTime.draw();Scle.refreshNotation();requestAnimationFrame(render);}
 requestAnimationFrame(render);addKeyboardListener();addMouseListener(textCanvas);document.addEventListener('DOMMouseScroll',fireFoxScollFun,false);window.onunload=addCloseListenser;}
 function addKeyboardListener(){document.addEventListener('keydown',onDocumentKeyDown,false);document.addEventListener('keyup',onDocumentKeyUp,false);}
 function onDocumentKeyDown(event){if(isLockCavans){return;}
