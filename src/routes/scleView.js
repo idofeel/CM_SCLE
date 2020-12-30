@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { message, Popover, Progress, Table } from 'antd'
 import { queryString } from '../utils'
 import ScleToolsBar from './scleTools/scleToolsBar'
+// import ScleTools from './scleTools'
 import { IsPhone } from '../utils/Browser'
 import './scle.less'
 import scleControl from './scleControl'
@@ -120,8 +121,8 @@ function ScleView() {
 		// scleCustomEvent('scleViewOnReady')
 
 		window.addEventListener('load', () => {
-            if (isHttp) openScle()
-            addScleAPi()
+			if (isHttp) openScle()
+			addScleAPi()
 		})
 
 		window.addEventListener('scleStreamReady', () => {
@@ -172,7 +173,9 @@ function ScleView() {
 					) : null}
 				</div>
 			) : (
-				showTools && <ScleToolsBar></ScleToolsBar>
+                showTools && <ScleToolsBar></ScleToolsBar>
+                // showTools && <ScleTools></ScleTools>
+                
 			)}
 			{visible && notation.type !== null && (
 				<Popover

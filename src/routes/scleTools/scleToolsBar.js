@@ -39,8 +39,8 @@ export default class scleTools extends PureComponent {
 		{ type: 'home', title: '复位', onClick: () => window.setHome() },
 		{
 			type: 'drag',
-			title: '移动零件',
-			onClick: () => this.isPickNull(() => window.moveModel())
+			title: '移动零件'
+			// onClick: () => this.isPickNull(() => window.moveModel())
 		},
 		{
 			type: 'apartment',
@@ -109,7 +109,7 @@ export default class scleTools extends PureComponent {
 		alpha: 1,
 		drawerVisible: false
 	}
-
+	isMove = false
 	totalFrames = 0
 
 	componentDidMount() {
@@ -136,10 +136,10 @@ export default class scleTools extends PureComponent {
 						!!document.msFullscreenElement
 				)
 			})
-        })
-        if(window.g_GLData){
-            this.scleStreamReady()
-        }
+		})
+		if (window.g_GLData) {
+			this.scleStreamReady()
+		}
 		window.addEventListener(
 			'scleStreamReady',
 			this.scleStreamReady.bind(this),
@@ -164,15 +164,15 @@ export default class scleTools extends PureComponent {
 				this.setState({ activeTab: null, tools: [...newTools] })
 			},
 			{ passive: false }
-        )
-        
-		window.addEventListener('stopAnimation',() => {
-            // this.playerStop()
-            this.setState({
-                tools: [...this.#playerTools]
-            })
-        })
-    }
+		)
+
+		window.addEventListener('stopAnimation', () => {
+			// this.playerStop()
+			this.setState({
+				tools: [...this.#playerTools]
+			})
+		})
+	}
 	componentWillUnmount() {
 		window.removeEventListener(
 			'scleStreamReady',
@@ -313,7 +313,7 @@ export default class scleTools extends PureComponent {
 				tipFormatter={(e) => e + '%'}
 				onChange={(playPercent) => {
 					this.setState({ playPercent })
-                 
+
 					window.setCurFrame(this.totalFrames * (playPercent / 100))
 				}}
 			/>
@@ -428,7 +428,7 @@ export default class scleTools extends PureComponent {
 			newTools[index] = {
 				type: 'pause-circle',
 				title: '暂停'
-            }
+			}
 			window.setAnimationStart()
 		}
 		if (item.type === 'pause-circle') {
@@ -437,8 +437,8 @@ export default class scleTools extends PureComponent {
 				title: '播放'
 			}
 			window.animPause()
-        }
-        
+		}
+
 		this.setState({ tools: newTools })
 	}
 
@@ -485,12 +485,39 @@ export default class scleTools extends PureComponent {
 			exitFullscreen()
 		}
 
+		
 		this.setState(
 			{
 				tools: [...newTools]
 			},
-			() => item.onClick && item.onClick()
+			() => {
+                item.onClick && item.onClick()
+                if (item.type === 'drag') {
+                    // onClick: () => this.isPickNull(() => window.moveModel())
+                    if (this.state.activeTab && this.isMove) {
+                        this.setState({
+                            activeTab: null
+                        })
+                        this.moveHandle()
+                    } else {
+                        this.isPickNull(() => {
+                            this.moveHandle()
+                        })
+                    }
+                } else {
+                    if (this.isMove) {
+                        this.moveHandle()
+                    }
+                }
+        console.log(this.isMove);
+
+            }
 		)
+	}
+
+	moveHandle() {
+        window.moveModel()
+        this.isMove = !this.isMove
 	}
 
 	fullScreenHandle(fullScreen) {
@@ -510,14 +537,14 @@ export default class scleTools extends PureComponent {
 		newTools[alphaIndex].visible = false
 		this.setState({
 			tools: [...newTools],
-			activeTab: null,
+			// activeTab: null,
 			alpha: window.pickObjectTransparent
 		})
 	}
 
 	//   停止播放
 	playerStop() {
-        scleCustomEvent('playerStop')
+		scleCustomEvent('playerStop')
 		window.animTerminal()
 		this.setState({
 			tools: [...this.#tools]

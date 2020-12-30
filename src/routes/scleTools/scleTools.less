@@ -19,13 +19,25 @@
 		.ant-tabs-tab {
 			font-size: 1.2rem;
 			text-align: center;
-			padding: 0 16px;
+			margin: 0 32px;
+			padding: 0;
 			margin-right: 0;
 			.anticon {
 				margin: 0;
 			}
+			&:hover {
+				color: rgba(0, 0, 0, 0.65);
+			}
+			// &:active{
+			//     color:#1890ff;
+			// }
 		}
-
+		.ant-tabs-tab-active {
+			color: #1890ff;
+			&:hover {
+				color: #1890ff;
+			}
+		}
 		.ant-tabs-ink-bar {
 			display: none !important;
 		}
