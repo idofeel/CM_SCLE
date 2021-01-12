@@ -188,6 +188,8 @@ export default class ScleAttrTree extends PureComponent {
   setVisible(visible) {
     let { treeNodeCheckedKeys } = this.state;
 
+
+    if( window.pickObjectIndexs === null) {return }
     const visibleKeys = this.setTreeVisible(
       this.state.treeData,
       window.pickObjectIndexs,

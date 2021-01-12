@@ -510,11 +510,16 @@ export default class scleTools extends PureComponent {
                         })
                     }
                 } else {
-                    if (this.isMove) {
+                    if (this.isMove && !item.type.startsWith('eye')) {
                         this.moveHandle()
                     }
+                    if(item.type.startsWith('eye') && this.isMove){
+                        this.setState({
+                            activeTab: 'drag'
+                        })
+                    }
                 }
-        console.log(this.isMove);
+        // console.log(this.isMove);
 
             }
 		)
