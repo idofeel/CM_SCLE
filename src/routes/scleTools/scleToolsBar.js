@@ -48,7 +48,7 @@ export default class scleTools extends PureComponent {
 			onClick: () => this.drawerToggle()
 		},
 		{ type: 'eye-invisible', title: '隐藏' },
-		{ type: 'bg-colors', title: '颜色', popover: () => this.renderColor() },
+		{ type: 'bg-colors', resetTheme:true, title: '颜色', popover: () => this.renderColor() },
 		{
 			type: 'icon-toumingdu',
 			title: '透明度',
@@ -275,7 +275,12 @@ export default class scleTools extends PureComponent {
 					) {
 						return
 					}
-					this.changeVisible(visible, index)
+                    this.changeVisible(visible, index)
+                    if(!visible && item.resetTheme){
+                        this.setState({
+                          activeTab:null
+                        })
+                    }
 				}}
 			>
 				{this.renderToolsIcon(item, index)}

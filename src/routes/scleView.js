@@ -120,10 +120,10 @@ function ScleView() {
 
 		// scleCustomEvent('scleViewOnReady')
 
-		window.addEventListener('load', () => {
+		// window.addEventListener('load', () => {
 			if (isHttp) openScle()
 			addScleAPi()
-		})
+		// })
 
 		window.addEventListener('scleStreamReady', () => {
 			loadingChage(false)
