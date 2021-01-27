@@ -16,6 +16,130 @@
 		// 打开本地scle文件
 		ScleView.loadLocalFile(e.target)
 	}
+
+	function createSceneNodes(optNode) {
+		// 增加场景事件
+		if (optNode && optNode.length) {
+			sceneNode.innerHTML = '<option>请选择</option>'
+			for (var i = 0; i < optNode.length; i++) {
+				var opt = document.createElement('option')
+				opt.innerText = optNode[i].Name
+				opt.attrData = optNode[i]
+				sceneNode.appendChild(opt)
+			}
+
+			var reset = document.createElement('option')
+			reset.innerText = '复原'
+			sceneNode.appendChild(reset)
+		}
+	}
+
+	function createPartListNodes(partData) {
+		// 渲染part数据
+		partList.innerHTML = ''
+		for (var j = 0; j < partData.length; j++) {
+			// 创建行
+			var tr = document.createElement('tr')
+			tr.attrData = partData[j]
+
+			// 创建序号
+			var order = document.createElement('td')
+			order.innerText = j
+			tr.appendChild(order)
+			// 创建名称
+			var name = document.createElement('td')
+			name.innerText = partData[j].Name
+			tr.appendChild(name)
+			// 创建数量
+			var count = document.createElement('td')
+			count.innerText = partData[j].Count
+			tr.appendChild(count)
+
+			tr.onclick = function () {
+				if (!window.g_GLData) return
+				const data = this.attrData.objID.split(';')
+				window.setObjectsHighlight(data)
+
+				/**
+				 *
+				 * @parma type  String  default | lead | table
+				 * setTips(objectId, type)
+				 */
+
+				ScleView.setTips({
+					objID: this.attrData.objID.split(';'), // 批注id
+					content: this.attrData.Name, // 批注内容 default | lead 时有效
+					type: notationNode.value, // 控制批注显示样式  default | lead | table
+					columns: [
+						// 批注表头
+						{
+							title: '序号',
+							dataIndex: 'index',
+							key: 'index',
+							width: 60,
+							align: 'center'
+						},
+						{
+							title: '名称',
+							dataIndex: 'Name',
+							key: 'Name',
+							ellipsis: true,
+							align: 'center'
+						},
+						{
+							title: '数量',
+							dataIndex: 'Count',
+							key: 'Count',
+							width: 60,
+							align: 'center'
+						}
+					],
+					dataSource: [
+						// 批注表格数据
+						{
+							index: 1,
+							Name: this.attrData.Name,
+							Count: this.attrData.Count
+						},
+						{
+							index: 2,
+							Name: this.attrData.Name,
+							Count: this.attrData.Count
+						}
+					],
+					tableStyle: {
+						// 批注表格样式大小及位置
+						left: 0,
+						bottom: 0,
+						width: 300,
+						margin: 20,
+						'z-index': 1002
+					},
+
+					size: 'small',
+					tableLayout: 'fixed',
+					ellipsis: true,
+					pagination: false // 是否启用分页器
+				})
+			}
+			// 渲染行
+			partList.appendChild(tr)
+		}
+	}
+
+	function createScleInfo(data) {
+		try {
+			createSceneNodes(data.Scene.Node)
+		} catch (error) {
+            console.log('未获取到场景信息');
+        }
+        try {
+			createPartListNodes(data.PartList.Part)
+		} catch (error) {
+            console.log('未获取到列表数据');
+        }
+	}
+
 	// 读取XML 文件
 	scleXMLFile.onchange = function (e) {
 		if (!e.target.files[0]) return
@@ -24,93 +148,7 @@
 		reader.readAsText(e.target.files[0])
 		reader.onloadend = function () {
 			var data = xml2json(this.result).Root
-
-			// 增加场景事件
-			sceneNode.innerHTML = '<option>请选择</option>'
-			var optNode = data.Scene.Node
-            var partData = data.PartList.Part
-            
-			for (var i = 0; i < optNode.length; i++) {
-				var opt = document.createElement('option')
-				opt.innerText = optNode[i].Name
-				opt.attrData = optNode[i]
-				sceneNode.appendChild(opt)
-            }
-            
-            var reset = document.createElement('option')
-            reset.innerText = '复原'
-            sceneNode.appendChild(reset)
-
-			// 渲染part数据
-			partList.innerHTML = ''
-			for (var j = 0; j < partData.length; j++) {
-				// 创建行
-				var tr = document.createElement('tr')
-				tr.attrData = partData[j]
-
-				// 创建序号
-				var order = document.createElement('td')
-				order.innerText = j
-				tr.appendChild(order)
-				// 创建名称
-				var name = document.createElement('td')
-				name.innerText = partData[j].Name
-				tr.appendChild(name)
-				// 创建数量
-				var count = document.createElement('td')
-				count.innerText = partData[j].Count
-				tr.appendChild(count)
-
-				tr.onclick = function () {
-					if (!window.g_GLData) return
-					const data = this.attrData.objID.split(';')
-					window.setObjectsHighlight(data)
-
-					/**
-					 *
-					 * @parma type  String  default | lead | table
-					 * setTips(objectId, type)
-					 */
-
-					ScleView.setTips({
-						objID: this.attrData.objID.split(';'), // 批注id
-						content: this.attrData.Name, // 批注内容 default | lead 时有效
-						type: notationNode.value, // 控制批注显示样式  default | lead | table
-						columns: [ // 批注表头
-							{ title: '序号', dataIndex: 'index', key: 'index', width: 60 , align:'center'},
-							{ title: '名称', dataIndex: 'Name', key: 'Name',ellipsis:true, align:'center' },
-							{ title: '数量', dataIndex: 'Count', key: 'Count', width: 60 , align:'center'}
-                        ], 
-                        dataSource: [ // 批注表格数据
-							{
-								index: 1,
-								Name: this.attrData.Name,
-								Count: this.attrData.Count
-                            },
-                            {
-								index: 2,
-								Name: this.attrData.Name,
-								Count: this.attrData.Count
-							}
-						], 
-						tableStyle: {
-							// 批注表格样式大小及位置
-							left: 0,
-							bottom: 0,
-                            width: 300,
-                            margin: 20,
-                            'z-index':1002
-                        },
-                       
-                        size: 'small',
-                        tableLayout: 'fixed',
-                        ellipsis:true,
-                        pagination: false // 是否启用分页器
-					})
-				}
-				// 渲染行
-				partList.appendChild(tr)
-			}
+			createScleInfo(data)
 		}
 	}
 
@@ -126,19 +164,22 @@
 		// event.initCustomEvent('stopAnimation', true, true, {})
 		// window.dispatchEvent(event)
 		var el = e.target
-        console.log("🚀 ~ file: local.js ~ line 124 ~  e.target",  e.target.value)
+		console.log(
+			'🚀 ~ file: local.js ~ line 124 ~  e.target',
+			e.target.value
+		)
 		var data = el[el.selectedIndex].attrData
 		if (!window.g_GLData || !data) {
-        window.animTerminal()
-        // 切换
-        ScleView.toggleTools(true) 
+			window.animTerminal()
+			// 切换
+			ScleView.toggleTools(true)
 			return
 		}
 		window.g_nAnimationStart = data.Start * 1
 		window.g_nAnimationEnd = data.End * 1
 		window.animTerminal()
-        window.PlaySceneAnimation()
-        ScleView.toggleTools(false)
+		window.PlaySceneAnimation()
+		ScleView.toggleTools(false)
 	}
 	// window.addEventListener('playerStop', () => {
 	// 	console.log(

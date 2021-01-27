@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { message, Popover, Progress, Table } from 'antd'
-import { queryString } from '../utils'
-import ScleToolsBar from './scleTools/scleToolsBar'
-// import ScleTools from './scleTools'
+import { get, queryString } from '../utils'
+// import ScleToolsBar from "./scleTools/scleToolsBar";
+import ScleToolsBar from './scleTools'
+// import API from "../services/API";
 import { IsPhone } from '../utils/Browser'
-import './scle.less'
 import scleControl from './scleControl'
-const logo = require('../assets/images/downloadAppIcon.png')
+import './scle.less'
+// .default
+const logo = require('../assets/images/downloadAppIcon.png').default
+
+const API = {}
 
 function ScleView() {
 	const [isFullScreen, setFullscreen] = useState(false)
@@ -22,6 +26,12 @@ function ScleView() {
 	})
 
 	const [visible, setVisible] = useState(false)
+	const downloadMsg = [
+		'模型下载中...',
+		'模型打开中,请稍等...',
+		'模型下载失败'
+	]
+	const [msgCode, setMsgCode] = useState(0)
 
 	const containerRef = useRef()
 
@@ -50,7 +60,6 @@ function ScleView() {
 
 	const addScleAPi = () => {
 		scleControl.toggleTools = (bl) => toggleTools(bl)
-
 		scleControl.setTips = (options) => {
 			if (!options.objID) return
 			setNotation({ ...options, type: options.type || null })
@@ -86,14 +95,40 @@ function ScleView() {
 	}
 
 	const openScle = () => {
-		const { title, link } = queryString(window.location.href)
+		let { title, link, pid, lic } = queryString(window.location.href)
 		document.title = title || '三维模型'
+		if (pid) {
+			return openNetSCle(pid, lic)
+		}
 		if (link) {
-			window.g_strResbaseUrl = link.replace(/(.scle|.zip)$/, '/')
+			window.g_strResbaseUrl = link.replace(/(.scle|.zip|.cle)$/, '/')
 			window.Scle.getByRequest(link)
 			return
 		} else {
 			message.warning('请输入正确的链接')
+		}
+	}
+
+	const openNetSCle = async function (pid, lic) {
+		let files
+		try {
+			files = await get(API.fileInfo.cle, { pid, lic })
+		} catch (error) {
+			console.log(error)
+		}
+
+		if (files.success) {
+			let { cle } = files.data
+			window.g_strResbaseUrl = cle.replace(/(.cle)$/, '/')
+			// // getByRequest(cle.replace(/(.cle)$/, '.scle'))
+			// getByRequest('../../src/assets/68b0.scle')
+			// canvasOnResize()
+			//   window.Scle.getByRequest(cle.replace(/(.cle)$/, '.scle'))
+			//
+			window.Scle.getByRequest('../../src/assets/68b0.scle')
+			// console.log('openCle', window.g_strResbaseUrl, cle.replace(/(.cle)$/, '.scle'));
+		} else {
+			message.error(files.faildesc)
 		}
 	}
 
@@ -105,8 +140,13 @@ function ScleView() {
 			setPercent(Math.floor(percentComplete * 100))
 
 			if (percentComplete === 1) {
+				setMsgCode(1)
 				loadingChage(false)
 			}
+		}
+
+		if (evt.target.status === 404) {
+			setMsgCode(2)
 		}
 	}
 
@@ -117,12 +157,12 @@ function ScleView() {
 
 	useEffect(() => {
 		window.addEventListener('updateProgress', onProgress)
-
+		window.addEventListener('transferFailed', () => setMsgCode(2))
 		// scleCustomEvent('scleViewOnReady')
 
 		// window.addEventListener('load', () => {
-			if (isHttp) openScle()
-			addScleAPi()
+		if (isHttp) openScle()
+		addScleAPi()
 		// })
 
 		window.addEventListener('scleStreamReady', () => {
@@ -159,7 +199,7 @@ function ScleView() {
 				<div className="scle_loading">
 					{isHttp ? (
 						<div className="scle_loadImg">
-							<img src={logo.default} alt="loading" />
+							<img src={logo} alt="loading" />
 							<Progress
 								strokeColor={{
 									'0%': '#108ee9',
@@ -168,14 +208,13 @@ function ScleView() {
 								percent={percent}
 								status="active"
 							/>
-							<p>模型下载中...</p>
+							<p>{downloadMsg[msgCode]}</p>
 						</div>
 					) : null}
 				</div>
 			) : (
-                showTools && <ScleToolsBar></ScleToolsBar>
-                // showTools && <ScleTools></ScleTools>
-                
+				showTools && <ScleToolsBar></ScleToolsBar>
+				// showTools && <ScleTools></ScleTools>
 			)}
 			{visible && notation.type !== null && (
 				<Popover

@@ -2,6 +2,7 @@ import {
 	Drawer,
 	Icon,
 	message,
+    notification,
 	Popover,
 	Radio,
 	Slider,
@@ -22,7 +23,7 @@ import { scleCustomEvent } from '../../utils'
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
-	scriptUrl: './js/localiconfont/iconfont.js'
+	scriptUrl: './js_min/localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
 
@@ -44,11 +45,11 @@ export default class scleTools extends PureComponent {
 		},
 		{
 			type: 'apartment',
-			title: '属性',
+			title: '模型树',
 			onClick: () => this.drawerToggle()
 		},
 		{ type: 'eye-invisible', title: '隐藏' },
-		{ type: 'bg-colors', resetTheme:true, title: '颜色', popover: () => this.renderColor() },
+		{ type: 'bg-colors',resetTheme:true, title: '颜色', popover: () => this.renderColor() },
 		{
 			type: 'icon-toumingdu',
 			title: '透明度',
@@ -201,7 +202,8 @@ export default class scleTools extends PureComponent {
 				<Drawer
 					title={null}
 					closable={false}
-					mask={true}
+                    mask={false}
+                    maskClosable={false}
 					placement="left"
 					width="auto"
 					visible={this.state.drawerVisible}
@@ -230,7 +232,8 @@ export default class scleTools extends PureComponent {
 
 	drawerToggle() {
 		this.setState({
-			drawerVisible: !this.state.drawerVisible
+            drawerVisible: !this.state.drawerVisible,
+            activeTab: !this.state.drawerVisible ?  this.state.activeTab: null
 		})
 	}
 	hideDrawer() {
@@ -449,6 +452,7 @@ export default class scleTools extends PureComponent {
 
 	// 工具栏 触发事件统一处理
 	toolsClickHandle(item, index) {
+        console.log(item);
 		const newTools = this.state.tools
 
 		if (item.type === 'eye') {
@@ -500,6 +504,7 @@ export default class scleTools extends PureComponent {
                 if (item.type === 'drag') {
                     // onClick: () => this.isPickNull(() => window.moveModel())
                     if (this.state.activeTab && this.isMove) {
+                      
                         this.setState({
                             activeTab: null
                         })
@@ -507,6 +512,13 @@ export default class scleTools extends PureComponent {
                     } else {
                         this.isPickNull(() => {
                             this.moveHandle()
+                            if(!IsPhone()){
+                                notification.info({
+                                    message:'移动操作',
+                                    description: '使用Ctrl+鼠标左键，移动模型。',
+                                    duration: 3,
+                                })
+                            }
                         })
                     }
                 } else {
@@ -519,6 +531,9 @@ export default class scleTools extends PureComponent {
                         })
                     }
                 }
+                
+                
+
         // console.log(this.isMove);
 
             }

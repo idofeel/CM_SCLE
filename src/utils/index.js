@@ -55,11 +55,15 @@ const replaceState = (urlSearch, payload) => {
 	window.history.replaceState({}, '0', joinUrlEncoded(param[0], parmas))
 }
 
+
+const get = ()=>{}
+
 export {
 	joinUrlEncoded,
 	parseUrl,
 	urlEncoded,
 	queryString,
 	replaceState,
-	scleCustomEvent
+    scleCustomEvent,
+    get,
 }

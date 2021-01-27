@@ -1,22 +1,44 @@
-  .scleAttrTree {
-    @alphaBg: rgba(255, 255, 255, 0.6);
-    text-align: center;
-    // width: 320px;
+.scleAttrTree {
+	@alphaBg: rgba(255, 255, 255, 0.6);
+	text-align: center;
+	// width: 320px;
 
-    .ant-tabs-content {
-      text-align: left;
-    }
+	.ant-tabs-content {
+		text-align: left;
+	}
 
-    .ant-tree {
-      overflow-x: auto;
-      width: 99%;
-    }
+	.ant-tree {
+		overflow-x: auto;
+		width: 99%;
+		.ant-tree-node-content-wrapper {
+			line-height: 1;
+			height: auto;
+			line-height: normal;
+			padding: 0;
+			&:hover {
+				background: transparent;
+			}
+			&.ant-tree-node-selected {
+				padding: 0;
+			}
+		}
+		.ant-tree-title > span {
+			padding: 2px 4px;
+			border-radius: 4px;
+			&:hover {
+				background: #e6f7ff;
+			}
+		}
+		.tree_selected {
+			background: #bae7ff;
+		}
+	}
 
-    .ant-tabs-nav-wrap {
-    }
-  }
-  .attrTable{
-    .ant-table-thead > tr > th{
-        background:transparent;
-    }   
-  }
+	.ant-tabs-nav-wrap {
+	}
+}
+.attrTable {
+	.ant-table-thead > tr > th {
+		background: transparent;
+	}
+}
