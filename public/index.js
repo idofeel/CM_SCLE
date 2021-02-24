@@ -128,6 +128,7 @@
 			// 绘制三维模型
 			window.startRender()
 			scleCustomEvent('scleStreamReady')
+			scleCustomEvent('onScleReady')
 			window.setPickObjectParameters = function () {
 				scleCustomEvent('pickParams')
 			}
