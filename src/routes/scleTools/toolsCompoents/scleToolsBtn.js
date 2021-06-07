@@ -358,7 +358,7 @@ function DivBox(props) {
   );
 }
 
-function isPickNull(cb = () => {}) {
+function isPickNull(cb = () => { }) {
   return window.getPickStatus() < 1 ? message.info("需先选中模型") : cb();
 }
 

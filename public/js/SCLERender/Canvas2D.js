@@ -8,13 +8,13 @@
 
 const FONT_DEFAULT_ANNOT = "20px 微软雅黑";
 const FONT_DEFAULT_PROPE = "10px 微软雅黑";
-const FILL_STYLE_DEFAULT = "#000000";
-const FILL_STYLE_HIGHLIGHT = "#ff0000";
-const FILL_STYLE_PROPE_RECT = "#fff8dc";
-const STROKE_SRTLE_DEFAULT = "#000000";
-const STROKE_SRTLE_HIGHLIGHT = "#ff0000";
-const STROKE_SRTLE_WHITE = "#ffffff";
 const FONT_DEFAULT_COPY = "14px 微软雅黑";
+const FILL_STYLE_PROPE_RECT = "#fff8dc";
+const FILL_STYLE_SELE_RECT = "rgba(0,128,200,0.5)";
+const STYLE_DEFAULT = "#000000";
+const STYLE_HIGHLIGHT = "#ff0000";
+const STYLE_WHITE = "#ffffff";
+const DOT_RIDUS = 3;
 
 function Canvas2D() {
 
@@ -42,7 +42,7 @@ function Canvas2D() {
     this.annotTextHeight = 0;           // 注释文字总高度，临时变量
     this.isOutWindow = false;           // 注释文字是否超出界限，临时变量
 
-    this.commentId = 1000000;
+    this.commentId = 100000;
     this.m_arrUsrComment = new Array();
     this.m_arrIsUsrCommentDel = new Array();
 
@@ -96,8 +96,6 @@ function Canvas2D() {
      * 绘制注释数据
      */
      this.drawAnnotation2D = function() {
-        // Clear the 2D canvas
-        gl2d.clearRect(0, 0, gl2d.canvas.width, gl2d.canvas.height);
         mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.modelMatrix);
         for (let i = 0; i < g_GLAnnoSet._arrComment.length; i++) {
             // 判断显隐性
@@ -107,12 +105,12 @@ function Canvas2D() {
             // 判断是否被拾取
             if (this.m_arrPickAnnotIndexs[i]) {
                 gl2d.font = FONT_DEFAULT_ANNOT;
-                gl2d.fillStyle = FILL_STYLE_HIGHLIGHT;
-                gl2d.strokeStyle = STROKE_SRTLE_HIGHLIGHT;
+                gl2d.fillStyle = STYLE_HIGHLIGHT;
+                gl2d.strokeStyle = STYLE_HIGHLIGHT;
             } else {
                 gl2d.font = FONT_DEFAULT_ANNOT;
-                gl2d.fillStyle = FILL_STYLE_DEFAULT;
-                gl2d.strokeStyle = STROKE_SRTLE_DEFAULT;
+                gl2d.fillStyle = STYLE_DEFAULT;
+                gl2d.strokeStyle = STYLE_DEFAULT;
             }
 
             // 绘制注释数据
@@ -123,29 +121,6 @@ function Canvas2D() {
                 this.drawAnnoProperty(this.m_arrAnnotRect[i], g_GLAnnoSet._arrComment[i].stuProperty);
             }
         }
-    }
-
-    this.cvtWorldToScreen = function(wldPos_x, wldPos_y, wldPos_z, transMat, screenPt) {
-        CalTranslatePoint(wldPos_x, wldPos_y, wldPos_z, transMat, this.RealPoint1);
-        screenPt.x = (this.RealPoint1.x + 1.0) * this.windowWidth / 2;
-        screenPt.y = (1.0 - this.RealPoint1.y) * this.windowHeight / 2;
-    }
-
-    this.adapterLocalToScreen = function(local_x, local_y, screenPt) {
-        let tmp_x = local_x + this.windowWidth/this.windowHeight;
-        screenPt.x = tmp_x * this.windowHeight / 2;
-        if (screenPt.x < 0) {
-            screenPt.x = 0;
-        }
-        if (screenPt.x > this.windowWidth) {
-            screenPt.x = this.windowWidth;
-        }
-        screenPt.y = this.windowHeight - (local_y + 1.0) * this.windowHeight / 2;
-    }
-
-    this.adapterScreenToLocal = function(screen_x, screen_y, local) {
-        local.x = (screen_x * 2 / this.windowHeight) - this.windowWidth / this.windowHeight;
-        local.y = (this.windowHeight - screen_y) * 2 / this.windowHeight - 1.0;
     }
 
     this.drawAnnoData = function(annoRect, annotation) {
@@ -190,7 +165,7 @@ function Canvas2D() {
         gl2d.fillRect(this.RealPoint3.x, this.RealPoint3.y, this.annotPropRectWidth, this.annotPropRectHeight);
         gl2d.font = FONT_DEFAULT_PROPE;
         // 绘制文本信息
-        gl2d.fillStyle = FILL_STYLE_DEFAULT;
+        gl2d.fillStyle = STYLE_DEFAULT;
         this.RealPoint3.y += this.annotPropTextFont + this.annotPropTextLineHeight;
         gl2d.fillText(property._strUserName, this.RealPoint3.x + this.annotPropGap, this.RealPoint3.y);
         this.RealPoint3.y += this.annotPropTextFont + this.annotPropTextLineHeight;
@@ -199,8 +174,8 @@ function Canvas2D() {
 
     this.drawTestMode = function() {
         gl2d.font = FONT_DEFAULT_COPY;
-        gl2d.fillStyle = FILL_STYLE_HIGHLIGHT;
-        gl2d.strokeStyle = STROKE_SRTLE_HIGHLIGHT;
+        gl2d.fillStyle = STYLE_HIGHLIGHT;
+        gl2d.strokeStyle = STYLE_HIGHLIGHT;
         // 绘制测试模式
         if (g_nEventVersion >=2) {
             var strCoyy = g_strCopy.substring(5, g_strCopy.length);
@@ -213,11 +188,9 @@ function Canvas2D() {
             return;
         }
 
-        gl2d.strokeStyle = STROKE_SRTLE_WHITE;
+        gl2d.strokeStyle = STYLE_WHITE;
         gl2d.font = FONT_DEFAULT_ANNOT;
-        gl2d.fillStyle = FILL_STYLE_DEFAULT;
 
-        gl2d.beginPath();
         let curComment = null;
         let attachPt = null;
         let leaderPt = null;
@@ -234,14 +207,10 @@ function Canvas2D() {
                 this.cvtWorldToScreen(leaderPt.x, leaderPt.y, leaderPt.z, this.MVPMatrix, this.RealPoint1);
                 this.adapterLocalToScreen(attachPt.x, attachPt.y, this.RealPoint2);
                 
-                gl2d.moveTo(this.RealPoint1.x, this.RealPoint1.y);
-                gl2d.arc(this.RealPoint1.x, this.RealPoint1.y, 5, 0, Math.PI * 2, false);
-                gl2d.lineTo(this.RealPoint2.x, this.RealPoint2.y);
+                this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
+                this.drawLine(this.RealPoint1.x, this.RealPoint1.y, this.RealPoint2.x, this.RealPoint2.y);
             }
-
-            gl2d.fillText(curComment.stuAnnot.pNote.strText, this.RealPoint2.x, this.RealPoint2.y);
         }
-        gl2d.stroke();
     }
 
     this.drawDuringUsrAnnoation = function(newComment, screenX, screenY) {
@@ -249,19 +218,37 @@ function Canvas2D() {
             return;
         }
 
-        gl2d.beginPath();
-        gl2d.strokeStyle = STROKE_SRTLE_WHITE;
+        gl2d.strokeStyle = STYLE_WHITE;
         for (let j = 0; j < newComment.stuAnnot.pNote.arrLeaderPos.length; ++j) {
             leaderPt = newComment.stuAnnot.pNote.arrLeaderPos[j];
             objectIndex = newComment.stuAnnot.pNote.arrObjectIndexs[j];
             mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(objectIndex));
             this.cvtWorldToScreen(leaderPt.x, leaderPt.y, leaderPt.z, this.MVPMatrix, this.RealPoint1);
             
-            gl2d.moveTo(this.RealPoint1.x, this.RealPoint1.y);
-            gl2d.arc(this.RealPoint1.x, this.RealPoint1.y, 5, 0, Math.PI * 2, false);
-            gl2d.lineTo(screenX, screenY);
+            this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
+            this.drawLine(this.RealPoint1.x, this.RealPoint1.y, screenX, screenY);
         }
+    }
+
+    this.drawFillCircle = function(x, y, r) {
+        gl2d.beginPath();
+        gl2d.arc(x, y, r, 0, Math.PI * 2, true);
+        gl2d.closePath();
+        gl2d.fillStyle = STYLE_WHITE;
+        gl2d.fill();
+    }
+
+    this.drawLine = function(start_x, start_y, end_x, end_y) {
+        gl2d.beginPath();
+        gl2d.moveTo(start_x, start_y);
+        gl2d.lineTo(end_x, end_y);
         gl2d.stroke();
+    }
+
+    this.drawFillRect = function(x1, y1, x2, y2) {
+        gl2d.beginPath();
+        gl2d.fillStyle = FILL_STYLE_SELE_RECT;
+        gl2d.fillRect(x1, y1, x2 - x1, y2 - y1);
     }
 
     /**
@@ -500,11 +487,43 @@ function Canvas2D() {
         }
     }
 
+    this.updateUsrComment = function(oldComment, index) {
+        if (index < 0 || index >= this.m_arrUsrComment.length) {
+            return;
+        }
+        // 只允许更新文本和时间
+        this.m_arrUsrComment[index].stuAnnot.pNote.strText = oldComment._uAnnotText;
+        this.m_arrUsrComment[index].stuProperty._strDateTime = oldComment._strCreateTime;
+    }
+
     this.deleteUsrComment = function(index) {
         if (index < 0 || index >= this.m_arrUsrComment.length) {
             return;
         }
         this.m_arrIsUsrCommentDel[index] = true;
+    }
+
+    this.cvtWorldToScreen = function(wldPos_x, wldPos_y, wldPos_z, transMat, screenPt) {
+        CalTranslatePoint(wldPos_x, wldPos_y, wldPos_z, transMat, this.RealPoint1);
+        screenPt.x = (this.RealPoint1.x + 1.0) * this.windowWidth / 2;
+        screenPt.y = (1.0 - this.RealPoint1.y) * this.windowHeight / 2;
+    }
+
+    this.adapterLocalToScreen = function(local_x, local_y, screenPt) {
+        let tmp_x = local_x + this.windowWidth/this.windowHeight;
+        screenPt.x = tmp_x * this.windowHeight / 2;
+        if (screenPt.x < 0) {
+            screenPt.x = 0;
+        }
+        if (screenPt.x > this.windowWidth) {
+            screenPt.x = this.windowWidth;
+        }
+        screenPt.y = this.windowHeight - (local_y + 1.0) * this.windowHeight / 2;
+    }
+
+    this.adapterScreenToLocal = function(screen_x, screen_y, local) {
+        local.x = (screen_x * 2 / this.windowHeight) - this.windowWidth / this.windowHeight;
+        local.y = (this.windowHeight - screen_y) * 2 / this.windowHeight - 1.0;
     }
 
 }

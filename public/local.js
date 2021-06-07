@@ -164,10 +164,6 @@
 		// event.initCustomEvent('stopAnimation', true, true, {})
 		// window.dispatchEvent(event)
 		var el = e.target
-		console.log(
-			'🚀 ~ file: local.js ~ line 124 ~  e.target',
-			e.target.value
-		)
 		var data = el[el.selectedIndex].attrData
 		if (!window.g_GLData || !data) {
 			window.animTerminal()

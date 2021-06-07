@@ -3,7 +3,7 @@
 /**
  * @author wujiali
  */
-
+ 
 //===================================================================================================
 
 function GLProgram() {
@@ -42,7 +42,7 @@ function GLProgram() {
     /**
      * 初始化渲染3D场景数据
      */
-    this.initGLData = function () {
+    this.initGLData = function() {
         if (g_GLObjectSet != null) {
             this.setUniteMaterial();
             this.setObjectModelMat();
@@ -59,7 +59,7 @@ function GLProgram() {
     /**
      * 卸载渲染3D数据
      */
-    this.uninitGLData = function () {
+     this.uninitGLData = function() {
         if (g_GLObjectSet != null) {
             g_webgl.uninitScene();
             g_webglControl.clearParams();
@@ -71,7 +71,7 @@ function GLProgram() {
     /**
      * 清空3D数据
      */
-    this.clearGLData = function () {
+    this.clearGLData = function() {
         if (g_GLObjectSet != null) {
             g_webgl.clearScene();
             g_webglControl.clearParams();
@@ -83,7 +83,7 @@ function GLProgram() {
     /**
      * 重置3D数据
      */
-    this.resetGLData = function () {
+    this.resetGLData = function() {
         if (g_GLObjectSet != null) {
             this.setUniteMaterial();
             this.setObjectModelMat();
@@ -100,21 +100,21 @@ function GLProgram() {
     /**
      * 设置包围盒显示
      */
-    this.setBoxShow = function (isShow) {
+    this.setBoxShow = function(isShow) {
         g_webglControl.isShowBox = isShow;
     }
 
     /**
      * 设置高亮显示
      */
-    this.setHighlightShow = function (isHighlight) {
+    this.setHighlightShow = function(isHighlight) {
         g_webglControl.isHighlight = isHighlight;
     }
 
     /**
      * 零件拾取
      */
-    this.pickByIndex = function (index, isMult) {
+    this.pickByIndex = function(index, isMult) {
         if (index < -1 || index >= g_GLObjectSet._arrObjectSet.length) {
             return;
         }
@@ -138,7 +138,7 @@ function GLProgram() {
             g_webglControl.isPicked = false;
         }
     }
-    this.pickMultByIndex = function (indexs) {
+    this.pickMultByIndex = function(indexs) {
         let isAllNull = true;
         for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
             g_webglControl.arrPickObjectIndexs[i] = false;
@@ -165,7 +165,7 @@ function GLProgram() {
             return -1;
         }
     }
-    this.pickByRay = function (RayPoint1, RayPoint2, isMult, isDoPick) {
+    this.pickByRay = function(RayPoint1, RayPoint2, isMult, isDoPick) {
         let index = -1;
         let intersecRet = this.intersectRayScene(RayPoint1, RayPoint2);
         if (intersecRet != null) {
@@ -181,10 +181,10 @@ function GLProgram() {
     /**
      * 获取零件拾取状态
      */
-    this.getPickStatus = function () {
+    this.getPickStatus = function() {
         return g_webglControl.GL_PICKSTATUS;
     }
-    this.getPickedIndex = function () {
+    this.getPickedIndex = function() {
         this.arrPickIndexs.splice(0, this.arrPickIndexs.length);
         if (g_webglControl.GL_PICKSTATUS == 1 || g_webglControl.GL_PICKSTATUS == 2) {
             for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
@@ -201,7 +201,7 @@ function GLProgram() {
     /**
      * 设置指定object模型的Model矩阵
      */
-    this.setObjectModelMat = function () {
+    this.setObjectModelMat = function() {
         if (g_webglControl.m_arrObjectMatrix.length == 0) {
             for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
                 let objectMatrix = mat4.create();
@@ -216,26 +216,26 @@ function GLProgram() {
             }
         }
     }
-    this.setObjectModelMatrixMult = function (modelMatrix) {
+    this.setObjectModelMatrixMult = function(modelMatrix) {
         for (let i = 0; i <= g_webglControl.arrPickObjectIndexs.length; i++) {
             if (g_webglControl.arrPickObjectIndexs[i]) {
                 mat4.multiply(g_webglControl.m_arrObjectMatrix[i], modelMatrix, g_webglControl.m_arrObjectMatrix[i]);
             }
         }
     }
-    this.setObjectMatrixByIndex = function (index, matrix) {
+    this.setObjectMatrixByIndex = function(index, matrix) {
         if (index < 0 || index >= g_webglControl.m_arrObjectMatrix.length) {
             return;
         }
         mat4.multiply(g_webglControl.m_arrObjectMatrix[index], this.modelMatrix, matrix);
     }
-    this.getObjectModelMatrix = function (nObjectIndex) {
+    this.getObjectModelMatrix = function(nObjectIndex) {
         if (nObjectIndex < 0 || nObjectIndex >= g_GLObjectSet._arrObjectSet.length) {
             return this.modelMatrix;
         }
         return g_webglControl.m_arrObjectMatrix[nObjectIndex];
     }
-    this.getObjectOriginMatrix = function (nObjectIndex) {
+    this.getObjectOriginMatrix = function(nObjectIndex) {
         if (nObjectIndex < 0 || nObjectIndex >= g_GLObjectSet._arrObjectSet.length) {
             return mat4.create();
         }
@@ -247,11 +247,11 @@ function GLProgram() {
     /**
      * 设置所有Object透明度
      */
-    this.setObjectTransparent = function () {
+    this.setObjectTransparent = function() {
         // 默认第0帧数据
         if (g_webglControl.m_arrObjectTransparent.length == 0) {
             for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
-                let tempTrans = g_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);
+                let tempTrans =  g_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);
                 if (tempTrans > -0.5) {
                     g_webglControl.m_arrObjectTransparent.push(tempTrans);
                     g_webglControl.switchObjectTranList(i, tempTrans);
@@ -263,7 +263,7 @@ function GLProgram() {
             }
         } else {
             for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
-                let tempTrans = g_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);
+                let tempTrans =  g_GLObjectSet._arrObjectSet[i].GetAnimTransparent(0);
                 if (tempTrans > -0.5) {
                     g_webglControl.m_arrObjectTransparent[i] = tempTrans;
                 } else {
@@ -273,7 +273,7 @@ function GLProgram() {
             }
         }
     }
-    this.setObjectTransparentMult = function (fTransparent) {
+    this.setObjectTransparentMult = function(fTransparent) {
         for (let i = 0; i <= g_webglControl.arrPickObjectIndexs.length; i++) {
             if (g_webglControl.arrPickObjectIndexs[i]) {
                 g_webglControl.switchObjectTranList(i, fTransparent);
@@ -281,7 +281,7 @@ function GLProgram() {
             }
         }
     }
-    this.getObjectTransparent = function (nObjectIndex) {
+    this.getObjectTransparent = function(nObjectIndex) {
         if (nObjectIndex < 0 || nObjectIndex >= g_GLObjectSet._arrObjectSet.length) {
             return 0.0;
         }
@@ -291,7 +291,7 @@ function GLProgram() {
     /**
      * 设置所有Object显隐性
      */
-    this.setObjectVisible = function () {
+    this.setObjectVisible = function() {
         if (g_webglControl.m_arrObjectVisiable.length == 0) {
             for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
                 if (g_GLObjectSet._arrObjectSet[i]._nFillMode == ADFFILL_INVISIBLE) {
@@ -310,22 +310,22 @@ function GLProgram() {
             }
         }
     }
-    this.setObjectVisibleMult = function (bVisible) {
+    this.setObjectVisibleMult = function(bVisible) {
         for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
             if (g_webglControl.arrPickObjectIndexs[i]) {
                 g_webglControl.m_arrObjectVisiable[i] = bVisible;
             }
         }
     }
-    this.getObjectVisible = function (nObjectIndex) {
+    this.getObjectVisible = function(nObjectIndex) {
         if (nObjectIndex < 0 || nObjectIndex >= g_GLObjectSet._arrObjectSet.length) {
             return false;
         }
         return g_webglControl.m_arrObjectVisiable[nObjectIndex];
     }
-    this.setObjectVisibleByIndexs = function (indexs, bVisible) {
+    this.setObjectVisibleByIndexs = function(indexs, bVisible) {
         for (let i = 0; i < indexs.length; i++) {
-            if (indexs[i] < 0 || indexs[i] > g_webglControl.m_arrObjectVisiable.length) {
+            if (indexs[i]<0 || indexs[i] > g_webglControl.m_arrObjectVisiable.length) {
                 continue;
             }
             g_webglControl.m_arrObjectVisiable[indexs[i]] = bVisible;
@@ -335,7 +335,7 @@ function GLProgram() {
     /**
      * 设置指定Object材质颜色
      */
-    this.setObjectMaterial = function () {
+    this.setObjectMaterial = function() {
         if (g_webglControl.m_arrObjectMaterial.length == 0) {
             for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
                 g_webglControl.m_arrObjectMaterial.push(null);
@@ -346,19 +346,19 @@ function GLProgram() {
             }
         }
     }
-    this.setObjectMaterialMult = function (Red, Green, Blue, Alpha) {
-        if (Red < 0.0) { Red = 0.0; }
-        if (Red > 1.0) { Red = 1.0; }
-        if (Green < 0.0) { Green = 0.0; }
-        if (Green > 1.0) { Green = 1.0; }
-        if (Blue < 0.0) { Blue = 0.0; }
-        if (Blue > 1.0) { Blue = 1.0; }
-        if (Alpha > 1.0) { Alpha = 1.0; }
-        if (Alpha < 0.0) { Alpha = 0.0; }
+    this.setObjectMaterialMult = function(Red, Green, Blue, Alpha) {
+        if (Red < 0.0) {Red = 0.0;}
+        if (Red > 1.0) {Red = 1.0;}
+        if (Green < 0.0) {Green = 0.0;}
+        if (Green > 1.0) {Green = 1.0;}
+        if (Blue < 0.0) {Blue = 0.0;}
+        if (Blue > 1.0) {Blue = 1.0;}
+        if (Alpha > 1.0) {Alpha = 1.0;}
+        if (Alpha < 0.0) {Alpha = 0.0;}
 
-        let objectMaterial = new ADF_MATERIAL();
+        let objectMaterial  = new ADF_MATERIAL();
         objectMaterial._eMtlType = ADFMTLTYPE_PHYSICS;
-        let tempPhysics = new ADF_MATERIALPHYSICS();
+        let tempPhysics  = new ADF_MATERIALPHYSICS();
         tempPhysics.fPower = 10.0;
         tempPhysics.vAmbient.x = Red, tempPhysics.vAmbient.y = Green, tempPhysics.vAmbient.z = Blue, tempPhysics.vAmbient.w = 1.0;
         tempPhysics.vDiffuse.x = Red, tempPhysics.vDiffuse.y = Green, tempPhysics.vDiffuse.z = Blue, tempPhysics.vDiffuse.w = 1.0;
@@ -379,7 +379,7 @@ function GLProgram() {
     /**
      * 清除所有临时设置数据
      */
-    this.home = function (type) {
+    this.home = function(type) {
         switch (type) {
             case HOME_ALL:
                 this.setObjectModelMat();
@@ -407,7 +407,7 @@ function GLProgram() {
     /**
      * 计算物件动画数据
      */
-    this.setObjectAnim = function (uStartFrame) {
+    this.setObjectAnim = function(uStartFrame) {
         this.isAnimationMode = true;
         this.uCurFrame = uStartFrame;
         for (let i = 0; i < g_webglControl.m_arrObjectMatrix.length; i++) {
@@ -424,7 +424,7 @@ function GLProgram() {
     /**
      * 设置模型中心点或者焦点，但是不更新零件实际矩阵
      */
-    this.setModelCenter = function (center) {
+    this.setModelCenter = function(center) {
         this.modelCenter.x = center.x, this.modelCenter.y = center.y, this.modelCenter.z = center.z;
         mat4.identity(this.modelMatrix);
         mat4.translate(this.modelMatrix, this.modelMatrix, vec3.fromValues(-center.x, -center.y, -center.z));
@@ -433,7 +433,7 @@ function GLProgram() {
     /**
      * 将模型平移到中心点或者焦点，更新零件实际矩阵
      */
-    this.moveModelCenter = function (center) {
+    this.moveModelCenter = function(center) {
         mat4.identity(this.modelMatrixTmp);
         mat4.translate(this.modelMatrixTmp, this.modelMatrixTmp, vec3.fromValues(center.x, center.y, center.z));
         mat4.translate(this.modelMatrix, this.modelMatrix, vec3.fromValues(center.x, center.y, center.z));
@@ -447,10 +447,10 @@ function GLProgram() {
     /**
      * 设置背景图片
      */
-    this.setBackground = function (index) {
+    this.setBackground = function(index) {
         g_webglControl.m_bgIndex = index;
     }
-    this.addBackground = function (imageDataGL) {
+    this.addBackground = function(imageDataGL) {
         if (imageDataGL instanceof WebGLTexture) {
             g_webglControl.m_arrBgTexId.push(imageDataGL);
             g_webglControl.m_bgIndex = g_webglControl.m_arrBgTexId.length - 1;
@@ -460,7 +460,7 @@ function GLProgram() {
     /**
      * 材质批量处理
      */
-    this.setUniteMaterial = function () {
+    this.setUniteMaterial = function() {
         for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
             var uCurPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
             g_webglControl.setVertexDataNum(uCurPartIndex);
@@ -498,14 +498,14 @@ function GLProgram() {
                     for (let j = 1; j < g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length; j++) {
                         if (g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j] == uCurIndex) {
                             uVertexCount += g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j];
-                            if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length - 1) {
+                            if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length-1) {
                                 arrMaterial.push(uCurIndex);
                                 arrVAOVertexCount.push(uVertexCount);
                             }
                         } else {
                             arrMaterial.push(uCurIndex);
                             arrVAOVertexCount.push(uVertexCount);
-                            if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length - 1) {
+                            if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length-1) {
                                 arrMaterial.push(g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j]);
                                 arrVAOVertexCount.push(g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j]);
                             } else {
@@ -557,12 +557,13 @@ function GLProgram() {
     /**
      * 生成零件曲面的面片索引，用于拾取求
      */
-    this.setSubsetIndex = function () {
+    this.setSubsetIndex = function() {
         for (let i = 0; i < g_GLPartSet._arrPartSet.length; i++) {
             let arrSurfaceIndex = new Array();
             let index = 0;
-            for (let j = 0; j < g_GLPartSet._arrPartSet[i]._arrPartLODData[0]._arrSurfaceVertexNum.length; j++) {
-                let surfaceIndex = new GL_Vertex_Index(index, index + g_GLPartSet._arrPartSet[i]._arrPartLODData[0]._arrSurfaceVertexNum[j]);
+            for (let j = 0; j < g_GLPartSet._arrPartSet[i]._arrPartLODData[0]._arrSurfaceVertexNum.length; j++)
+            {
+                let surfaceIndex = new GL_Vertex_Index(index, index+g_GLPartSet._arrPartSet[i]._arrPartLODData[0]._arrSurfaceVertexNum[j]);
                 arrSurfaceIndex.push(surfaceIndex);
                 index += g_GLPartSet._arrPartSet[i]._arrPartLODData[0]._arrSurfaceVertexNum[j];
             }
@@ -573,7 +574,7 @@ function GLProgram() {
     /**
      * 生成零件拾取标识数组
      */
-    this.setPickIndexs = function () {
+    this.setPickIndexs = function() {
         for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
             g_webglControl.arrPickObjectIndexs.push(false);
         }
@@ -582,7 +583,7 @@ function GLProgram() {
     /**
      * 射线与包围盒求交
      */
-    this.intersectRayBox = function (RayPoint1, RayPoint2, ObjectBox, ObjectMat) {
+    this.intersectRayBox = function(RayPoint1, RayPoint2, ObjectBox, ObjectMat) {
         this.vLinePt1.x = RayPoint1.x; this.vLinePt1.y = RayPoint1.y; this.vLinePt1.z = RayPoint1.z;
         this.vLinePt2.x = RayPoint2.x; this.vLinePt2.y = RayPoint2.y; this.vLinePt2.z = RayPoint2.z;
         // 包围盒6各面拆成12个三角形
@@ -601,18 +602,19 @@ function GLProgram() {
         arrIndex.push(7); arrIndex.push(6); arrIndex.push(2);
         for (let i = 0; i < 12; i++) {
             CalTranslatePoint(ObjectBox._Vertex[arrIndex[i * 3 + 0]].x,
-                ObjectBox._Vertex[arrIndex[i * 3 + 0]].y,
-                ObjectBox._Vertex[arrIndex[i * 3 + 0]].z, ObjectMat, this.RealPoint1);
+                              ObjectBox._Vertex[arrIndex[i * 3 + 0]].y,
+                              ObjectBox._Vertex[arrIndex[i * 3 + 0]].z, ObjectMat, this.RealPoint1);
             CalTranslatePoint(ObjectBox._Vertex[arrIndex[i * 3 + 1]].x,
-                ObjectBox._Vertex[arrIndex[i * 3 + 1]].y,
-                ObjectBox._Vertex[arrIndex[i * 3 + 1]].z, ObjectMat, this.RealPoint2);
+                              ObjectBox._Vertex[arrIndex[i * 3 + 1]].y,
+                              ObjectBox._Vertex[arrIndex[i * 3 + 1]].z, ObjectMat, this.RealPoint2);
             CalTranslatePoint(ObjectBox._Vertex[arrIndex[i * 3 + 2]].x,
-                ObjectBox._Vertex[arrIndex[i * 3 + 2]].y,
-                ObjectBox._Vertex[arrIndex[i * 3 + 2]].z, ObjectMat, this.RealPoint3);
+                              ObjectBox._Vertex[arrIndex[i * 3 + 2]].y,
+                              ObjectBox._Vertex[arrIndex[i * 3 + 2]].z, ObjectMat, this.RealPoint3);
             this.vTriVer1.x = this.RealPoint1.x; this.vTriVer1.y = this.RealPoint1.y; this.vTriVer1.z = this.RealPoint1.z;
             this.vTriVer2.x = this.RealPoint2.x; this.vTriVer2.y = this.RealPoint2.y; this.vTriVer2.z = this.RealPoint2.z;
             this.vTriVer3.x = this.RealPoint3.x; this.vTriVer3.y = this.RealPoint3.y; this.vTriVer3.z = this.RealPoint3.z;
-            if (CalcIntersectOfLineSegTriangle(this.vLinePt1, this.vLinePt2, this.vTriVer1, this.vTriVer2, this.vTriVer3, this.pIntersectPt)) {
+            if (CalcIntersectOfLineSegTriangle(this.vLinePt1, this.vLinePt2, this.vTriVer1, this.vTriVer2, this.vTriVer3, this.pIntersectPt))
+            {
                 return true;
             }
         }
@@ -623,7 +625,7 @@ function GLProgram() {
      * 射线与场景中的object的最近的交点
      * 返回：object索引、交点距离和坐标
      */
-    this.intersectRayScene = function (RayPoint1, RayPoint2) {
+    this.intersectRayScene = function(RayPoint1, RayPoint2) {
         let arrObjectIndex = new Array();
         let arrSurfaceIndex = new Array();
         let arrDistance = new Array();
@@ -640,7 +642,7 @@ function GLProgram() {
             if (g_webglControl.m_arrObjectTransparent[i] <= GL_ZERO) {
                 continue;
             }
-
+            
             let CurMat = g_webglControl.m_arrObjectMatrix[i];
             let intersectRet = this.intersectRayObject(RayPoint1, RayPoint2, i, CurMat);
             if (intersectRet != null) {
@@ -676,7 +678,7 @@ function GLProgram() {
      * 射线与object的最近的交点
      * 返回：曲面索引，交点距离和坐标
      */
-    this.intersectRayObject = function (RayPoint1, RayPoint2, ObjectIndex, ObjectMat) {
+     this.intersectRayObject = function(RayPoint1, RayPoint2, ObjectIndex, ObjectMat) {
         let uCurPartIndex = g_GLObjectSet._arrObjectSet[ObjectIndex]._uPartIndex;
         if (this.intersectRayBox(RayPoint1, RayPoint2, g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._boxset._ObjectBox, ObjectMat)) {
             let arrSubsetDistance = new Array();
@@ -717,29 +719,29 @@ function GLProgram() {
      * 射线与曲面子集的最近的交点
      * 返回：交点距离和坐标
      */
-    this.intersectRaySurface = function (RayPoint1, RayPoint2, uPartIndex, uSurfaceIndex, ObjectMat) {
+     this.intersectRaySurface = function(RayPoint1, RayPoint2, uPartIndex, uSurfaceIndex, ObjectMat) {
         this.vLinePt1.x = RayPoint1.x; this.vLinePt1.y = RayPoint1.y; this.vLinePt1.z = RayPoint1.z;
         this.vLinePt2.x = RayPoint2.x; this.vLinePt2.y = RayPoint2.y; this.vLinePt2.z = RayPoint2.z;
         let arrDistance = new Array();
         let arrIntersecPt = new Array();
         g_webglControl.setVertexDataNum(uPartIndex);
-        for (let i = this.m_arrPartSurfaceIndex[uPartIndex][uSurfaceIndex]._startIndex; i < this.m_arrPartSurfaceIndex[uPartIndex][uSurfaceIndex]._endIndex; i += 3) {
+        for (let i = this.m_arrPartSurfaceIndex[uPartIndex][uSurfaceIndex]._startIndex; i<this.m_arrPartSurfaceIndex[uPartIndex][uSurfaceIndex]._endIndex; i += 3) {
             CalTranslatePoint(g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[i * VERTEX_DATA_COUNT],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[i * VERTEX_DATA_COUNT + 1],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[i * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint1);
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[i * VERTEX_DATA_COUNT + 1],
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[i * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint1);
             CalTranslatePoint(g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 1) * VERTEX_DATA_COUNT],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 1) * VERTEX_DATA_COUNT + 1],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 1) * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint2);
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 1) * VERTEX_DATA_COUNT + 1],
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 1) * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint2);
             CalTranslatePoint(g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 2) * VERTEX_DATA_COUNT],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 2) * VERTEX_DATA_COUNT + 1],
-                g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 2) * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint3);
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 2) * VERTEX_DATA_COUNT + 1],
+                              g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex[(i + 2) * VERTEX_DATA_COUNT + 2], ObjectMat, this.RealPoint3);
             this.vTriVer1.x = this.RealPoint1.x; this.vTriVer1.y = this.RealPoint1.y; this.vTriVer1.z = this.RealPoint1.z;
             this.vTriVer2.x = this.RealPoint2.x; this.vTriVer2.y = this.RealPoint2.y; this.vTriVer2.z = this.RealPoint2.z;
             this.vTriVer3.x = this.RealPoint3.x; this.vTriVer3.y = this.RealPoint3.y; this.vTriVer3.z = this.RealPoint3.z;
             if (CalcIntersectOfLineSegTriangle(this.vLinePt1, this.vLinePt2, this.vTriVer1, this.vTriVer2, this.vTriVer3, this.pIntersectPt)) {
-                let tempDistance = Math.sqrt((this.pIntersectPt.x - this.vLinePt1.x) * (this.pIntersectPt.x - this.vLinePt1.x) +
-                    (this.pIntersectPt.y - this.vLinePt1.y) * (this.pIntersectPt.y - this.vLinePt1.y) +
-                    (this.pIntersectPt.z - this.vLinePt1.z) * (this.pIntersectPt.z - this.vLinePt1.z));
+                let tempDistance = Math.sqrt((this.pIntersectPt.x-this.vLinePt1.x)*(this.pIntersectPt.x-this.vLinePt1.x) +
+                                        (this.pIntersectPt.y-this.vLinePt1.y)*(this.pIntersectPt.y-this.vLinePt1.y) +
+                                        (this.pIntersectPt.z-this.vLinePt1.z)*(this.pIntersectPt.z-this.vLinePt1.z));
                 let tempIntersetPt = new ADF_BASEFLOAT3();
                 CalInversePoint(this.pIntersectPt, ObjectMat, tempIntersetPt);
                 arrDistance.push(tempDistance);

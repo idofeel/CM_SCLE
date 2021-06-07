@@ -19,6 +19,8 @@ var g_webgl = null;
 var g_camera = null;
 // 全局二维渲染引擎实例
 var g_canvas = null;
+// 全局xml工具实例
+var g_xmlTool = null;
 
 function GLRunTime() {
     // 参数
@@ -59,6 +61,9 @@ function GLRunTime() {
     this.DEFAULT_COMMENT_LINE_X = 0.1;
     this.usrNewComment = null;
     this.isDuringComment = false;
+    this.isDuringMultSel = false;
+    this.startMouseX = 0;
+    this.startMouseY = 0;
     this.runtimeMouseX = 0;
     this.runtimeMouseY = 0;
 
@@ -210,6 +215,8 @@ function GLRunTime() {
      */
     this.draw2D = function() {
         if (gl2d != null) {
+            // Clear the 2D canvas
+            gl2d.clearRect(0, 0, gl2d.canvas.width, gl2d.canvas.height);
             if (isShowScleComment) {
                 g_canvas.drawAnnotation2D();
             }
@@ -217,6 +224,9 @@ function GLRunTime() {
                 g_canvas.drawUsrAnnotation();
                 if (this.isDuringComment) {
                     g_canvas.drawDuringUsrAnnoation(this.usrNewComment, this.runtimeMouseX, this.runtimeMouseY);
+                }
+                if (this.isDuringMultSel) {
+                    g_canvas.drawFillRect(this.startMouseX, this.startMouseY, this.runtimeMouseX, this.runtimeMouseY);
                 }
             }
             if (g_bTestMode) {
@@ -373,6 +383,21 @@ function GLRunTime() {
         wldPtY.x = this.ray_world_far[0], wldPtY.y = this.ray_world_far[1], wldPtY.z = this.ray_world_far[2];
     }
 
+    // CMOnline设置了新的坐标原点，与世界坐标之间的转换
+    this.cvtCMOnlineToWorld = function(pos, objIndex) {
+        let inPos = new Point3(pos.x, pos.y, pos.z);
+        CalTranslatePoint(inPos.x, inPos.y, inPos.z, g_webglControl.m_arrObjectMatrix[objIndex], inPos);
+        CalInversePoint(inPos, g_glprogram.modelMatrix, pos);
+    }
+
+    this.cvtWorldToCMOnline = function(pos, objIndex) {
+        if (objIndex > 0) {
+            let inPos = new Point3(pos.x, pos.y, pos.z);
+            CalTranslatePoint(pos.x, pos.y, pos.z, g_glprogram.modelMatrix, inPos);
+            CalInversePoint(inPos, g_webglControl.m_arrObjectMatrix[objIndex], pos);
+        }
+    }
+
     /**
      * 模型拾取
      */
@@ -450,14 +475,7 @@ function GLRunTime() {
      * 对指定零件添加注释数据
      */
     this.addCommentOnObjectById = function(objectID, annoText) {
-        let index = -1;
-        for (let i = 0; i < g_GLData.GLObjectSet._arrObjectSet.length; i++) {
-            if (objectID == g_GLData.GLObjectSet._arrObjectSet[i]._uObjectID) {
-                index = i;
-                break;
-            }
-        }
-
+        let index = this.getObjectIndexById(objectID);
         if (index >= 0) {
             this.addCommentOnObjectByIndex(index, annoText);
         }
@@ -537,6 +555,10 @@ function GLRunTime() {
             return false;
         } else {
             this.usrNewComment.stuAnnot.pNote.strText = info._uAnnotText;
+            this.usrNewComment.stuAnnot.strName = info._uAnnotName;
+
+            this.usrNewComment.stuProperty._strUserName = info._strUsrName;
+            this.usrNewComment.stuProperty._strDateTime = info._strCreateTime;
             this.usrNewComment.stuProperty._uStartFrameID = info._uStartFrame;
             this.usrNewComment.stuProperty._uFrameSize = info._uFrameSize;
 
@@ -556,6 +578,31 @@ function GLRunTime() {
         }
     }
 
+    this.isCommentValid = function() {
+        if (this.usrNewComment == null || this.usrNewComment.stuAnnot.pNote.arrLeaderPos.length == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    this.updateCommentById = function(x, y, commentInfo) {
+        let isNewNote = true;
+        let index = -1;
+        for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == commentInfo._uAnnotID) {
+                isNewNote = false;
+                index = i;
+                break;
+            }
+        }
+
+        if (!isNewNote) {
+            g_canvas.updateUsrComment(commentInfo, index);
+            return true;
+        }
+        return false;
+    }
+
     this.deleteCommentById = function(id) {
         let index = -1;
         for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
@@ -567,281 +614,80 @@ function GLRunTime() {
         g_canvas.deleteUsrComment(index);
     }
 
-    this.createAttributeNode = function(xmlDoc, element, attrName, attrData) {
-        let newAttr = xmlDoc.createAttribute(attrName);
-        newAttr.nodeValue = attrData;
-        element.setAttributeNode(newAttr);
-    }
-
-    this.importXmlPoint3 = function(xmlNode, point) {
-        let pointAttrs = xmlNode.attributes;
-        point.x = parseFloat(pointAttrs.x.nodeValue);
-        point.y = parseFloat(pointAttrs.y.nodeValue);
-        point.z = parseFloat(pointAttrs.z.nodeValue);
-    }
-
-    this.exportXmlPoint3 = function(xmlDoc, ptName, point) {
-        let newPoint = xmlDoc.createElement(ptName);
-        this.createAttributeNode(xmlDoc, newPoint, "x", point.x);
-        this.createAttributeNode(xmlDoc, newPoint, "y", point.y);
-        this.createAttributeNode(xmlDoc, newPoint, "z", point.z);
-        return newPoint;
-    }
-
-    this.importXmlCamera = function(xmlNode, camera) {
-        let cameraAttrs = xmlNode.attributes;
-        let cameraChilds = xmlNode.childNodes;
-        camera._fAspect = parseFloat(cameraAttrs.Aspect.nodeValue);
-        camera._fFOVY = parseFloat(cameraAttrs.FOVY.nodeValue);
-        camera._fZNear = parseFloat(cameraAttrs.ZNear.nodeValue);
-        camera._fZFar = parseFloat(cameraAttrs.ZFar.nodeValue);
-        for (let i = 0; i < cameraChilds.length; ++i) {
-            if (cameraChilds[i].nodeName == "EyePos") {
-                this.importXmlPoint3(cameraChilds[i], camera._vEyePos);
-            } else if (cameraChilds[i].nodeName == "Focus") {
-                this.importXmlPoint3(cameraChilds[i], camera._vFocus);
-            } else if (cameraChilds[i].nodeName == "Up") {
-                this.importXmlPoint3(cameraChilds[i], camera._vUp);
-            }
-        }
-    }
-
-    this.exportXmlCamera = function(xmlDoc, camera) {
-        let newCamera = xmlDoc.createElement("Camera");
-        this.createAttributeNode(xmlDoc, newCamera, "Aspect", camera._fAspect);
-        this.createAttributeNode(xmlDoc, newCamera, "FOVY", camera._fFOVY);
-        this.createAttributeNode(xmlDoc, newCamera, "ZNear", camera._fZNear);
-        this.createAttributeNode(xmlDoc, newCamera, "ZFar", camera._fZFar);
-
-        newCamera.appendChild(this.exportXmlPoint3(xmlDoc, "EyePos", camera._vEyePos));
-        newCamera.appendChild(this.exportXmlPoint3(xmlDoc, "Focus", camera._vFocus));
-        newCamera.appendChild(this.exportXmlPoint3(xmlDoc, "Up", camera._vUp));
-
-        return newCamera;
-    }
-
-    this.importXmlProperty = function(xmlProp, info) {
-        let propAttrs = xmlProp.attributes;
-        info._strUserName = propAttrs.UserName.nodeValue;
-        info._strDateTime = propAttrs.DateTime.nodeValue;
-        info._uStartFrameID = parseInt(propAttrs.StartFrameID.nodeValue);
-        info._uFrameSize = parseInt(propAttrs.FrameSize.nodeValue);
-
-        let cameraNode = xmlProp.childNodes[0];
-        this.importXmlCamera(cameraNode, info._stuCamera);
-    }
-
-    this.exportXmlProperty = function(xmlDoc, property) {
-        let newProperty = xmlDoc.createElement("Property");
-        this.createAttributeNode(xmlDoc, newProperty, "UserName", property._strUserName);
-        this.createAttributeNode(xmlDoc, newProperty, "DateTime", property._strDateTime);
-        this.createAttributeNode(xmlDoc, newProperty, "StartFrameID", property._uStartFrameID);
-        this.createAttributeNode(xmlDoc, newProperty, "FrameSize", property._uFrameSize);
-
-        newProperty.appendChild(this.exportXmlCamera(xmlDoc, property._stuCamera));
-
-        return newProperty;
-    }
-
-    this.importXmlPlane = function(xmlNode, plane) {
-        let annotPlane = xmlNode.childNodes;
-        for (let i = 0; i < annotPlane.length; ++i) {
-            if (annotPlane[i].nodeName == "origin") {
-                this.importXmlPoint3(annotPlane[i], plane);
-            }
-        }
-    }
-
-    this.exportXmlPlane = function(xmlDoc, plane) {
-        let newPlane = xmlDoc.createElement("AnnotPlane");
-        newPlane.appendChild(this.exportXmlPoint3(xmlDoc, "origin", plane));
-
-        let plane_x = new Point3(1.0, 0, 0);
-        newPlane.appendChild(this.exportXmlPoint3(xmlDoc, "x", plane_x));
-        let plane_y = new Point3(0, 1.0, 0);
-        newPlane.appendChild(this.exportXmlPoint3(xmlDoc, "y", plane_y));
-        let plane_z = new Point3(0, 0, 1.0);
-        newPlane.appendChild(this.exportXmlPoint3(xmlDoc, "z", plane_z));
-
-        return newPlane;
-    }
-
-    this.importXmlNote = function(xmlNode, note) {
-        let noteAttrs = xmlNode.attributes;
-        let noteChilds = xmlNode.childNodes;
-        note.strText = noteAttrs.Text.nodeValue;
-        for (let i = 0; i < noteChilds.length; ++i) {
-            if (noteChilds[i].nodeName == "attachPos") {
-                this.importXmlPoint3(noteChilds[i], note.attachPos);
-            } else if (noteChilds[i].nodeName == "LeaderPos") {
-                let posChilds = noteChilds[i].childNodes;
-                for (let j = 0; j < posChilds.length; ++j) {
-                    if (posChilds[j].nodeName == "Pos") {
-                        let leaderPt = new ADF_BASEFLOAT3();
-                        this.importXmlPoint3(posChilds[j], leaderPt);
-                        note.arrLeaderPos.push(leaderPt);
-                    } else if (posChilds[j].nodeName == "ObjectID") {
-                        if (note.arrObjectIndexs == null) {
-                            note.arrObjectIndexs = new Array();
-                        }
-                        // ObjectID转换为索引
-                        let index = -1;
-                        for (let k = 0; k < g_GLData.GLObjectSet._arrObjectSet.length; k++) {
-                            if (posChilds[j].nodeValue == g_GLData.GLObjectSet._arrObjectSet[k]._uObjectID) {
-                                index = k;
-                                break;
-                            }
-                        }
-                        note.arrObjectIndexs.push(index);
-                    }
-                }
-                // 兼容写法，添加引线objectID
-                if (note.arrLeaderPos.length > 0 && note.arrObjectIndexs == null) {
-                    note.arrObjectIndexs = new Array();
-                    for (let j = 0; j < note.arrLeaderPos.length; ++j) {
-                        note.arrObjectIndexs.push(-1);
-                    }
-                }
-            }
-        }
-    }
-
-    this.exportXmlNote = function(xmlDoc, note) {
-        let newNote = xmlDoc.createElement("Note");
-        this.createAttributeNode(xmlDoc, newNote, "ArrowStyle", 1);
-        this.createAttributeNode(xmlDoc, newNote, "ElbowLength", 0.0);
-        this.createAttributeNode(xmlDoc, newNote, "LeaderStyle", 1);
-        this.createAttributeNode(xmlDoc, newNote, "Reserve", "");
-        this.createAttributeNode(xmlDoc, newNote, "Text", note.strText);
-        this.createAttributeNode(xmlDoc, newNote, "Text2", "");
-        this.createAttributeNode(xmlDoc, newNote, "TextDir", -1);
-
-        newNote.appendChild(this.exportXmlPoint3(xmlDoc, "attachPos", note.attachPos));
-
-        let newLeaderPos = xmlDoc.createElement("LeaderPos");
-        for (let i = 0; i < note.arrLeaderPos.length; ++i) {
-            newLeaderPos.appendChild(this.exportXmlPoint3(xmlDoc, "Pos", note.arrLeaderPos[i]));
-            // 兼容写法，添加引线objectID
-            let objectID = -1;
-            if (note.arrObjectIndexs[i] != -1) {
-                objectID = g_GLData.GLObjectSet._arrObjectSet[i]._uObjectID;
-            }
-            let newObjectID = xmlDoc.createElement("ObjectID");
-            newObjectID.nodeValue = objectID;
-            newLeaderPos.appendChild(newObjectID);
-        }
-        newNote.appendChild(newLeaderPos);
-
-        return newNote;
-    }
-
-    this.importXmlAnnot = function(xmlAnnot, info) {
-        let annotAttrs = xmlAnnot.attributes;
-        info.uID = annotAttrs.ID.nodeValue;
-        info.uMtlID = annotAttrs.MtlID.nodeValue;
-        info.strName = annotAttrs.Name.nodeValue;
-        info.nType = annotAttrs.Type.nodeValue;
-
-        let annotChilds = xmlAnnot.childNodes;
-        for (let i = 0; i < annotChilds.length; ++i) {
-            if (annotChilds[i].nodeName == "AnnotPlane") {
-                this.importXmlPlane(annotChilds[i], info.annoPlaneLocal);
-            } else if (annotChilds[i].nodeName == "Note") {
-                this.importXmlNote(annotChilds[i], info.pNote);
-            }
-        }
-    }
-
-    this.exportXmlAnnot = function(xmlDoc, annot) {
-        let newAnnot = xmlDoc.createElement("Annot");
-
-        this.createAttributeNode(xmlDoc, newAnnot, "ID", annot.uID);
-        this.createAttributeNode(xmlDoc, newAnnot, "MtlID", annot.uMtlI);
-        this.createAttributeNode(xmlDoc, newAnnot, "Name", annot.strNam);
-        this.createAttributeNode(xmlDoc, newAnnot, "Type", annot.nType);
-
-        newAnnot.appendChild(this.exportXmlPlane(xmlDoc, annot.annoPlaneLocal));
-        newAnnot.appendChild(this.exportXmlNote(xmlDoc, annot.pNote));
-
-        return newAnnot;
-    }
-
     this.importXmlComment = function(xmlDoc) {
         if (g_canvas == null) {
             return false;
         }
-        // 版本信息，校验项
-        let doc_info = xmlDoc.getElementsByTagName(XML_DOC_INFO);
-        let version_attr = doc_info[0].attributes;
-        if (version_attr.version.nodeValue != "1.0.0") {
+
+        g_xmlTool = new XmlTool();
+        let arrComment = g_xmlTool.importXmlComment(xmlDoc);
+        if (arrComment == null || arrComment.length == 0) {
             return false;
         }
-
-        let comment_node = xmlDoc.getElementsByTagName(XML_COMMENT_NODE);
-        let nodes = xmlDoc.getElementsByTagName(XML_NODE);
-        if (comment_node.length != 1 || nodes.length == 0) {
-            return false;
-        }
-
-        for (let i = 0; i < nodes.length; i++) {
-            let childNodes = nodes[i].childNodes;
-            this.usrNewComment = new ADF_COMMENT();
-            for (let j = 0; j < childNodes.length; ++j) {
-                if (childNodes[j].nodeName == "Property") {
-                    this.importXmlProperty(childNodes[j], this.usrNewComment.stuProperty);
-                } else if (childNodes[j].nodeName == "Annot") {
-                    this.importXmlAnnot(childNodes[j], this.usrNewComment.stuAnnot);
-                }
-            }
-            g_canvas.addUsrComment(this.usrNewComment, true);
-            this.usrNewComment = null;
+        for (let i = 0; i < arrComment.length; ++i) {
+            g_canvas.addUsrComment(arrComment[i], true);
         }
         return true;
     }
 
-    this.exportXmlComment = function(xmlDoc) {
-        // let validCommentCount = g_canvas.m_arrUsrComment.length;
-        // for (let i = 0; i < g_canvas.m_arrIsUsrCommentDel.length; ++i) {
-        //     if (g_canvas.m_arrIsUsrCommentDel[i]) {
-        //         validCommentCount--;
-        //     }
-        // }
-        // if (validCommentCount <= 0) {
-        //     return false;
-        // }
-
-        // 添加根节点
-        let root = xmlDoc.createElement("Root");
-        // 添加版本信息节点
-        let doc_info = xmlDoc.createElement(XML_DOC_INFO);
-        this.createAttributeNode(xmlDoc, doc_info, "version", "1.0.0");
-
-        let comment_node = xmlDoc.createElement(XML_COMMENT_NODE);
-        for (let i = 0; i < g_GLAnnoSet._arrComment.length; ++i) {
-            // if (g_canvas.m_arrIsUsrCommentDel[i]) {
-            //     continue;
-            // }
-            let commentInfo = g_GLAnnoSet._arrComment[i];
-            let newNode = xmlDoc.createElement(XML_NODE);
-            newNode.appendChild(this.exportXmlProperty(xmlDoc, commentInfo.stuProperty));
-            newNode.appendChild(this.exportXmlAnnot(xmlDoc, commentInfo.stuAnnot));
-            comment_node.appendChild(newNode);
+    this.initInputList = function() {
+        if (g_canvas.m_arrUsrComment == null || g_canvas.m_arrUsrComment.length == 0) {
+            return null;
         }
-        root.appendChild(doc_info);
-        root.appendChild(comment_node);
-        return root
+
+        var inputData = new Array();
+        for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            let curComment = g_canvas.m_arrUsrComment[i];
+            var newCommentNode = new GL_USRANNOTATION();
+            newCommentNode._uAnnotText = curComment.stuAnnot.pNote.strText;
+            newCommentNode._strUsrName = curComment.stuProperty._strUserName;
+            newCommentNode._strCreateTime = curComment.stuProperty._strDateTime;
+            
+            let point2d = new Point2(0, 0);
+            g_canvas.adapterLocalToScreen(curComment.stuAnnot.annoPlaneLocal.x, curComment.stuAnnot.annoPlaneLocal.y, point2d);
+            newCommentNode.value = curComment.stuAnnot.pNote.strText;
+            newCommentNode.style = cvtPointToStyle(point2d, newCommentNode.value);
+            inputData.push(newCommentNode);
+        }
+        return inputData;
     }
 
-    this.getObjectCenterById = function(objectID) {
+    this.exportXmlComment = function(xmlDoc) {
+        let arrComment = new Array();
+        for (let i = 0; i < g_canvas.m_arrIsUsrCommentDel.length; ++i) {
+            if (!g_canvas.m_arrIsUsrCommentDel[i]) {
+                arrComment.push(g_canvas.m_arrUsrComment[i]);
+            }
+        }
+        if (arrComment.length == 0) {
+            return null;
+        }
+
+        g_xmlTool = new XmlTool();
+        return g_xmlTool.exportXmlComment(xmlDoc, arrComment);
+    }
+
+    this.getObjectIndexById = function(objectID) {
         let index = -1;
-        let center = null;
         for (let i = 0; i < g_GLData.GLObjectSet._arrObjectSet.length; i++) {
             if (objectID == g_GLData.GLObjectSet._arrObjectSet[i]._uObjectID) {
                 index = i;
                 break;
             }
         }
+        return index;
+    }
 
+    this.getObjectIdByIndex = function(index) {
+        if (index < 0 || index >= g_GLData.GLObjectSet._arrObjectSet.length) {
+            return -1;
+        }
+        return g_GLData.GLObjectSet._arrObjectSet[index]._uObjectID;
+    }
+
+    this.getObjectCenterById = function(objectID) {
+        let index = this.getObjectIndexById(objectID);
+        let center = null;
         if (index >= 0) {
             let center2D = this.getObjectCenterByIndex(index).Center2D;
             center = new Point2(0, 0);

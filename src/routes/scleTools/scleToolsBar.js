@@ -2,7 +2,7 @@ import {
 	Drawer,
 	Icon,
 	message,
-    notification,
+	notification,
 	Popover,
 	Radio,
 	Slider,
@@ -23,7 +23,7 @@ import { scleCustomEvent } from '../../utils'
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
-	scriptUrl: './js_min/localiconfont/iconfont.js'
+	scriptUrl: './js/localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
 
@@ -32,9 +32,9 @@ message.config({
 })
 export default class scleTools extends PureComponent {
 	#toolsKeyIndex = {
-		visibleIndex: 3,
-		alphaIndex: 5,
-		fullScreen: 9
+		visibleIndex: 4,
+		alphaIndex: 6,
+		fullScreen: 10
 	}
 	#tools = [
 		{ type: 'home', title: '复位', onClick: () => window.setHome() },
@@ -44,12 +44,17 @@ export default class scleTools extends PureComponent {
 			// onClick: () => this.isPickNull(() => window.moveModel())
 		},
 		{
+			type: 'font-colors',
+			title: '批注',
+			popover: () => this.renderAnnotation()
+		},
+		{
 			type: 'apartment',
 			title: '模型树',
 			onClick: () => this.drawerToggle()
 		},
 		{ type: 'eye-invisible', title: '隐藏' },
-		{ type: 'bg-colors',resetTheme:true, title: '颜色', popover: () => this.renderColor() },
+		{ type: 'bg-colors', resetTheme: true, title: '颜色', popover: () => this.renderColor() },
 		{
 			type: 'icon-toumingdu',
 			title: '透明度',
@@ -116,28 +121,28 @@ export default class scleTools extends PureComponent {
 	componentDidMount() {
 		window.isPhone = IsPhone()
 
-		// window.addEventListener("fullscreenchange", () =>
-		//   this.fullScreenHandle(!!document.fullscreenElement)
-		// );
-		// // IE
-		// window.addEventListener("MSFullscreenChange", () =>
-		//   this.fullScreenHandle(document.msFullscreenElement != null)
-		// );
-		;[
-			'fullscreenchange',
-			'webkitfullscreenchange',
-			'mozfullscreenchange',
-			'MSFullscreenChange'
-		].forEach((item, index) => {
-			window.addEventListener(item, () => {
-				this.fullScreenHandle(
-					document.fullScreen ||
+			// window.addEventListener("fullscreenchange", () =>
+			//   this.fullScreenHandle(!!document.fullscreenElement)
+			// );
+			// // IE
+			// window.addEventListener("MSFullscreenChange", () =>
+			//   this.fullScreenHandle(document.msFullscreenElement != null)
+			// );
+			;[
+				'fullscreenchange',
+				'webkitfullscreenchange',
+				'mozfullscreenchange',
+				'MSFullscreenChange'
+			].forEach((item, index) => {
+				window.addEventListener(item, () => {
+					this.fullScreenHandle(
+						document.fullScreen ||
 						document.mozFullScreen ||
 						document.webkitIsFullScreen ||
 						!!document.msFullscreenElement
-				)
+					)
+				})
 			})
-		})
 		if (window.g_GLData) {
 			this.scleStreamReady()
 		}
@@ -187,7 +192,7 @@ export default class scleTools extends PureComponent {
 			this.pickObjectParameters.bind(this),
 			{ passive: false }
 		)
-		this.setState = () => {}
+		this.setState = () => { }
 	}
 	//   scleStreamReady
 	scleStreamReady() {
@@ -202,8 +207,8 @@ export default class scleTools extends PureComponent {
 				<Drawer
 					title={null}
 					closable={false}
-                    mask={false}
-                    maskClosable={false}
+					mask={false}
+					maskClosable={false}
 					placement="left"
 					width="auto"
 					visible={this.state.drawerVisible}
@@ -232,8 +237,8 @@ export default class scleTools extends PureComponent {
 
 	drawerToggle() {
 		this.setState({
-            drawerVisible: !this.state.drawerVisible,
-            activeTab: !this.state.drawerVisible ?  this.state.activeTab: null
+			drawerVisible: !this.state.drawerVisible,
+			activeTab: !this.state.drawerVisible ? this.state.activeTab : null
 		})
 	}
 	hideDrawer() {
@@ -250,13 +255,52 @@ export default class scleTools extends PureComponent {
 					item.tabComponent
 						? item.tabComponent(item, index)
 						: IsPhone()
-						? this.renderPopover(item, index)
-						: this.renderTipsPopover(item, index)
+							? this.renderPopover(item, index)
+							: this.renderTipsPopover(item, index)
 				}
 				key={item.type}
 			></TabPane>
 		))
 	}
+
+	renderAnnotation() {
+		return <div className="annotation_icons">
+			<Tooltip title={'创建批注'}>
+				<Icon
+					type={'edit'}
+					onClick={() => {
+						window.setUsrCommentMode && window.setUsrCommentMode(1, 1)
+					}}
+				/>
+			</Tooltip>
+			<Tooltip title={'取消批注'}>
+				<Icon
+					type={'close-circle'}
+					onClick={() => {
+						window.setUsrCommentMode && window.setUsrCommentMode(0, 1)
+					}}
+				/>
+			</Tooltip>
+			<Tooltip title={'上传批注'}>
+				<Icon
+					type={'cloud-upload'}
+					onClick={() => {
+						window.uploadXmlCommentToCloud && window.uploadXmlCommentToCloud()
+					}}
+				/>
+			</Tooltip>
+			<Tooltip title={'下载批注'}>
+				<Icon
+					type={'cloud-download'}
+					onClick={() => {
+						window.syncXmlCommentFromCloud && window.syncXmlCommentFromCloud()
+					}}
+				/>
+			</Tooltip>
+
+		</div>
+	}
+
 
 	renderTipsPopover(item, index) {
 		return (
@@ -278,12 +322,12 @@ export default class scleTools extends PureComponent {
 					) {
 						return
 					}
-                    this.changeVisible(visible, index)
-                    if(!visible && item.resetTheme){
-                        this.setState({
-                          activeTab:null
-                        })
-                    }
+					this.changeVisible(visible, index)
+					if (!visible && item.resetTheme) {
+						this.setState({
+							activeTab: null
+						})
+					}
 				}}
 			>
 				{this.renderToolsIcon(item, index)}
@@ -452,7 +496,7 @@ export default class scleTools extends PureComponent {
 
 	// 工具栏 触发事件统一处理
 	toolsClickHandle(item, index) {
-        console.log(item);
+		console.log(item);
 		const newTools = this.state.tools
 
 		if (item.type === 'eye') {
@@ -494,55 +538,55 @@ export default class scleTools extends PureComponent {
 			exitFullscreen()
 		}
 
-		
+
 		this.setState(
 			{
 				tools: [...newTools]
 			},
 			() => {
-                item.onClick && item.onClick()
-                if (item.type === 'drag') {
-                    // onClick: () => this.isPickNull(() => window.moveModel())
-                    if (this.state.activeTab && this.isMove) {
-                      
-                        this.setState({
-                            activeTab: null
-                        })
-                        this.moveHandle()
-                    } else {
-                        this.isPickNull(() => {
-                            this.moveHandle()
-                            if(!IsPhone()){
-                                notification.info({
-                                    message:'移动操作',
-                                    description: '使用Ctrl+鼠标左键，移动模型。',
-                                    duration: 3,
-                                })
-                            }
-                        })
-                    }
-                } else {
-                    if (this.isMove && !item.type.startsWith('eye')) {
-                        this.moveHandle()
-                    }
-                    if(item.type.startsWith('eye') && this.isMove){
-                        this.setState({
-                            activeTab: 'drag'
-                        })
-                    }
-                }
-                
-                
+				item.onClick && item.onClick()
+				if (item.type === 'drag') {
+					// onClick: () => this.isPickNull(() => window.moveModel())
+					if (this.state.activeTab && this.isMove) {
 
-        // console.log(this.isMove);
+						this.setState({
+							activeTab: null
+						})
+						this.moveHandle()
+					} else {
+						this.isPickNull(() => {
+							this.moveHandle()
+							if (!IsPhone()) {
+								notification.info({
+									message: '移动操作',
+									description: '使用Ctrl+鼠标左键，移动模型。',
+									duration: 3,
+								})
+							}
+						})
+					}
+				} else {
+					if (this.isMove && !item.type.startsWith('eye')) {
+						this.moveHandle()
+					}
+					if (item.type.startsWith('eye') && this.isMove) {
+						this.setState({
+							activeTab: 'drag'
+						})
+					}
+				}
 
-            }
+
+
+				// console.log(this.isMove);
+
+			}
 		)
 	}
 
 	moveHandle() {
-        window.moveModel()
-        this.isMove = !this.isMove
+		window.moveModel()
+		this.isMove = !this.isMove
 	}
 
 	fullScreenHandle(fullScreen) {
@@ -584,7 +628,7 @@ export default class scleTools extends PureComponent {
 		})
 	}
 
-	isPickNull = (callback = () => {}) => {
+	isPickNull = (callback = () => { }) => {
 		if (window.getPickStatus() < 1) {
 			this.setState({
 				activeTab: null
@@ -599,13 +643,13 @@ export default class scleTools extends PureComponent {
 		const newTools = this.state.tools
 		const newStatus = isPause
 			? {
-					type: 'play-circle',
-					title: '播放'
-			  }
+				type: 'play-circle',
+				title: '播放'
+			}
 			: {
-					type: 'pause-circle',
-					title: '暂停'
-			  }
+				type: 'pause-circle',
+				title: '暂停'
+			}
 
 		this.setState({
 			tools: newTools.map((item) => {

@@ -5,43 +5,72 @@
  */
 
 //===================================================================================================
+// 模块对外接口
 
-// WebGL Context 全局变量
-var g_nEventVersion = 2;
-var g_bTestMode = true;
-
-const canvas = document.querySelector('#glcanvas');
-var gl = canvas.getContext('webgl2');
-var isWebgl2 = true;
-if (!gl) {
-    gl = canvas.getContext('webgl')
-    if (!gl) {
-        gl = canvas.getContext('experimental-webgl');
-    }
-    isWebgl2 = false;
+function CALLBACK_V2() {
+    // 刷新场景事件文本框动态坐标
+    this.refreshNotation = function() {}
+    // 刷新批注文本框
+    this.showCommentInput = function(option) {}
+    // 批注文本框修改提交事件
+    this.commentOnSubmit = function(event, newOpion, item, index) {}
+    // 批注文本框正在修改事件
+    this.commentOnChange = function(event, newOpion, item, index) {}
+    // 加载完成
+    this.loadEnd = function() {}
 }
 
-var textCanvas = document.querySelector("#text");
-var gl2d = textCanvas.getContext("2d");
-var container = document.getElementsByClassName("container");
-var offsetLeft = container[0].offsetLeft;
-var offsetTop = container[0].offsetTop;
+function CALLBACK_V3() {
+    // 回调函数，刷新界面
+    this.CMOnUpdateUICallBack = function() {}
+    // 回调函数，使用当前帧数刷新进度条
+    this.CMOnAnimRefreshCallBack = function(frame) {}
+    // 回调函数，设置暂停/继续图标状态，当动画播放完毕时自动设置成暂停状态
+    this.CMOnAnimFinishCallBack = function(isPause) {}
+    // 回调函数，键盘按下事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnKeyboardDownCallBack = function(event) {}
+    // 回调函数，键盘抬起事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnKeyboardUpCallBack = function(event) {}
+    // 回调函数，鼠标按下事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnMouseDownCallBack = function(event) {}
+    // 回调函数，鼠标抬起事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnMouseUpCallBack = function(event) {}
+    // 回调函数，鼠标拖拽事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnMouseMoveCallBack = function(event) {}
+    // 回调函数，鼠标滚轮事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnMouseWheelCallBack = function(event) {}
+    // 回调函数，手机触屏按下事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnTouchStartCallBack = function(event) {}
+    // 回调函数，手机触屏滑动事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnTouchMoveCallBack = function(event) {}
+    // 回调函数，手机触屏抬起事件，发生在CMOnline已经执行内部事件之后
+    this.CMOnTouchEndCallBack = function(event) {}
+}
 
+//===================================================================================================
+
+// WebGL Context 全局变量
+
+var container = null;
+var web3dCanvas = null;
+var gl = null;
+var isWebgl2 = true;
+var text2dCanvas = null;
+var gl2d = null;
+var callback_v2 = new CALLBACK_V2();
+var callback_v3 = new CALLBACK_V3;
+
+var g_nEventVersion = 2;
+var g_bTestMode = true;
 var isPhone = false;
-
-var glRunTime = new GLRunTime();
 
 var g_resFoder = "./Resource/Background/";
 var g_bgImage = ["blue.jpg", "white.jpg", "grey.jpg"];
-var test_download_xml = "./Resource/111.xml";
-// var test_upload_xml = "../../lab/index.php?contentid=202105172230wjl&filesize=60";
+var test_download_xml = "../../lab/data/202105172230wjl.xml";
 var test_upload_xml = "../../lab/index.php";
-// contentid=202105172230wjl&filesize=60
-
-
-
-
 var test_note = new GL_USRANNOTATION();
+
+var glRunTime = new GLRunTime();
 
 // 键盘交互参数
 var isLockCavans = false;
@@ -74,12 +103,72 @@ var handle2D = null;
 var handle3D = null;
 // 用户添加注释
 var isUsrCommentFlag = false;
+var isUsrCommInputShow = false;
 var isSingleComment = false;
 var isShowUsrComment = true;
-var isShowScleComment = true;
+var isShowScleComment = false;
 var g_xmlDoc = null;
 var g_xmlHttp = null;
 var g_isXmlDocLoaded = false;
+var g_usrCommOption = {data: [], show: true};
+// 处理页面滚动坐标原点变化
+var scrollLeft = 0;
+var scrollTop = 0;
+var originPt = new Point2(0, 0);
+
+/* 手机或平板等终端web浏览器触摸交互事件 */
+var lastX1 = -1, lastY1 = -1, lastX2 = -1, lastY2 = -1;
+var x1 = -1, y1 = -1, x2 = - 1, y2 = -1;
+var touch1 = null, touch2 = null;
+var phoneFactor = 0;
+var scaleFactor = 1.2;
+var moveSensitivity = 1;
+var rotateSensitivity = 1;
+var zRotateSensitive = 0.03;
+var cameraMoveSensitivity = 3;
+var scaleSensitivity = 0.1;
+var doubleClickTimeMS = 300;
+var isKeyDown = false;
+var isKeyMove = false;
+var isKeyRotate = false;
+var isKeyScale = false;
+var nullPickIndexs = [-1];
+
+/* PC端web浏览器鼠标交互事件 */
+var isKeyTap = false;
+var webFactor = 0;
+var dragLeft = false, dragMid = false, dragRight = false;
+var lastX = -1, lastY = -1;
+var click_x = -1, click_y = -1;
+
+function initComponet(dom) {
+    if (typeof(dom) == "undefined" || dom == null) {
+        return;
+    }
+
+    container = dom;
+    container.style.position = 'relative';
+
+    web3dCanvas = document.createElement('canvas');
+    web3dCanvas.style.position = 'absolute'
+    web3dCanvas.style.width = '100%';
+    web3dCanvas.style.height = '100%';
+    container.append(web3dCanvas);
+
+    text2dCanvas = document.createElement('canvas');
+    text2dCanvas.style.position = 'absolute'
+    text2dCanvas.style.width = '100%';
+    text2dCanvas.style.height = '100%';
+    container.append(text2dCanvas);
+}
+
+function initModuleCallbacks(callbacks) {
+    if (g_nEventVersion == 2) {
+        callback_v2 = Scle;
+    } else if (g_nEventVersion == 3) {
+        callback_v3 = callbacks;
+    }
+}
 
 function render3D() {
     glRunTime.draw3D();
@@ -95,14 +184,30 @@ function render2D() {
 /**
  * 开始循环渲染
  */
-function startRender() {
+function startRender () {
+    web3dCanvas.width = container.offsetWidth;
+    web3dCanvas.height = container.offsetHeight;
+    text2dCanvas.width = container.offsetWidth;
+    text2dCanvas.height = container.offsetHeight;
+    phoneFactor = 400.0 / text2dCanvas.height;
+    webFactor = 200.0 / text2dCanvas.height;
+
+    gl = web3dCanvas.getContext('webgl2');
     if (!gl) {
+        gl = web3dCanvas.getContext('webgl')
+        if (!gl) {
+            gl = web3dCanvas.getContext('experimental-webgl');
+        }
+        isWebgl2 = false;
+    }
+
+    gl2d = text2dCanvas.getContext("2d");
+
+    if (!gl || !gl2d) {
         return;
     }
 
     initRenderFlag = true;
-    // requestAnimationFrame(render3D);
-    // requestAnimationFrame(render2D);
     if (handle3D == null) {
         glRunTime.initRender();
         render3D();
@@ -115,10 +220,11 @@ function startRender() {
     }
 
     addKeyboardListener();
-    addMouseListener(textCanvas);
+    addMouseListener(text2dCanvas);
     document.addEventListener('DOMMouseScroll', fireFoxScollFun, false);
     window.onunload = addCloseListenser;
     window.onresize = canvasOnResize;
+    callback_v2.loadEnd()
 }
 
 /* 通用浏览器设置 */
@@ -158,6 +264,14 @@ function addKeyboardListener() {
     document.addEventListener('keyup', onDocumentKeyUp, false);
 }
 
+// 获取画布左上角坐标真实坐标，考虑dom偏移以及页面滚动
+function getCanvasOrigin() {
+    scrollLeft = document.body.scrollLeft || document.documentElement.scrollLeft;
+    scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+    originPt.x = container.offsetLeft - scrollLeft;
+    originPt.y = container.offsetTop - scrollTop;
+}
+
 function onDocumentKeyDown(event) {
     if (isLockCavans) {
         return;
@@ -170,17 +284,14 @@ function onDocumentKeyDown(event) {
         isMultPick = false;
         if (event.keyCode == 32) {
             // 空格响应事件
-            // setFocusOnModel();
-            // setUsrCommentMode(1, 1);
-            // glRunTime.createCommentBegin();
-            uploadXmlCommentToCloud(test_upload_xml);
-            // syncXmlCommentFromCloud(test_download_xml);
+            setFocusOnModel();
+        } else if (event.keyCode == 27) {
+            // esc键，退出
+            setUsrCommentMode(0, 1);
         }
     }
 
-    if (g_nEventVersion == 3) {
-        CMOnKeyboardDownCallBack(event);
-    }
+    callback_v3.CMOnKeyboardDownCallBack(event);
 }
 
 function onDocumentKeyUp(event) {
@@ -190,47 +301,27 @@ function onDocumentKeyUp(event) {
     isShiftDown = false;
     isMultPick = false;
 
-    if (g_nEventVersion == 3) {
-        CMOnKeyboardUpCallBack(event);
-    }
+    callback_v3.CMOnKeyboardUpCallBack(event);
 }
-
-/* 手机或平板等终端web浏览器触摸交互事件 */
-var lastX1 = -1, lastY1 = -1, lastX2 = -1, lastY2 = -1;
-var x1 = -1, y1 = -1, x2 = - 1, y2 = -1;
-var touch1 = null, touch2 = null;
-var phoneFactor = 400.0 / textCanvas.height;
-var scaleFactor = 1.2;
-var moveSensitivity = 1;
-var rotateSensitivity = 1;
-var zRotateSensitive = 0.03;
-var cameraMoveSensitivity = 3;
-var scaleSensitivity = 0.1;
-var doubleClickTimeMS = 300;
-var isKeyDown = false;
-var isKeyMove = false;
-var isKeyRotate = false;
-var isKeyScale = false;
-var nullPickIndexs = [-1];
 
 function phoneKeyDown(event) {
     if (isLockCavans) {
         return;
     }
     isKeyDown = true;
+    getCanvasOrigin();
     if (event.targetTouches.length == 1) {
         // 单指
         touch1 = event.targetTouches[0];
-        x1 = touch1.clientX - offsetLeft, y1 = touch1.clientY - offsetTop;
+        x1 = touch1.clientX - originPt.x, y1 = touch1.clientY - originPt.y;
         lastX1 = x1, lastY1 = y1;
     }
     else if (event.targetTouches.length == 2) {
         // 双指
         touch1 = event.targetTouches[0], touch2 = event.targetTouches[1];
-        lastX1 = touch1.clientX - offsetLeft, lastY1 = touch1.clientY - offsetTop;
-        lastX2 = touch2.clientX - offsetLeft, lastY2 = touch2.clientY - offsetTop;
+        lastX1 = touch1.clientX - originPt.x, lastY1 = touch1.clientY - originPt.y;
+        lastX2 = touch2.clientX - originPt.x, lastY2 = touch2.clientY - originPt.y;
     }
-
 }
 
 function phoneKeyMove(event) {
@@ -240,9 +331,10 @@ function phoneKeyMove(event) {
     if (!isKeyDown) {
         return;
     }
+    getCanvasOrigin();
     if (event.targetTouches.length == 1) {
         touch1 = event.targetTouches[0];
-        x1 = touch1.clientX - offsetLeft, y1 = touch1.clientY - offsetTop;
+        x1 = touch1.clientX - originPt.x, y1 = touch1.clientY - originPt.y;
         // 移动零件
         if (isMove) {
             if (objectIndex != -1) {
@@ -266,8 +358,8 @@ function phoneKeyMove(event) {
     } else if (event.targetTouches.length == 2) {
         // 双指滑动：缩放
         touch1 = event.targetTouches[0], touch2 = event.targetTouches[1];
-        x1 = touch1.clientX - offsetLeft, y1 = touch1.clientY - offsetTop;
-        x2 = touch2.clientX - offsetLeft, y2 = touch2.clientY - offsetTop;
+        x1 = touch1.clientX - originPt.x, y1 = touch1.clientY - originPt.y;
+        x2 = touch2.clientX - originPt.x, y2 = touch2.clientY - originPt.y;
         let vecX1 = lastX1 - lastX2, vecY1 = lastY1 - lastY2;
         let vecX2 = x1 - x2, vecY2 = y1 - y2;
         // 计算距离
@@ -322,10 +414,11 @@ function phoneKeyUp(event) {
         return;
     }
 
+    getCanvasOrigin();
     if (isKeyDown && !isKeyMove && !isKeyRotate && !isKeyScale) {
         // 单指
         touch1 = event.changedTouches[0];
-        x1 = touch1.clientX - offsetLeft, y1 = touch1.clientY - offsetTop;
+        x1 = touch1.clientX - originPt.x, y1 = touch1.clientY - originPt.y;
         objectIndex = glRunTime.pick(x1, y1, isMultPick, true);
         pickObjectVisible = glRunTime.getObjectVisible(objectIndex);
         pickObjectTransparent = glRunTime.getObjectTransparent(objectIndex);
@@ -345,47 +438,41 @@ function phoneKeyUp(event) {
     isKeyDown = false; isKeyMove = false; isKeyRotate = false; isKeyScale = false;
 }
 
-/* PC端web浏览器鼠标交互事件 */
-var isKeyTap = false;
-var webFactor = 200.0 / textCanvas.height;
-var dragLeft = false, dragMid = false, dragRight = false;
-var lastX = -1, lastY = -1;
-
 function webKeyDown(event, textCanvas) {
     if (isLockCavans) {
         return;
     }
     isKeyTap = true;
-    let rect = event.target.getBoundingClientRect();
-    let x = event.clientX - offsetLeft, y = event.clientY - offsetTop;
-    if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {
-        lastX = x, lastY = y;
-        switch (event.button) {
-            case 0:
-                // 左键
-                dragLeft = true;
-                //在textCanvas里屏蔽浏览器右键菜单,不兼容火狐
-                textCanvas.oncontextmenu = function () {
-                    return false;
-                }
-                if (isShiftDown) {
-                    objectIndex = glRunTime.pick(x, y, isMultPick, false);
-                }
-                break;
-            case 1:
-                // 中键
-                dragMid = true;
-                break;
-            case 2:
-                // 右键
-                dragRight = true;
-                //在textCanvas里屏蔽浏览器右键菜单,不兼容火狐
-                textCanvas.oncontextmenu = function () {
-                    return false;
-                }
-                break;
-        }
+    getCanvasOrigin();
+    let x = event.clientX - originPt.x, y = event.clientY - originPt.y;
+
+    switch (event.button) {
+        case 0:
+            // 左键
+            dragLeft = true;
+            click_x = x, click_y = y;
+            //在textCanvas里屏蔽浏览器右键菜单,不兼容火狐
+            textCanvas.oncontextmenu = function () {
+                return false;
+            }
+            if (isShiftDown) {
+                objectIndex = glRunTime.pick(x, y, isMultPick, false);
+            }
+            break;
+        case 1:
+            // 中键
+            dragMid = true;
+            break;
+        case 2:
+            // 右键
+            dragRight = true;
+            //在textCanvas里屏蔽浏览器右键菜单,不兼容火狐
+            textCanvas.oncontextmenu = function () {
+                return false;
+            }
+            break;
     }
+    lastX = x, lastY = y;
 }
 
 function webKeyUp(event, textCanvas) {
@@ -398,8 +485,13 @@ function webKeyUp(event, textCanvas) {
             if (isKeyTap) {
                 if (isUsrCommentFlag && isSingleComment) {
                     addSingleComment(lastX, lastY, test_note);
-                } else if (isUsrCommentFlag) {
+                } else if (isUsrCommentFlag && glRunTime.isDuringComment) {
                     glRunTime.createCommentUpdate(lastX, lastY);
+                    break;
+                }
+
+                if (glRunTime.isDuringMultSel) {
+                    glRunTime.isDuringMultSel = false;
                     break;
                 }
 
@@ -423,14 +515,15 @@ function webKeyUp(event, textCanvas) {
             break;
         case 1:
             dragMid = false;
-            if (isUsrCommentFlag) {
-                glRunTime.createCommentFinal(lastX, lastY, test_note);
+            if (isUsrCommentFlag && glRunTime.isDuringComment) {
+                // 弹出文本框
+                getNewCommentNote(lastX, lastY);
                 break;
             }
             break;
         case 2:
             dragRight = false;
-            if (isUsrCommentFlag) {
+            if (isUsrCommentFlag && !isUsrCommInputShow) {
                 glRunTime.createCommentCancel();
                 break;
             }
@@ -454,7 +547,8 @@ function webKeyMove(event, textCanvas) {
     if (isLockCavans) {
         return;
     }
-    let x = event.clientX - offsetLeft, y = event.clientY - offsetTop;
+    getCanvasOrigin();
+    let x = event.clientX - originPt.x, y = event.clientY - originPt.y;
     if (isKeyTap) {
         // 在鼠标按下的情况下才能进行视角旋转、模型平移等操作
         if ((!isShiftDown) && dragMid) {
@@ -478,6 +572,13 @@ function webKeyMove(event, textCanvas) {
                     }
                 }
             }
+        } else if (dragLeft) {
+            // 框选零件
+            // glRunTime.isDuringMultSel = true;
+            // glRunTime.startMouseX = click_x;
+            // glRunTime.startMouseY = click_y;
+            // glRunTime.runtimeMouseX = x;
+            // glRunTime.runtimeMouseY = y;
         }
     } else {
         // 鼠标没有按下，但滑动，将操作标注信息
@@ -489,7 +590,7 @@ function webKeyMove(event, textCanvas) {
     }
 
     // 创建批注状态时，捕获鼠标位置
-    if (isUsrCommentFlag) {
+    if (isUsrCommentFlag && !isUsrCommInputShow) {
         glRunTime.runtimeMouseX = x;
         glRunTime.runtimeMouseY = y;
     }
@@ -506,51 +607,37 @@ function addMouseListener(textCanvas) {
         textCanvas.ontouchstart = function (event) {
             phoneKeyDown(event);
             stopDefault(event);
-            if (g_nEventVersion == 3) {
-                CMOnTouchStartCallBack(event);
-            }
+            callback_v3.CMOnTouchStartCallBack(event);
         }
 
         textCanvas.ontouchmove = function (event) {
             phoneKeyMove(event);
-            if (g_nEventVersion == 3) {
-                CMOnTouchMoveCallBack(event);
-            }
+            callback_v3.CMOnTouchMoveCallBack(event);
         }
 
         textCanvas.ontouchend = function (event) {
             phoneKeyUp(event);
-            if (g_nEventVersion == 3) {
-                CMOnTouchEndCallBack(event);
-            }
+            callback_v3.CMOnTouchEndCallBack(event);
         }
     } else {
         textCanvas.onmousedown = function (event) {
             webKeyDown(event, textCanvas);
-            if (g_nEventVersion == 3) {
-                CMOnMouseDownCallBack(event);
-            }
+            callback_v3.CMOnMouseDownCallBack(event);
         }
 
         textCanvas.onmouseup = function (event) {
             webKeyUp(event, textCanvas);
-            if (g_nEventVersion == 3) {
-                CMOnMouseUpCallBack(event);
-            }
+            callback_v3.CMOnMouseUpCallBack(event);
         }
 
         textCanvas.onmousewheel = function (event) {
             webWheel(event, textCanvas);
-            if (g_nEventVersion == 3) {
-                CMOnMouseWheelCallBack(event);
-            }
+            callback_v3.CMOnMouseWheelCallBack(event);
         }
 
         textCanvas.onmousemove = function (event) {
             webKeyMove(event, textCanvas);
-            if (g_nEventVersion == 3) {
-                CMOnMouseMoveCallBack(event);
-            }
+            callback_v3.CMOnMouseMoveCallBack(event);
         }
     }
 }
@@ -762,8 +849,6 @@ function setModelVisible(indexs, isVisible) {
 function canvasOnResize() {
     gl.canvas.width = gl.canvas.clientWidth;
     gl.canvas.height = gl.canvas.clientHeight;
-    offsetLeft = container[0].offsetLeft;
-    offsetTop = container[0].offsetTop;
 
     if (initRenderFlag) {
         glRunTime.resetWindow(gl.canvas.clientWidth, gl.canvas.clientHeight);
@@ -827,14 +912,103 @@ function setUsrCommentMode(flag, type) {
         isMultPick = true;
         if (type == 0) {
             isSingleComment = true;
+        } else {
+            glRunTime.createCommentBegin();
+            isUsrCommInputShow = false;
         }
     } else {
+        glRunTime.createCommentCancel();
         glRunTime.setBoxShow(true);
         isUsrCommentFlag = false;
+        isUsrCommInputShow = false;
         isMultPick = false;
         isSingleComment = false;
     }
     glRunTime.pickModelByIDs(null);
+}
+
+function getStandardCurTime() {
+    let tmpTime = "";
+    curDate = new Date();
+    tmpTime += curDate.getFullYear();
+    tmpTime += curDate.getMonth() + 1;
+    tmpTime += curDate.getDate();
+    tmpTime += curDate.getHours();
+    tmpTime += curDate.getMinutes();
+    tmpTime += curDate.getSeconds();
+    return tmpTime;
+}
+
+// 文本长度与文本框大小对应关系表
+// length: 0-5，   width: 100
+//         5-10,   width: 200
+const WIDTH_UNIT = 100;
+const HEIGHT_UNIT = 30;
+function textMapWidth(text) {
+    return text.length < 5 ? WIDTH_UNIT : WIDTH_UNIT * 2;
+}
+
+function cvtPointToStyle(point2d, text) {
+    var style = {left: 0, top: 0, width: 0};
+    style.top = point2d.y - HEIGHT_UNIT;
+    style.width = textMapWidth(text);
+    style.left = point2d.x - style.width / 2;
+    return style;
+}
+
+function cvtStyleToPoint(style) {
+    let y = style.top + HEIGHT_UNIT;
+    let x = style.left + style.width / 2;
+    return new Point2(x, y);
+}
+
+// 更新批注界面列表
+function getNewCommentNote(x, y) {
+    // 如果没有Update引线，则直接返回
+    if (!glRunTime.isCommentValid()) {
+        return;
+    }
+
+    var newCommentNode = new GL_USRANNOTATION();
+    newCommentNode.style = cvtPointToStyle(new Point2(x, y), newCommentNode.value);
+    newCommentNode._uAnnotID = g_canvas.commentId;
+    newCommentNode._strCreateTime = getStandardCurTime();
+
+    // 弹出输入框
+    g_usrCommOption.data.push(newCommentNode);
+    Scle.showCommentInput(g_usrCommOption);
+    isUsrCommInputShow = true;
+
+    // 执行final
+    glRunTime.createCommentFinal(x, y, newCommentNode);
+}
+
+// 注册界面回调函数
+// 更新注释数据
+// 更新内容可以包括：位置坐标和注释内容
+callback_v2.commentOnSubmit = function (event, newOpion, item, index) {
+    isUsrCommInputShow = false;
+    let curComment = newOpion.data[index];
+    curComment._uAnnotText = curComment.value;
+    let point2d = cvtStyleToPoint(curComment.style);
+    if (glRunTime.updateCommentById(point2d.x, point2d.y, curComment)) {
+        glRunTime.createCommentBegin();
+        return true;
+    }
+    return false;
+}
+
+// 注册界面回调函数
+// 适配文本框大小，并限制输入长度
+callback_v2.commentOnChange = function (event, newOpion, item, index) {
+    // let text = newOpion.data[index].value;
+    // if (text.length == 6) {
+    //     newOpion.data[index].style.width = textMapWidth(text);
+    //     newOpion.data[index].style.left -= WIDTH_UNIT / 2;
+    //     callback_v2.showCommentInput(newOpion);
+    // } else if (text.length > 10) {
+
+    // }
 }
 
 function addSingleComment(x, y, commentInfo) {
@@ -843,11 +1017,6 @@ function addSingleComment(x, y, commentInfo) {
         return;
     }
     glRunTime.createCommentFinal(x, y - 30, commentInfo);
-}
-
-// 编辑批注数据确认
-function setUsrCommentFinal(x, y, commentInfo) {
-    glRunTime.createCommentFinal(x, y, commentInfo);
 }
 
 // 读取XML 文件
@@ -860,6 +1029,8 @@ function uploadXmlLocal(e) {
         var xmlDoc = cvtToXMLDOM(this.result)
         if (xmlDoc != null) {
             glRunTime.importXmlComment(xmlDoc);
+            g_usrCommOption.data = glRunTime.initInputList();
+            callback_v2.showCommentInput(g_usrCommOption);
         }
     }
 }
@@ -908,35 +1079,40 @@ function getXMLHTTP() {
     return xmlhttp;
 }
 
-function syncXmlCommentFromCloud(url) {
+// 下载xml文件
+function syncXmlCommentFromCloud() {
     g_xmlDoc = getXMLDOM();
 
     try {
         g_xmlDoc.async = "false";
-        g_xmlDoc.load(url);
+        g_xmlDoc.load(test_download_xml);
     } catch (e) {
         // Chrome
         g_xmlHttp = new window.XMLHttpRequest();
-        g_xmlHttp.open("GET", url, false);
+        g_xmlHttp.open("GET", test_download_xml, false);
         g_xmlHttp.send(null);
         g_xmlDoc = g_xmlHttp.responseXML.documentElement;
     }
 
     if (g_xmlDoc != null) {
         glRunTime.importXmlComment(g_xmlDoc);
+        g_usrCommOption.data = glRunTime.initInputList();
+        callback_v2.showCommentInput(g_usrCommOption);
     }
 }
 
-function uploadXmlCommentToCloud(url) {
+// 上传xml文件
+function uploadXmlCommentToCloud() {
     g_xmlDoc = getXMLDOM();
     if (g_xmlDoc != null) {
         g_xmlDoc = glRunTime.exportXmlComment(g_xmlDoc);
     }
-
-
+    if (g_xmlDoc == null) {
+        alert("上传失败");
+        return false;
+    }
 
     var xml = new XMLSerializer().serializeToString(g_xmlDoc)
-
     // 将xml 转 blob
     var blob = new Blob([xml], { type: "text/xml" });
     // blob 转 File
@@ -948,27 +1124,21 @@ function uploadXmlCommentToCloud(url) {
     formData.append("filesize", file.size);
     formData.append("contentid", '202105172230wjl');
 
-
-    console.log('g_xmlDoc', g_xmlDoc);
-
-
-
-
     g_xmlHttp = getXMLHTTP();
     if (g_xmlHttp != null) {
-        g_xmlHttp.open("post", url, true);
+        g_xmlHttp.open("post", test_upload_xml, true);
         g_xmlHttp.send(formData);
+        g_xmlHttp.onreadystatechange = success;
     }
 }
 
 function success()//异步处理函数，当服务成功返回时
 {
     if (g_xmlHttp.readyState == 4) {
-        alert(g_xmlHttp.status);
         if (g_xmlHttp.status == 200) {
             alert(g_xmlHttp.responseText);
         } else {
-            alert("test error");
+            alert("上传失败");
         }
     }
 }
@@ -992,24 +1162,16 @@ function getObjectsCenter(objectIDs) {
 
 // 回调函数，刷新界面
 function OnUpdateUICallBack() {
-    if (g_nEventVersion == 2) {
-        Scle.refreshNotation();
-    }
-    else if (g_nEventVersion == 3) {
-        CMOnUpdateUICallBack();
-    }
+    callback_v2.refreshNotation();
+    callback_v3.CMOnUpdateUICallBack();
 }
 
 // 回调函数，动画每播放一帧时回调
 function getCurFrame(frame) {
-    if (g_nEventVersion == 3) {
-        CMOnAnimRefreshCallBack(frame);
-    }
+    callback_v3.CMOnAnimRefreshCallBack(frame);
 }
 
 // 回调函数，当动画播放完毕时回调
 function setAnmiIcon(isPause) {
-    if (g_nEventVersion == 3) {
-        CMOnAnimFinishCallBack(isPause);
-    }
+    callback_v3.CMOnAnimFinishCallBack(isPause);
 }

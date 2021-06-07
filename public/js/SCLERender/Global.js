@@ -656,22 +656,51 @@ function GL_ANNOTATION() {
 
 // 用户批注数据
 function GL_USRANNOTATION() {
+    this.show = true;                      // 文本框使用参数
+    this.disabled = false;
+    this.style = null;
+    this.value = "文本";
+
     this._uAnnotID = -1;
-    this._uAnnotName = "节点";    // 模型树显示
-    this._uAnnotText = "文本";    // 批注控件显示
-    this._bIsHide = false;
-    this._uStartFrame = 0;    // 起始帧
-    this._uFrameSize = 0;     // 帧段长度
+    this._uAnnotName = "节点";              // 模型树显示
+    this._uAnnotText = "文本";              // 批注控件显示
+    this._strUsrName = "unknow";            // 作者
+    this._strCreateTime = "19710101010159"; // 注释日期，精确到秒，总共14位
+    this._uStartFrame = 0;                  // 起始帧
+    this._uFrameSize = 0;                   // 帧段长度
 }
 
-//===================================================================================================
-/**
- * 批注、注释数据XML节点信息
- */
+// // 带法矢的平面（四边形）
+// function PLANE() {
+//     this.point1 = new Point3();
+//     this.point2 = new Point3();
+//     this.point3 = new Point3();
+//     this.point4 = new Point3();
+//     this.dir = new Point3();
 
-const XML_DOC_INFO = "DocInfo";
-const XML_COMMENT_NODE = "CommentNode";
-const XML_NODE = "Node";
+//     this.set = function(nearPt1, nearPt2) {
+
+//     }
+// }
+
+// // 框选，四棱台数据定义
+// function SELECTFRUSTUM3D() {
+//     this.topPlane = new PLANE();
+//     this.botomPlane = new PLANE();
+//     this.leftPlane = new PLANE();
+//     this.rightPlane = new PLANE();
+
+//     this.set = function(ptLu, ptRu, ptLd, ptRd) {
+//         this.topPlane.set(ptLu, ptRu);
+//         this.rightPlane.set(ptRu, ptRd);
+//         this.botomPlane.set(ptRd, ptLd);
+//         this.leftPlane.set(ptLd, ptLu);
+//     }
+
+//     this.isInerner = function(point) {
+
+//     }
+// }
 
 //===================================================================================================
 /**

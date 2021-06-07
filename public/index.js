@@ -87,7 +87,6 @@
 	}
 
 	let g_sclehttp = null
-
 	const scle = {
 		getByRequest: function (url) {
 			g_sclehttp = new XMLHttpRequest()
@@ -127,6 +126,9 @@
 			g_sclehttp = null
 			// 绘制三维模型
 			window.startRender()
+			this.loadEnd()
+		},
+		loadEnd () {
 			scleCustomEvent('scleStreamReady')
 			scleCustomEvent('onScleReady')
 			window.setPickObjectParameters = function () {
@@ -143,6 +145,8 @@
 			}
 		},
 		startLoadFile: function (res) {
+			// 使用CM_LIB API
+			return CM_LIB.CMInitData(res)
 			const self = this
 			const new_zip = new window.JSZip()
 			new_zip.loadAsync(res).then(function (zip) {
