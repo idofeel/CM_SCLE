@@ -28,12 +28,14 @@
 
 
 
-.upload-group{
-    display: flex;
-}
-
 .upload-group .ant-upload{
-    margin-left: 10px;
+    /* margin-left: 10px; */
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 6px;
+}
+.upload-group .ant-upload:last-child{
+    margin-right: 0;
 }
 
 .partListTable{

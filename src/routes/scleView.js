@@ -1,411 +1,431 @@
-import React, { useEffect, useRef, useState, useReducer } from 'react'
-import { message, Popover, Progress, Table, Input, Icon, Tooltip } from 'antd'
-import { get, queryString } from '../utils'
-import ScleToolsBar from './scleTools/scleToolsBar'
+import React, { useEffect, useRef, useState, useReducer } from 'react';
+import { message, Popover, Progress, Table, Input, Icon, Tooltip } from 'antd';
+import { get, queryString } from '../utils';
+import ScleToolsBar from './scleTools/scleToolsBar';
 // import ScleTools from './scleTools'
-import { IsPhone } from '../utils/Browser'
-import scleControl from './scleControl'
-import './scle.less'
+import { IsPhone } from '../utils/Browser';
+import scleControl from './scleControl';
+import './scle.less';
 // .default
-const logo = require('../assets/images/downloadAppIcon.png').default
+const logo = require('../assets/images/downloadAppIcon.png').default;
 
-const API = {}
+const API = {};
 
 function ScleView() {
-    const [isFullScreen, setFullscreen] = useState(false)
-    const [loading, setLoading] = useState(true)
-    const [isHttp] = useState(window.location.origin.startsWith('http'))
-    const [percent, setPercent] = useState(0)
-    const [notation, setNotation] = useReducer((state, action) => {
-        return Object.assign(state, action.payload)
-    }, {})
-    const [showTools, toggleTools] = useState(true)
+	const [isFullScreen, setFullscreen] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [isHttp] = useState(window.location.origin.startsWith('http'));
+	const [percent, setPercent] = useState(0);
+	const [notation, setNotation] = useReducer((state, action) => {
+		return Object.assign({}, state, action.payload);
+	}, {});
+	const [showTools, toggleTools] = useState(true);
 
-    const [coordinates, setCoordinates] = useState({
-        content: '',
-        x: 0,
-        y: 0
-    })
+	const [coordinates, setCoordinates] = useState({
+		content: '',
+		x: 0,
+		y: 0,
+	});
 
-    const [input, setInputText] = useState(null)
+	const [input, setInputText] = useState(null);
 
-    const setCoords = state => {
-        console.log(state);
-        setCoordinates(
-            Object.assign(coordinates, state)
-        )
-    }
+	const setCoords = (state) => {
+		console.log(state);
+		setCoordinates(Object.assign(coordinates, state));
+	};
 
+	const [visible, setVisible] = useState(false);
+	const downloadMsg = [
+		'模型下载中...',
+		'模型打开中,请稍等...',
+		'模型下载失败',
+	];
+	const [msgCode, setMsgCode] = useState(0);
 
-    const [visible, setVisible] = useState(false)
-    const downloadMsg = [
-        '模型下载中...',
-        '模型打开中,请稍等...',
-        '模型下载失败'
-    ]
-    const [msgCode, setMsgCode] = useState(0)
+	const [posInput, setPosInput] = useState({
+		data: [
+			// { value: '10', show: true, disabled: true, style: { top: 20, width: 200 } },
+			// { value: '20', show: false, style: { top: 40, width: 200 } },
+			// { value: '60', show: true, style: { top: 60, width: 200 } },
+		],
+		show: false, // 是否显示
+	});
 
+	// function showInput() {
+	//     const option = {
+	//         data: [
+	//             { value: '10', show: true, disabled: true, style: { top: 20, width: 200 } },
+	//             { value: '20', show: false, style: { top: 40, width: 200 } },
+	//             { value: '60', show: true, style: { top: 60, width: 200 } },
+	//         ],
+	//         show: false, // 是否显示
+	//     }
+	//     Scle.showCommentInput(option)
+	// }
 
-    const [posInput, setPosInput] = useState({
-        data: [
-            // { value: '10', show: true, disabled: true, style: { top: 20, width: 200 } },
-            // { value: '20', show: false, style: { top: 40, width: 200 } },
-            // { value: '60', show: true, style: { top: 60, width: 200 } },
-        ],
-        show: false, // 是否显示
-    })
+	const inputOnChange = (e, item, index) => {
+		posInput.data[index].value = e.target.value;
+		const nState = { ...posInput };
+		setPosInput(nState);
+		scleControl.commentOnChange &&
+			scleControl.commentOnChange(e, nState, item, index);
+	};
 
-    // function showInput() {
-    //     const option = {
-    //         data: [
-    //             { value: '10', show: true, disabled: true, style: { top: 20, width: 200 } },
-    //             { value: '20', show: false, style: { top: 40, width: 200 } },
-    //             { value: '60', show: true, style: { top: 60, width: 200 } },
-    //         ],
-    //         show: false, // 是否显示
-    //     }
-    //     Scle.showCommentInput(option)
-    // }
+	const onSubmit = (e, item, index) => {
+		posInput.data[index].disabled = true;
+		const nState = { ...posInput };
+		setPosInput(nState);
+		scleControl.commentOnSubmit &&
+			scleControl.commentOnSubmit(e, nState, item, index);
+	};
 
+	/**
+	 *
+	 * @param {Object} posInput {show, value, style}
+	 */
+	const showInput = (opt = posInput) => {
+		setPosInput({
+			...posInput,
+			...opt,
+			style: {
+				...posInput.style,
+				...opt.style,
+			},
+		});
+	};
 
-    const inputOnChange = (e, item, index) => {
-        posInput.data[index].value = e.target.value
-        const nState = { ...posInput }
-        setPosInput(nState)
-        scleControl.commentOnChange && scleControl.commentOnChange(e, nState, item, index)
-    }
+	const containerRef = useRef();
 
-    const onSubmit = (e, item, index) => {
-        posInput.data[index].disabled = true
-        const nState = { ...posInput }
-        setPosInput(nState)
-        scleControl.commentOnSubmit && scleControl.commentOnSubmit(e, nState, item, index)
-    }
+	const addScleEvent = () => {
+		window.isPhone = IsPhone();
+		// containerRef.current.addEventListener('transitionend', function () {
+		// 	window.canvasOnResize && window.canvasOnResize()
+		// })
+		[
+			'fullscreenchange',
+			'webkitfullscreenchange',
+			'mozfullscreenchange',
+			'MSFullscreenChange',
+		].forEach((item, index) => {
+			window.addEventListener(item, () => {
+				const isfull =
+					document.fullScreen ||
+					document.mozFullScreen ||
+					document.webkitIsFullScreen ||
+					!!document.msFullscreenElement;
+				setFullscreen(isfull);
+				window.canvasOnResize();
+			});
+		});
+	};
 
+	const addScleAPi = () => {
+		// 暴露出去API方法
+		scleControl.toggleTools = (bl) => toggleTools(bl);
+		// 设置提示信息
+		scleControl.setTips = (options) => {
+			if (!options.objID) return;
+			setNotation({
+				payload: { ...options, type: options.type || null },
+			});
+			const pos = window.getObjectsCenter(options.objID)[0];
+			// 设置提示数据
+			let top = pos.y,
+				left = pos.x;
 
+			if (options.type === 'table') {
+				// 表格形式
+				top = 0;
+				left = 0;
+			} else if (options.type === 'lead') {
+				// 引线批注
+				top -= 85;
+			}
+			// 设置批注样式
+			setCoords({
+				top,
+				left,
+				content: options.content,
+			});
+			setVisible(true);
+		};
+		// 刷新
+		scleControl.refreshNotation = (parmas) => {
+			if (notation.objID) {
+				scleControl.setTips({ ...notation, ...parmas });
+			}
+		};
+		// 设置是否显示提示信息
+		scleControl.setTipsVisible = (bl) => {
+			setVisible(bl);
+		};
 
-    /**
-     * 
-     * @param {Object} posInput {show, value, style}
-     */
-    const showInput = (opt = posInput) => {
-        setPosInput({
-            ...posInput,
-            ...opt,
-            style: {
-                ...posInput.style,
-                ...opt.style
-            }
-        })
+		//  显示批注输入框
+		scleControl.showCommentInput = showInput;
+		// // 批注信息输入改变时触发的函数
+		// scleControl.commentOnChange = () => { }
+		// // 批注信息提交时触发的函数
+		// scleControl.commentOnSubmit = () => { }
+	};
 
-    }
+	const openScle = () => {
+		let { title, link, pid, lic } = queryString(window.location.href);
+		document.title = title || '三维模型';
+		if (pid) {
+			return openNetSCle(pid, lic);
+		}
+		if (link) {
+			window.g_strResbaseUrl = link.replace(/(.scle|.zip|.cle)$/, '/');
+			window.Scle.getByRequest(link);
+			return;
+		} else {
+			message.warning('请输入正确的链接');
+		}
+	};
 
+	const openNetSCle = async function (pid, lic) {
+		let files;
+		try {
+			files = await get(API.fileInfo.cle, { pid, lic });
+		} catch (error) {
+			console.log(error);
+		}
 
-    const containerRef = useRef()
+		if (files.success) {
+			let { cle } = files.data;
+			window.g_strResbaseUrl = cle.replace(/(.cle)$/, '/');
+			// // getByRequest(cle.replace(/(.cle)$/, '.scle'))
+			// getByRequest('../../src/assets/68b0.scle')
+			// canvasOnResize()
+			window.Scle.getByRequest(cle.replace(/(.cle)$/, '.scle'));
+			//
+			// window.Scle.getByRequest('../../src/assets/68b0.scle')
+			// console.log('openCle', window.g_strResbaseUrl, cle.replace(/(.cle)$/, '.scle'));
+		} else {
+			message.error(files.faildesc);
+		}
+	};
 
-    const addScleEvent = () => {
-        window.isPhone = IsPhone()
-            // containerRef.current.addEventListener('transitionend', function () {
-            // 	window.canvasOnResize && window.canvasOnResize()
-            // })
-            ;[
-                'fullscreenchange',
-                'webkitfullscreenchange',
-                'mozfullscreenchange',
-                'MSFullscreenChange'
-            ].forEach((item, index) => {
-                window.addEventListener(item, () => {
-                    const isfull =
-                        document.fullScreen ||
-                        document.mozFullScreen ||
-                        document.webkitIsFullScreen ||
-                        !!document.msFullscreenElement
-                    setFullscreen(isfull)
-                    window.canvasOnResize()
-                })
-            })
-    }
+	const onProgress = ({ detail: evt }) => {
+		if (evt.lengthComputable) {
+			let percentComplete = evt.loaded / evt.total;
+			window.g_nCleBufferlength = evt.total;
 
-    const addScleAPi = () => {
-        // 暴露出去API方法
-        scleControl.toggleTools = (bl) => toggleTools(bl)
-        // 设置提示信息
-        scleControl.setTips = (options) => {
-            if (!options.objID) return
-            setNotation({
-                payload: { ...options, type: options.type || null }
-            })
-            const pos = window.getObjectsCenter(options.objID)[0]
-            // 设置提示数据
-            let top = pos.y,
-                left = pos.x
+			setPercent(Math.floor(percentComplete * 100));
 
-            if (options.type === 'table') {
-                // 表格形式
-                top = 0
-                left = 0
-            } else if (options.type === 'lead') {
-                // 引线批注
-                top -= 85
-            }
-            // 设置批注样式
-            setCoords({
-                top,
-                left,
-                content: options.content
-            })
-            setVisible(true)
-        }
-        // 刷新
-        scleControl.refreshNotation = (parmas) => {
-            if (notation.objID) {
-                // scleControl.setTips({ ...notation, ...parmas })
-            }
-        }
-        // 设置是否显示提示信息
-        scleControl.setTipsVisible = (bl) => {
-            setVisible(bl)
-        }
+			if (percentComplete === 1) {
+				setMsgCode(1);
+				loadingChage(false);
+			}
+		}
 
-        //  显示批注输入框
-        scleControl.showCommentInput = showInput
-        // // 批注信息输入改变时触发的函数
-        // scleControl.commentOnChange = () => { }
-        // // 批注信息提交时触发的函数
-        // scleControl.commentOnSubmit = () => { }
+		if (evt.target.status === 404) {
+			setMsgCode(2);
+		}
+	};
 
-    }
+	const loadingChage = (b) => {
+		setLoading(b);
+		window.canvasOnResize && window.canvasOnResize();
+	};
 
-    const openScle = () => {
-        let { title, link, pid, lic } = queryString(window.location.href)
-        document.title = title || '三维模型'
-        if (pid) {
-            return openNetSCle(pid, lic)
-        }
-        if (link) {
-            window.g_strResbaseUrl = link.replace(/(.scle|.zip|.cle)$/, '/')
-            window.Scle.getByRequest(link)
-            return
-        } else {
-            message.warning('请输入正确的链接')
-        }
-    }
+	useEffect(() => {
+		const cmcallbacks = new window.CM_CALLBACKS();
+		window.CM_LIB = new window.CMOnlineLib(
+			containerRef.current,
+			cmcallbacks
+		);
+		//
+		window.addEventListener('updateProgress', onProgress);
+		window.addEventListener('transferFailed', () => setMsgCode(2));
+		// scleCustomEvent('scleViewOnReady')
+		// window.addEventListener('load', () => {
+		if (isHttp) openScle();
+		addScleAPi();
+		// })
 
-    const openNetSCle = async function (pid, lic) {
-        let files
-        try {
-            files = await get(API.fileInfo.cle, { pid, lic })
-        } catch (error) {
-            console.log(error)
-        }
+		window.addEventListener('scleStreamReady', () => {
+			loadingChage(false);
+			addScleEvent();
+		});
 
-        if (files.success) {
-            let { cle } = files.data
-            window.g_strResbaseUrl = cle.replace(/(.cle)$/, '/')
-            // // getByRequest(cle.replace(/(.cle)$/, '.scle'))
-            // getByRequest('../../src/assets/68b0.scle')
-            // canvasOnResize()
-            window.Scle.getByRequest(cle.replace(/(.cle)$/, '.scle'))
-            //
-            // window.Scle.getByRequest('../../src/assets/68b0.scle')
-            // console.log('openCle', window.g_strResbaseUrl, cle.replace(/(.cle)$/, '.scle'));
-        } else {
-            message.error(files.faildesc)
-        }
-    }
+		window.addEventListener('resize', () => {
+			scleControl.refreshNotation();
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
-    const onProgress = ({ detail: evt }) => {
-        if (evt.lengthComputable) {
-            let percentComplete = evt.loaded / evt.total
-            window.g_nCleBufferlength = evt.total
+	const onVisibleChange = () => {
+		if (notation.type === 'table') {
+			// setNotation({
+			// 	type: null
+			// })
+		} else {
+			setVisible(false);
+		}
+	};
 
-            setPercent(Math.floor(percentComplete * 100))
+	// 用户设置值
+	const confirmValue = () => {
+		// setCoords({
+		//     ...coordinates,
+		//     input: false,
+		//     content: coordinates.newContent,
+		// })
+		setCoords({
+			content: input,
+		});
+		setInputText(null);
+	};
 
-            if (percentComplete === 1) {
-                setMsgCode(1)
-                loadingChage(false)
-            }
-        }
+	function renderCommentItem(item, index) {
+		return (
+			<div
+				key={index}
+				className="annotationInput"
+				onDoubleClick={() => {
+					posInput.data[index].disabled = false;
+					showInput({ ...posInput });
+				}}
+				style={item.style}
+			>
+				<Input
+					// onDoubleClick={() => showInput({ disabled: !posInput.disabled })}
+					disabled={item.disabled}
+					value={item.value}
+					onChange={(e) => {
+						inputOnChange(e, item, index);
+					}}
+					autoFocus
+					addonAfter={
+						!item.disabled ? (
+							<Icon
+								type="check"
+								onClick={(e) => onSubmit(e, item, index)}
+							/>
+						) : null
+					}
+				/>{' '}
+			</div>
+		);
+	}
 
-        if (evt.target.status === 404) {
-            setMsgCode(2)
-        }
-    }
-
-    const loadingChage = (b) => {
-        setLoading(b)
-        window.canvasOnResize && window.canvasOnResize()
-    }
-
-    useEffect(() => {
-        const cmcallbacks = new window.CM_CALLBACKS();
-        window.CM_LIB = new window.CMOnlineLib(containerRef.current, cmcallbacks);
-        // 
-        window.addEventListener('updateProgress', onProgress)
-        window.addEventListener('transferFailed', () => setMsgCode(2))
-        // scleCustomEvent('scleViewOnReady')
-        // window.addEventListener('load', () => {
-        if (isHttp) openScle()
-        addScleAPi()
-        // })
-
-        window.addEventListener('scleStreamReady', () => {
-            loadingChage(false)
-            addScleEvent()
-        })
-
-        window.addEventListener('resize', () => {
-            scleControl.refreshNotation()
-        })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    const onVisibleChange = () => {
-        if (notation.type === 'table') {
-            // setNotation({
-            // 	type: null
-            // })
-        } else {
-            setVisible(false)
-        }
-    }
-
-    // 用户设置值
-    const confirmValue = () => {
-        // setCoords({
-        //     ...coordinates,
-        //     input: false,
-        //     content: coordinates.newContent,
-        // })
-        setCoords({
-            content: input
-        })
-        setInputText(null)
-    }
-
-
-
-
-
-    function renderCommentItem(item, index) {
-        return <div key={index} className="annotationInput" onDoubleClick={() => {
-            posInput.data[index].disabled = false;
-            showInput({ ...posInput })
-        }} style={item.style}>
-            <Input
-                // onDoubleClick={() => showInput({ disabled: !posInput.disabled })}
-                disabled={item.disabled}
-                value={item.value}
-                onChange={(e) => {
-                    inputOnChange(e, item, index)
-                }}
-                autoFocus
-                addonAfter={!item.disabled ? <Icon type="check" onClick={(e) => onSubmit(e, item, index)} />
-                    : null
-                }
-            /> </div>
-    }
-
-
-    function renderComment(item, index) {
-        if (item.show === false) return null
-        if (item.disabled === true && (item._strUsrName || item._strCreateTime)) {
-            return <Tooltip key={index} title={
-                <div>
-                    <div>作   者：{item._strUsrName}</div>
-                    <div>创建时间：{item._strCreateTime}</div>
-                </div>
-            }>
-                {renderCommentItem(item, index)}
-
-            </Tooltip>
-        } else {
-            return renderCommentItem(item, index)
-        }
-    }
-
-
-    return (
-        <div
-            className={isFullScreen ? 'fullScreen container' : 'container'}
-            ref={containerRef}
-        >
-            {/* <>
+	function renderComment(item, index) {
+		if (item.show === false) return null;
+		if (
+			item.disabled === true &&
+			(item._strUsrName || item._strCreateTime)
+		) {
+			return (
+				<Tooltip
+					key={index}
+					title={
+						<div>
+							<div>作 者：{item._strUsrName}</div>
+							<div>创建时间：{item._strCreateTime}</div>
+						</div>
+					}
+				>
+					{renderCommentItem(item, index)}
+				</Tooltip>
+			);
+		} else {
+			return renderCommentItem(item, index);
+		}
+	}
+	console.log('render');
+	return (
+		<div
+			className={isFullScreen ? 'fullScreen container' : 'container'}
+			ref={containerRef}
+		>
+			{/* <>
                 <canvas id="glcanvas" width="800" height="600"></canvas>
                 <canvas id="text" width="800" height="600"></canvas>
             </> */}
-            {
-                posInput.show !== false ? posInput.data.map(renderComment) : null
-            }
+			{posInput.show !== false ? posInput.data.map(renderComment) : null}
 
-            {loading ? (
-                <div className="scle_loading">
-                    {isHttp ? (
-                        <div className="scle_loadImg">
-                            <img src={logo} alt="loading" />
-                            <Progress
-                                strokeColor={{
-                                    '0%': '#108ee9',
-                                    '100%': '#87d068'
-                                }}
-                                percent={percent}
-                                status="active"
-                            />
-                            <p>{downloadMsg[msgCode]}</p>
-                        </div>
-                    ) : null}
-                </div>
-            ) : (
-                showTools && <ScleToolsBar></ScleToolsBar>
-                // showTools && <ScleTools></ScleTools>
-            )}
-            {visible && notation.type !== null && (
-                <Popover
-                    content={<div>
-                        {input === null ?
-                            <div onDoubleClick={() => {
-                                // setInputText(coordinates.content)
-                            }}>{coordinates.content}</div>
-                            : <Input
-                                value={input}
-                                onChange={e => setInputText(e.target.value)}
-                                autoFocus
-                                addonAfter={<Icon type="check" onClick={confirmValue} />}
-                                defaultValue={coordinates.content} />}
-                    </div>}
-                    title={null}
-                    placement="top"
-                    trigger="click"
-                    visible={true}
-                    overlayClassName={`scleViewPopver ${notation.type === 'lead' ? 'hideArrow' : ''
-                        }`}
-                    onVisibleChange={onVisibleChange}
-                >
-                    <div
-                        className={`gltext ${notation.type === 'lead' ? 'gltext2' : ''
-                            }`}
-                        style={{
-                            top: coordinates.top,
-                            left: coordinates.left
-                        }}
-                    ></div>
-                </Popover>
-            )}
+			{loading ? (
+				<div className="scle_loading">
+					{isHttp ? (
+						<div className="scle_loadImg">
+							<img src={logo} alt="loading" />
+							<Progress
+								strokeColor={{
+									'0%': '#108ee9',
+									'100%': '#87d068',
+								}}
+								percent={percent}
+								status="active"
+							/>
+							<p>{downloadMsg[msgCode]}</p>
+						</div>
+					) : null}
+				</div>
+			) : (
+				showTools && <ScleToolsBar></ScleToolsBar>
+				// showTools && <ScleTools></ScleTools>
+			)}
+			{visible && notation.type !== null && (
+				<Popover
+					content={
+						<div>
+							{input === null ? (
+								<div
+									onDoubleClick={() => {
+										// setInputText(coordinates.content)
+									}}
+								>
+									{coordinates.content}
+								</div>
+							) : (
+								<Input
+									value={input}
+									onChange={(e) =>
+										setInputText(e.target.value)
+									}
+									autoFocus
+									addonAfter={
+										<Icon
+											type="check"
+											onClick={confirmValue}
+										/>
+									}
+									defaultValue={coordinates.content}
+								/>
+							)}
+						</div>
+					}
+					title={null}
+					placement="top"
+					trigger="click"
+					visible={true}
+					overlayClassName={`scleViewPopver ${
+						notation.type === 'lead' ? 'hideArrow' : ''
+					}`}
+					onVisibleChange={onVisibleChange}
+				>
+					<div
+						className={`gltext ${
+							notation.type === 'lead' ? 'gltext2' : ''
+						}`}
+						style={{
+							top: coordinates.top,
+							left: coordinates.left,
+						}}
+					></div>
+				</Popover>
+			)}
 
-            {notation.type === 'table' && (
-                <div className="gltext" style={notation.tableStyle}>
-                    <Table {...notation} />
-                </div>
-            )}
+			{notation.type === 'table' && (
+				<div className="gltext" style={notation.tableStyle}>
+					<Table {...notation} rowKey="index" />
+				</div>
+			)}
 
-            {/* getobjectscenter */}
-        </div>
-    )
+			{/* getobjectscenter */}
+		</div>
+	);
 }
 
-
-
-
-
-
-export default ScleView
+export default ScleView;
