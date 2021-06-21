@@ -245,10 +245,10 @@ function Canvas2D() {
         gl2d.stroke();
     }
 
-    this.drawFillRect = function(x1, y1, x2, y2) {
+    this.drawFillRect = function(rect2D) {
         gl2d.beginPath();
         gl2d.fillStyle = FILL_STYLE_SELE_RECT;
-        gl2d.fillRect(x1, y1, x2 - x1, y2 - y1);
+        gl2d.fillRect(rect2D.min.x, rect2D.min.y, rect2D.max.x - rect2D.min.x, rect2D.max.y - rect2D.min.y);
     }
 
     /**

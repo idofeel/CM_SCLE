@@ -10,14 +10,20 @@
 function CALLBACK_V2() {
     // 刷新场景事件文本框动态坐标
     this.refreshNotation = function() {}
+    // 初始化文本框UI
+    this.init = function(dom) {}
     // 刷新批注文本框
     this.showCommentInput = function(option) {}
     // 批注文本框修改提交事件
     this.commentOnSubmit = function(event, newOpion, item, index) {}
     // 批注文本框正在修改事件
     this.commentOnChange = function(event, newOpion, item, index) {}
-    // 加载完成
-    this.loadEnd = function() {}
+    // 批注被单击事件
+    this.commentOnClick = function(event, newOpion, item, index) {}
+    // 批注被删除事件
+    this.deleteCommentInput = function(event, newOpion, item, index) {}
+    // 批注被用户拖动修改位置
+    this.moveCommentInput = function(event, newOpion, item, index) {}
 }
 
 function CALLBACK_V3() {
@@ -115,6 +121,8 @@ var g_usrCommOption = {data: [], show: true};
 var scrollLeft = 0;
 var scrollTop = 0;
 var originPt = new Point2(0, 0);
+// 框选
+var selRect = new Rect2D(0, 0, 0, 0);
 
 /* 手机或平板等终端web浏览器触摸交互事件 */
 var lastX1 = -1, lastY1 = -1, lastX2 = -1, lastY2 = -1;
@@ -139,7 +147,6 @@ var isKeyTap = false;
 var webFactor = 0;
 var dragLeft = false, dragMid = false, dragRight = false;
 var lastX = -1, lastY = -1;
-var click_x = -1, click_y = -1;
 
 function initComponet(dom) {
     if (typeof(dom) == "undefined" || dom == null) {
@@ -153,21 +160,29 @@ function initComponet(dom) {
     web3dCanvas.style.position = 'absolute'
     web3dCanvas.style.width = '100%';
     web3dCanvas.style.height = '100%';
-    container.append(web3dCanvas);
+    container.appendChild(web3dCanvas);
 
     text2dCanvas = document.createElement('canvas');
     text2dCanvas.style.position = 'absolute'
     text2dCanvas.style.width = '100%';
     text2dCanvas.style.height = '100%';
-    container.append(text2dCanvas);
+    container.appendChild(text2dCanvas);
 }
 
 function initModuleCallbacks(callbacks) {
-    if (g_nEventVersion == 2) {
-        callback_v2 = Scle;
-    } else if (g_nEventVersion == 3) {
+    if (g_nEventVersion == 3) { // v3接口对第三方开放
         callback_v3 = callbacks;
     }
+}
+
+function initCMOnlineUI() {
+    callback_v2 = CMOnlineUI;   // v2接口内部集成UI
+    callback_v2.init(container);
+    callback_v2.commentOnSubmit = commentOnSubmit;
+    callback_v2.commentOnChange = commentOnChange;
+    callback_v2.commentOnClick = commentOnClick;
+    callback_v2.deleteCommentInput = deleteCommentInput;
+    callback_v2.moveCommentInput = moveCommentInput;
 }
 
 function render3D() {
@@ -184,7 +199,7 @@ function render2D() {
 /**
  * 开始循环渲染
  */
-function startRender () {
+function startRender() {
     web3dCanvas.width = container.offsetWidth;
     web3dCanvas.height = container.offsetHeight;
     text2dCanvas.width = container.offsetWidth;
@@ -224,7 +239,7 @@ function startRender () {
     document.addEventListener('DOMMouseScroll', fireFoxScollFun, false);
     window.onunload = addCloseListenser;
     window.onresize = canvasOnResize;
-    callback_v2.loadEnd()
+    initCMOnlineUI();
 }
 
 /* 通用浏览器设置 */
@@ -450,7 +465,7 @@ function webKeyDown(event, textCanvas) {
         case 0:
             // 左键
             dragLeft = true;
-            click_x = x, click_y = y;
+            selRect.min.x = x, selRect.min.y = y;
             //在textCanvas里屏蔽浏览器右键菜单,不兼容火狐
             textCanvas.oncontextmenu = function () {
                 return false;
@@ -482,16 +497,19 @@ function webKeyUp(event, textCanvas) {
     switch (event.button) {
         case 0:
             dragLeft = false;
+
             if (isKeyTap) {
+                if (glRunTime.isDuringRectSel) {
+                    glRunTime.pickModelByIDs(null);
+                    glRunTime.pickModelByRect(glRunTime.selRect);
+                    glRunTime.isDuringRectSel = false;
+                    break;
+                }
+
                 if (isUsrCommentFlag && isSingleComment) {
                     addSingleComment(lastX, lastY, test_note);
                 } else if (isUsrCommentFlag && glRunTime.isDuringComment) {
                     glRunTime.createCommentUpdate(lastX, lastY);
-                    break;
-                }
-
-                if (glRunTime.isDuringMultSel) {
-                    glRunTime.isDuringMultSel = false;
                     break;
                 }
 
@@ -574,11 +592,10 @@ function webKeyMove(event, textCanvas) {
             }
         } else if (dragLeft) {
             // 框选零件
-            // glRunTime.isDuringMultSel = true;
-            // glRunTime.startMouseX = click_x;
-            // glRunTime.startMouseY = click_y;
-            // glRunTime.runtimeMouseX = x;
-            // glRunTime.runtimeMouseY = y;
+            selRect.max.x = x;
+            selRect.max.y = y;
+            glRunTime.selRect.copy(selRect);
+            glRunTime.isDuringRectSel = true;
         }
     } else {
         // 鼠标没有按下，但滑动，将操作标注信息
@@ -976,39 +993,48 @@ function getNewCommentNote(x, y) {
 
     // 弹出输入框
     g_usrCommOption.data.push(newCommentNode);
-    Scle.showCommentInput(g_usrCommOption);
+    callback_v2.showCommentInput(g_usrCommOption);
     isUsrCommInputShow = true;
 
     // 执行final
     glRunTime.createCommentFinal(x, y, newCommentNode);
 }
 
-// 注册界面回调函数
 // 更新注释数据
 // 更新内容可以包括：位置坐标和注释内容
-callback_v2.commentOnSubmit = function (event, newOpion, item, index) {
+function commentOnSubmit (event, newOpion, item, index) {
     isUsrCommInputShow = false;
     let curComment = newOpion.data[index];
     curComment._uAnnotText = curComment.value;
     let point2d = cvtStyleToPoint(curComment.style);
     if (glRunTime.updateCommentById(point2d.x, point2d.y, curComment)) {
-        glRunTime.createCommentBegin();
+        setUsrCommentMode(0, 1);
         return true;
     }
     return false;
 }
 
-// 注册界面回调函数
-// 适配文本框大小，并限制输入长度
-callback_v2.commentOnChange = function (event, newOpion, item, index) {
-    // let text = newOpion.data[index].value;
-    // if (text.length == 6) {
-    //     newOpion.data[index].style.width = textMapWidth(text);
-    //     newOpion.data[index].style.left -= WIDTH_UNIT / 2;
-    //     callback_v2.showCommentInput(newOpion);
-    // } else if (text.length > 10) {
+// 批注文本框内容变化时回调
+function commentOnChange (event, newOpion, item, index) {
+	
+}
 
-    // }
+// 批注本文框被单击时回调
+function commentOnClick(event, newOpion, item, index) {
+    let curComment = newOpion.data[index];
+    let commentObjIndexs = glRunTime.getCommentObjectIndexs(curComment._uAnnotID);
+    glRunTime.pickModelByIndexs(commentObjIndexs);
+}
+
+// 批注被删除时回调
+function deleteCommentInput(event, newOpion, item, index) {
+    let curComment = newOpion.data[index];
+    glRunTime.deleteCommentById(curComment._uAnnotID);
+}
+
+// 批注被用户拖动修改位置时回调
+function moveCommentInput(event, newOpion, item, index) {
+
 }
 
 function addSingleComment(x, y, commentInfo) {

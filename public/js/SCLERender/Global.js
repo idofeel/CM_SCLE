@@ -80,6 +80,30 @@ function Rect2D(x1, y1, x2, y2) {
         this.max.x = xx2;
         this.max.y = yy2;
     }
+
+    this.copy = function(rect2D) {
+        this.min.x = rect2D.min.x;
+        this.min.y = rect2D.min.y;
+        this.max.x = rect2D.max.x;
+        this.max.y = rect2D.max.y;
+    }
+
+    this.normalize = function() {
+        let min_x = Math.min(this.min.x, this.max.x);
+        let min_y = Math.min(this.min.y, this.max.y);
+        let max_x = Math.max(this.min.x, this.max.x);
+        let max_y = Math.max(this.min.y, this.max.y);
+        this.min.x = min_x, this.min.y = min_y;
+        this.max.x = max_x, this.max.y = max_y;
+    }
+
+    this.isPointInside = function(pt) {
+        if (pt.x > this.min.x && pt.x < this.max.x &&
+            pt.y > this.min.y && pt.y < this.max.y) {
+            return true;
+        }
+        return false;
+    }
 }
 
 // 默认数据
@@ -729,6 +753,11 @@ const HOME_COLOR = 2;
 const HOME_TRANS = 3;
 const HOME_VISIBLE = 4;
 const HOME_ANNOT = 5;
+
+// 包围盒处于框选内
+const RECT_ALL = 0;
+const RECT_PARTITION = 1;
+const RECT_NOT = 2;
 
 //===================================================================================================
 /**

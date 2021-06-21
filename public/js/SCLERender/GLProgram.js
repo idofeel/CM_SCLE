@@ -767,4 +767,82 @@ function GLProgram() {
             };
         }
     }
+
+    /**
+     * 求解零件是否在矩形框内部
+     */
+    this.isObjectInRect = function(part, mvpMat, rect2D) {
+        let retBox = this.isObjBoxInRect(part._boxset._ObjectBox, mvpMat, rect2D);
+        if (retBox == RECT_ALL) {
+            return true;
+        } else if (retBox == RECT_NOT) {
+            return false;
+        }
+
+        let subInsideCount = 0;
+        let retSubset = RECT_NOT;
+        let subsetStartIndex = 0;
+        for (let i = 0; i < part._boxset._SurfaceBoxes.length; ++i) {
+            retSubset = this.isObjBoxInRect(part._boxset._SurfaceBoxes[i], mvpMat, rect2D);
+            if (retSubset == RECT_ALL) {
+                subInsideCount++;
+            } else if (retSubset == RECT_NOT) {
+                return false;
+            } else {
+                for (let j = 0; j < i; ++j) {
+                    subsetStartIndex += part._arrSurfaceVertexNum[j];
+                }
+                if (this.isSurfaceInRect(part, subsetStartIndex, part._arrSurfaceVertexNum[i], mvpMat, rect2D)) {
+                    subInsideCount++;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        if (subInsideCount == part._boxset._SurfaceBoxes.length) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    this.isSurfaceInRect = function(part, surfaceStartIndex, surfaceVertexCount, mvpMat, rect2D) {
+        let slideCount = 0;
+        if (part._uIsUV) {
+            slideCount = VERTEX_DATA_COUNT = NUM_VERTEX + NUM_VECTOR + NUM_UV;
+        } else {
+            slideCount = NUM_VERTEX + NUM_VECTOR;
+        }
+
+        let tmpPt = new Point3(0, 0, 0);
+        for (let i = 0; i < surfaceVertexCount; ++i) {
+            let vertexIndex = (surfaceStartIndex + i) * slideCount;
+            CalTranslatePoint(part._arrVertex[vertexIndex], part._arrVertex[vertexIndex + 1], part._arrVertex[vertexIndex + 2],
+                mvpMat, tmpPt);
+            if (!rect2D.isPointInside(tmpPt)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    this.isObjBoxInRect = function(objBox, mvpMat, rect2D) {
+        let tmpPt = new Point3(0, 0, 0);
+        let insideCount = 0;
+        for (let i = 0; i < objBox._Vertex.length; ++i) {
+            CalTranslatePoint(objBox._Vertex[i].x, objBox._Vertex[i].y, objBox._Vertex[i].z,
+                mvpMat, tmpPt);
+            if (rect2D.isPointInside(tmpPt)) {
+                insideCount++;
+            }
+        }
+        if (insideCount == objBox._Vertex.length) {
+            return RECT_ALL;
+        } else if (insideCount == 0) {
+            return RECT_NOT;
+        } else {
+            return RECT_PARTITION;
+        }
+    }
 }

@@ -61,11 +61,9 @@ function GLRunTime() {
     this.DEFAULT_COMMENT_LINE_X = 0.1;
     this.usrNewComment = null;
     this.isDuringComment = false;
-    this.isDuringMultSel = false;
-    this.startMouseX = 0;
-    this.startMouseY = 0;
-    this.runtimeMouseX = 0;
-    this.runtimeMouseY = 0;
+    this.isDuringRectSel = false;
+    this.selRect = new Rect2D(0, 0, 0, 0);
+    this.webglRect = new Rect2D(0, 0, 0, 0);
 
     /**
      * 渲染引擎数据初始化
@@ -225,8 +223,9 @@ function GLRunTime() {
                 if (this.isDuringComment) {
                     g_canvas.drawDuringUsrAnnoation(this.usrNewComment, this.runtimeMouseX, this.runtimeMouseY);
                 }
-                if (this.isDuringMultSel) {
-                    g_canvas.drawFillRect(this.startMouseX, this.startMouseY, this.runtimeMouseX, this.runtimeMouseY);
+                if (this.isDuringRectSel) {
+                    this.selRect.normalize();
+                    g_canvas.drawFillRect(this.selRect);
                 }
             }
             if (g_bTestMode) {
@@ -398,6 +397,16 @@ function GLRunTime() {
         }
     }
 
+    this.cvtWebGLPtToScreen = function(webglPt, screenPt) {
+        screenPt.x = (webglPt.x + 1.0) / 2 * this.WIDTH;
+        screenPt.y = (1.0 - webglPt.y) / 2 * this.HEIGHT;
+    }
+
+    this.cvtScreenPtToWebGL = function(screenPt, webglPt) {
+        webglPt.x = screenPt.x / this.WIDTH * 2 - 1.0;
+        webglPt.y = 1.0 - screenPt.y / this.HEIGHT * 2;
+    }
+
     /**
      * 模型拾取
      */
@@ -469,6 +478,31 @@ function GLRunTime() {
     this.pickAnnotation = function(screenX, screenY, isMult) {
         // 屏幕鼠标坐标与常用坐标系y轴反向
         return g_canvas.pickAnnotationByRay(screenX, screenY, isMult);
+    }
+
+    /**
+     * 框选零件
+     */
+    this.pickModelByRect = function(rect2D) {
+        rect2D.normalize();
+        this.cvtScreenPtToWebGL(rect2D.min, this.webglRect.min);
+        this.cvtScreenPtToWebGL(rect2D.max, this.webglRect.max);
+        this.webglRect.normalize();
+
+        let arrPickIndex = new Array();
+        let pvMat = mat4.create();
+        let mvpMat = mat4.create();
+        mat4.multiply(pvMat, g_camera.projectionMatrix, g_camera.viewMatrix);
+
+        for (let i = 0; i < g_GLData.GLObjectSet._arrObjectSet.length; ++i) {
+            let nPartIndex = g_GLData.GLObjectSet._arrObjectSet[i]._uPartIndex;
+            mat4.multiply(mvpMat, pvMat, g_webglControl.m_arrObjectMatrix[i]);
+
+            if (g_glprogram.isObjectInRect(g_GLData.GLPartSet._arrPartSet[nPartIndex]._arrPartLODData[0], mvpMat, this.webglRect)) {
+                arrPickIndex.push(i);
+            }
+        }
+        return this.pickModelByIndexs(arrPickIndex);
     }
 
     /**
@@ -606,12 +640,21 @@ function GLRunTime() {
     this.deleteCommentById = function(id) {
         let index = -1;
         for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
-            if (g_canvas.m_arrUsrComment.stuAnnot.uID == id) {
+            if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == id) {
                 index = i;
                 break;
             }
         }
         g_canvas.deleteUsrComment(index);
+    }
+
+    this.getCommentObjectIndexs = function(id) {
+        for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == id) {
+                return g_canvas.m_arrUsrComment[i].stuAnnot.pNote.arrObjectIndexs;
+            }
+        }
+        return null;
     }
 
     this.importXmlComment = function(xmlDoc) {
@@ -647,6 +690,7 @@ function GLRunTime() {
             g_canvas.adapterLocalToScreen(curComment.stuAnnot.annoPlaneLocal.x, curComment.stuAnnot.annoPlaneLocal.y, point2d);
             newCommentNode.value = curComment.stuAnnot.pNote.strText;
             newCommentNode.style = cvtPointToStyle(point2d, newCommentNode.value);
+            newCommentNode.disabled = true;
             inputData.push(newCommentNode);
         }
         return inputData;
