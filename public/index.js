@@ -1,5 +1,5 @@
 ;(function () {
-	window.onload = function () {
+	var onload = function () {
         
 		const keyCodeMap = {
 			// 91: true, // command
@@ -80,6 +80,9 @@
 		})
 	}
 
+
+	window.addEventListener('load',onload)
+
 	function scleCustomEvent(name, detail) {
 		const event = document.createEvent('CustomEvent')
 		event.initCustomEvent(name, true, true, detail)
@@ -128,7 +131,7 @@
 			window.startRender()
 			this.loadEnd()
 		},
-		loadEnd () {
+		loadEnd:function () {
 			scleCustomEvent('scleStreamReady')
 			scleCustomEvent('onScleReady')
 			window.setPickObjectParameters = function () {
@@ -172,5 +175,7 @@
 
 	const Scle = function () {}
 	Scle.prototype = scle
-	window.Scle = new Scle()
+	// window.Scle = new Scle()
+	window.CMOnlineUI = Object.assign(window.CMOnlineUI, scle)
+	console.log(window.CMOnlineUI);
 })()

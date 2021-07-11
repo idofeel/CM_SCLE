@@ -4,4 +4,5 @@ import JSZip from 'jszip'
 
 window.JSZip = JSZip
 // window.Scle = new SCLE_CONTROLLER()
-export default window.Scle
+// console.log('WSC;E', window.Scle,window.CMOnlineUI);
+export default window.CMOnlineUI

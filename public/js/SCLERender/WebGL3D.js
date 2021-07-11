@@ -30,6 +30,8 @@ function WebGLControl() {
     this.isPicked = false;
     this.isShowBox = true;
     this.isHighlight = true;
+    this.isHighlightObject = true;
+    this.isHighlightSurface = true;
     // GPU缓存数据
     this.m_arrObjectSurface_VAOs = new Array();
     this.m_arrObjectSurface_VBOs = new Array();
@@ -40,20 +42,23 @@ function WebGLControl() {
     this.m_uBgVAO = -1;
     this.m_uBgVBO = -1;
     // 辅助显示数据，合并材质所需数据
-    this.m_arrVAOVertexCounts = new Array();
-    this.m_arrMaterialIndex = new Array();
+    this.m_arrObjectVAOUint = new Array();
     // 拾取所需显示数据
     this.m_arrBoxLines = new Array(BOX_DATA_COUNT);
-    this.arrPickObjectIndexs = new Array();
+    this.arrPickObjectIndexs = new Array();         // bool值，标志object是否被选中
+    this.arrPickObjectSurfaceIndexs = new Array();  // bool值，标志object及其surface是否被选中
     this.eMaterialPriority = GL_ORIGINAL;
     this.GL_PICKSTATUS = 0;
     // 用户交互所需数据：变换矩阵/透明度/显隐/材质设置
     this.m_arrObjectTransMode = new Array();
     this.m_arrObjectTransModeOrig = new Array();
     this.m_arrObjectMatrix = new Array();
-    this.m_arrObjectTransparent = new Array();
-    this.m_arrObjectVisiable = new Array();
-    this.m_arrObjectMaterial = new Array();
+    this.m_arrObjectTransparent = new Array();       // float值，标志object透明度
+    this.m_arrObjectSurfaceTransparent = new Array();// float值，标志object及其surface是否被设置透明度
+    this.m_arrObjectVisiable = new Array();          // bool值，标志object是否隐藏
+    this.m_arrObjectSurfaceVisiable = new Array();   // bool值，标志object及其surface是否被设置隐藏
+    this.m_arrObjectMaterial = new Array();          // 材质对象，标志object被设置材质
+    this.m_arrObjectSurfaceMaterial = new Array;     // 材质对象，标志object及其surface被设置材质
     // 默认配置
     this.defaultMaterial = DefaultData.DefaultMaterial();
     this.defaultRed = DefaultData.Red();
@@ -64,11 +69,11 @@ function WebGLControl() {
         this.m_arrObjectBox_VAOs.splice(0, this.m_arrObjectBox_VAOs.length);
         this.m_arrObjectBox_VBOs.splice(0, this.m_arrObjectBox_VBOs.length);
 
-        this.m_arrVAOVertexCounts.splice(0, this.m_arrVAOVertexCounts.length);
-        this.m_arrMaterialIndex.splice(0, this.m_arrMaterialIndex.length);
+        this.m_arrObjectVAOUint.splice(0, this.m_arrObjectVAOUint.length);
 
         this.m_arrBoxLines.splice(0, this.m_arrBoxLines.length);
         this.arrPickObjectIndexs.splice(0, this.arrPickObjectIndexs.length);
+        this.arrPickObjectSurfaceIndexs.splice(0, this.arrPickObjectSurfaceIndexs.length);
 
         this.m_arrObjectTransMode.splice(0, this.m_arrObjectTransMode.length);
         this.m_arrObjectTransModeOrig.splice(0, this.m_arrObjectTransModeOrig.length);
@@ -78,40 +83,115 @@ function WebGLControl() {
         this.m_arrObjectMaterial.splice(0, this.m_arrObjectMaterial.length);
     }
 
-    this.GetObjectShowMaterial = function(objectIndex, surfaceIndex) {
-        // 根据显示优先级做判断
-        let curMaterial = null;
-        let isObjectUnit = false;
-        if (this.arrPickObjectIndexs[objectIndex] && this.isHighlight && this.m_arrObjectMaterial[objectIndex] != null) {
-            switch (this.eMaterialPriority) {
-                case GL_ORIGINAL:
-                    break;
-                case GL_USERPICKED:
-                    curMaterial = this.defaultRed;
-                    break;
-                case GL_USERDEFINE:
-                    curMaterial = this.m_arrObjectMaterial[objectIndex];
-                    break;
-            }
-            isObjectUnit = true;
-        } else if (this.arrPickObjectIndexs[objectIndex] && this.isHighlight) {
-            curMaterial = this.defaultRed;
-            isObjectUnit = true;
-        } else if (this.m_arrObjectMaterial[objectIndex] != null) {
-            curMaterial = this.m_arrObjectMaterial[objectIndex];
-            isObjectUnit = true;
+    this.GetOriginMaterial = function(objectIndex, vaoIndex) {
+        let materialIndex = this.m_arrObjectVAOUint[objectIndex][vaoIndex].arrMaterialIndexs[0];
+        if (materialIndex == -1) {
+            return this.defaultMaterial;
+        } else {
+            return g_GLMaterialSet._arrMaterialSet[materialIndex];
+        }
+    }
+
+    this.GetUsrDefinedMaterial = function(objectIndex) {
+        return this.m_arrObjectMaterial[objectIndex] == null ? this.defaultMaterial : this.m_arrObjectMaterial[objectIndex];
+    }
+
+    this.GetUsrPickedMaterial = function(objectIndex, vaoIndex, splitIndex) {
+        let objectMaterial = null;
+        if (this.isHighlightObject) {
+            // 允许高亮显示零件
+            objectMaterial = this.defaultRed;
+        } else {
+            // 不允许高亮显示零件
+            objectMaterial = this.GetOriginMaterial(objectIndex, vaoIndex);
         }
 
-        let materialIndex = this.m_arrMaterialIndex[objectIndex][surfaceIndex];
-        if (!isObjectUnit) {
-            if (this.m_arrMaterialIndex[objectIndex][surfaceIndex] == -1) {
-                curMaterial = this.defaultMaterial;
+        if (!this.isHighlightSurface) {
+            // 不允许高亮曲面
+            return objectMaterial;
+        }
+
+        if (this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitSize > 1 &&
+            this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags[splitIndex].flag) {
+            return DefaultData.Brightgreen();
+        } else {
+            return objectMaterial;
+        }
+    }
+
+    this.GetObjectShowMaterial = function(objectIndex, vaoIndex, splitIndex) {
+        if (!this.isHighlight) {
+            // 不允许高亮显示，则显示原色或用户定义材质
+            return this.GetUsrDefinedMaterial(objectIndex, vaoIndex);
+        } else {
+            // 允许高亮显示，则根据显示优先级做判断
+            if (this.arrPickObjectIndexs[objectIndex] && this.m_arrObjectMaterial[objectIndex] != null) {
+                switch (this.eMaterialPriority) {
+                    case GL_USERPICKED:
+                        return this.GetUsrPickedMaterial(objectIndex, vaoIndex, splitIndex);
+                        break;
+                    case GL_ORIGINAL:
+                        return this.GetOriginMaterial(objectIndex, vaoIndex);
+                    case GL_USERDEFINE:
+                        return this.GetUsrDefinedMaterial(objectIndex);
+                }
+            } else if (this.arrPickObjectIndexs[objectIndex]) {
+                return this.GetUsrPickedMaterial(objectIndex, vaoIndex, splitIndex);
+            } else if (this.m_arrObjectMaterial[objectIndex] != null) {
+                return this.GetUsrDefinedMaterial(objectIndex);
             } else {
-                curMaterial = g_GLMaterialSet._arrMaterialSet[materialIndex];
+                return this.GetOriginMaterial(objectIndex, vaoIndex)
+            }
+        }        
+    }
+
+    this.setShaderMaterial = function(curMaterial, objectTrans) {
+        gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialDiffuse,
+            curMaterial._mtlPhysics.vDiffuse.x,
+            curMaterial._mtlPhysics.vDiffuse.y,
+            curMaterial._mtlPhysics.vDiffuse.z,
+            curMaterial._mtlPhysics.vDiffuse.w);
+        gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialAmbient,
+            curMaterial._mtlPhysics.vAmbient.x,
+            curMaterial._mtlPhysics.vAmbient.y,
+            curMaterial._mtlPhysics.vAmbient.z,
+            curMaterial._mtlPhysics.vAmbient.w);
+        gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialSpecular,
+            curMaterial._mtlPhysics.vSpecular.x,
+            curMaterial._mtlPhysics.vSpecular.y,
+            curMaterial._mtlPhysics.vSpecular.z,
+            curMaterial._mtlPhysics.vSpecular.w);
+        gl.uniform1f(SOLIDPROGRAMINFO.uniformLocations.power, curMaterial._mtlPhysics.fPower);
+        gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialEmissive,
+            curMaterial._mtlPhysics.vEmissive.x,
+            curMaterial._mtlPhysics.vEmissive.y,
+            curMaterial._mtlPhysics.vEmissive.z,
+            curMaterial._mtlPhysics.vEmissive.w * objectTrans);
+        if (curMaterial._eMtlType == ADFMTLTYPE_PHYSICS) {
+            // 自然材质
+            gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
+        } else if (curMaterial._eMtlType == ADFMTLTYPE_PICTURE) {
+            if (curMaterial._arrTexID[0] instanceof WebGLTexture) {
+                // 贴图材质
+                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 1);
+                // 设置贴图
+                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.textureUnit, 0);
+                gl.bindTexture(gl.TEXTURE_2D, curMaterial._arrTexID[0]);
+            } else {
+                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
+            }
+        } else {
+            // 纯色材质
+            gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 2);
+            // 设置纯色
+            if (curMaterial._arrData.length > 0) {
+                gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.pureColor, 
+                    curMaterial._arrData[0].x,
+                    curMaterial._arrData[0].y,
+                    curMaterial._arrData[0].z,
+                    curMaterial._arrData[0].w * objectTrans);
             }
         }
-
-        return curMaterial == null ? this.defaultMaterial : curMaterial;
     }
 
     this.GetEqualFlags = function(uPartIndex, uObjectIndex, arrPartUsedFlag) {
@@ -121,21 +201,22 @@ function WebGLControl() {
             for (let j=0; j<arrPartUsedFlag[uPartIndex].length; j++) {
                 uBeforeObjectIndex = arrPartUsedFlag[uPartIndex][j];
                 // 判断俩Object是否完全相同
-                if (this.m_arrMaterialIndex[uObjectIndex].length == this.m_arrMaterialIndex[uBeforeObjectIndex].length) {
+                if (this.m_arrObjectVAOUint[uObjectIndex].length == this.m_arrObjectVAOUint[uBeforeObjectIndex].length) {
                     let k = 0;
-                    for (; k<this.m_arrMaterialIndex[uObjectIndex].length; k++) {
-                        if (this.m_arrMaterialIndex[uObjectIndex][k] != this.m_arrMaterialIndex[uBeforeObjectIndex][k]) {
+                    for (; k<this.m_arrObjectVAOUint[uObjectIndex].length; k++) {
+                        if (this.m_arrObjectVAOUint[uObjectIndex][k].arrVertexCounts.length !=
+                            this.m_arrObjectVAOUint[uBeforeObjectIndex][k].arrVertexCounts.length) {
                             break;
                         }
                     }
-                    if (k == this.m_arrMaterialIndex[uObjectIndex].length) {
+                    if (k == this.m_arrObjectVAOUint[uObjectIndex].length) {
                         isEqualToBefore = true;
                     }   
                 }
             }
             if (!isEqualToBefore) {
                 arrPartUsedFlag[uPartIndex].push(uObjectIndex);
-            } 
+            }
         } else {
             arrPartUsedFlag[uPartIndex].push(uObjectIndex);
         }
@@ -234,6 +315,72 @@ function WebGLControl() {
             STRIDE = (NUM_VERTEX + NUM_VECTOR + NUM_UV) * 4;
         } else {
             STRIDE = (NUM_VERTEX + NUM_VECTOR) * 4;
+        }
+    }
+
+    /**
+     * 曲面被选中或者被设置材质、透明度后，VAO或VBO将被分割
+     */
+    this.splitVAOVertexCounts = function(objectIndex, surfaceIndex) {
+        if (objectIndex < 0) {
+            // 恢复初始状态
+            for (let i = 0; i < this.m_arrObjectVAOUint.length; ++i) {
+                for (let j = 0; j < this.m_arrObjectVAOUint[i].length; ++j) {
+                    this.m_arrObjectVAOUint[i][j].arrVertexCounts[0] = this.m_arrObjectVAOUint[i][j].uintVertexNum;
+                    this.m_arrObjectVAOUint[i][j].arrMaterialIndexs[0] = this.m_arrObjectVAOUint[i][j].uintMaterialIndex;
+                    this.m_arrObjectVAOUint[i][j].splitSize = 1;
+                    if (this.m_arrObjectVAOUint[i][j].splitFlags != null) {
+                        this.m_arrObjectVAOUint[i][j].splitFlags.splice(0, this.m_arrObjectVAOUint[i][j].splitFlags.length);
+                        this.m_arrObjectVAOUint[i][j].splitFlags == null;
+                    }
+                }
+            }
+            return;
+        }
+
+        let vaoIndex = -1;
+        let uCurStartIndex = 0, uNextStartIndex = 0;
+        for (let j = 0; j < this.m_arrObjectVAOUint[objectIndex].length - 1; ++j) {
+            // 找到被分割的VAO
+            uCurStartIndex = this.m_arrObjectVAOUint[objectIndex][j].surfaceStart;
+            uNextStartIndex = this.m_arrObjectVAOUint[objectIndex][j + 1].surfaceStart;
+            if (uCurStartIndex <= surfaceIndex && uNextStartIndex > surfaceIndex) {
+                vaoIndex = j;
+                break;
+            }
+        }
+        if (vaoIndex < 0) {
+            vaoIndex = this.m_arrObjectVAOUint[objectIndex].length - 1;
+        }
+
+        // n个分割点将VAO分割为n+1
+        let arrSplitFlags = new Array();
+        arrSplitFlags.push(new GL_VAO_FLAG());
+        uCurStartIndex = this.m_arrObjectVAOUint[objectIndex][vaoIndex].surfaceStart;
+        let uPartIndex = g_GLObjectSet._arrObjectSet[objectIndex]._uPartIndex;
+
+        arrSplitFlags[arrSplitFlags.length - 1].flag = this.arrPickObjectSurfaceIndexs[objectIndex][uCurStartIndex];
+        arrSplitFlags[arrSplitFlags.length - 1].fromIndex = uCurStartIndex;
+        arrSplitFlags[arrSplitFlags.length - 1].toIndex = 0;
+
+        for (let s = 1; s < this.m_arrObjectVAOUint[objectIndex][vaoIndex].surfaceCount; ++s) {
+            if (this.arrPickObjectSurfaceIndexs[objectIndex][uCurStartIndex + s] != arrSplitFlags[arrSplitFlags.length - 1].flag) {
+                arrSplitFlags[arrSplitFlags.length - 1].toIndex = uCurStartIndex + s;
+                arrSplitFlags.push(new GL_VAO_FLAG());
+                arrSplitFlags[arrSplitFlags.length - 1].flag = this.arrPickObjectSurfaceIndexs[objectIndex][uCurStartIndex + s];
+                arrSplitFlags[arrSplitFlags.length - 1].fromIndex = uCurStartIndex + s;
+                arrSplitFlags[arrSplitFlags.length - 1].toIndex = 0;
+            }
+        }
+        arrSplitFlags[arrSplitFlags.length - 1].toIndex = uCurStartIndex + this.m_arrObjectVAOUint[objectIndex][vaoIndex].surfaceCount;
+
+        if (arrSplitFlags.length > 1) {
+            for (let s = 0; s < arrSplitFlags.length; ++s) {
+                this.m_arrObjectVAOUint[objectIndex][vaoIndex].arrVertexCounts[s] =
+                    g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0].GetSurfaceVertexSum(arrSplitFlags[s].fromIndex, arrSplitFlags[s].toIndex);
+            }
+            this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitSize = arrSplitFlags.length;
+            this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags = arrSplitFlags;
         }
     }
 }
@@ -377,54 +524,6 @@ function WebGL1() {
         gl.uniformMatrix4fv(SOLIDPROGRAMINFO.uniformLocations.MVPMatrix, false, this.MVPMatrix);
         // 同一个Object的不同Surface材质不同
         for (let j = 0; j < g_webglControl.m_arrObjectSurface_VBOs[objectIndex].length; j++) {
-            // 材质数据
-            let curMaterial = g_webglControl.GetObjectShowMaterial(objectIndex, j);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialDiffuse,
-                curMaterial._mtlPhysics.vDiffuse.x,
-                curMaterial._mtlPhysics.vDiffuse.y,
-                curMaterial._mtlPhysics.vDiffuse.z,
-                curMaterial._mtlPhysics.vDiffuse.w);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialAmbient,
-                curMaterial._mtlPhysics.vAmbient.x,
-                curMaterial._mtlPhysics.vAmbient.y,
-                curMaterial._mtlPhysics.vAmbient.z,
-                curMaterial._mtlPhysics.vAmbient.w);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialSpecular,
-                curMaterial._mtlPhysics.vSpecular.x,
-                curMaterial._mtlPhysics.vSpecular.y,
-                curMaterial._mtlPhysics.vSpecular.z,
-                curMaterial._mtlPhysics.vSpecular.w);
-            gl.uniform1f(SOLIDPROGRAMINFO.uniformLocations.power, curMaterial._mtlPhysics.fPower);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialEmissive,
-                curMaterial._mtlPhysics.vEmissive.x,
-                curMaterial._mtlPhysics.vEmissive.y,
-                curMaterial._mtlPhysics.vEmissive.z,
-                curMaterial._mtlPhysics.vEmissive.w * objectTrans);
-            if (curMaterial._eMtlType == ADFMTLTYPE_PHYSICS) {
-                // 自然材质
-                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
-            } else if (curMaterial._eMtlType == ADFMTLTYPE_PICTURE) {
-                if (curMaterial._arrTexID[0] instanceof WebGLTexture) {
-                    // 贴图材质
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 1);
-                    // 设置贴图
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.textureUnit, 0);
-                    gl.bindTexture(gl.TEXTURE_2D, curMaterial._arrTexID[0]);
-                } else {
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
-                }
-            } else {
-                // 纯色材质
-                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 2);
-                // 设置纯色
-                if (curMaterial._arrData.length > 0) {
-                    gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.pureColor, 
-                        curMaterial._arrData[0].x,
-                        curMaterial._arrData[0].y,
-                        curMaterial._arrData[0].z,
-                        curMaterial._arrData[0].w * objectTrans);
-                }
-            }
             gl.bindBuffer(gl.ARRAY_BUFFER, g_webglControl.m_arrObjectSurface_VBOs[objectIndex][j]);
             gl.vertexAttribPointer(SOLIDPROGRAMINFO.attribLocations.vertexPosition, NUM_VERTEX, gl.FLOAT, false, STRIDE, 0);
             gl.enableVertexAttribArray(SOLIDPROGRAMINFO.attribLocations.vertexPosition);
@@ -436,7 +535,14 @@ function WebGL1() {
             } else {
                 gl.disableVertexAttribArray(SOLIDPROGRAMINFO.attribLocations.vertexUV);
             }
-            gl.drawArrays(gl.TRIANGLES, 0, g_webglControl.m_arrVAOVertexCounts[objectIndex][j]);
+            let offset = 0;
+            for (let s = 0; s < g_webglControl.m_arrObjectVAOUint[objectIndex][j].splitSize; ++s) {
+                // 材质数据
+                let curMaterial = g_webglControl.GetObjectShowMaterial(objectIndex, j, s);
+                g_webglControl.setShaderMaterial(curMaterial, objectTrans);
+                gl.drawArrays(gl.TRIANGLES, offset, g_webglControl.m_arrObjectVAOUint[objectIndex][j].arrVertexCounts[s]);
+                offset += g_webglControl.m_arrObjectVAOUint[objectIndex][j].arrVertexCounts[s];
+            }
         }
     }
 
@@ -448,7 +554,7 @@ function WebGL1() {
         gl.useProgram(LINEPROGRAMINFO.program);
         mat4.multiply(this.MVPMatrix, this.PVMattrix, g_webglControl.m_arrObjectMatrix[objectIndex]);
         gl.uniformMatrix4fv(LINEPROGRAMINFO.uniformLocations.MVPMatrix, false, this.MVPMatrix);
-        let materialIndex = g_webglControl.m_arrMaterialIndex[objectIndex][0];
+        let materialIndex = g_webglControl.m_arrObjectVAOUint[objectIndex][0].arrMaterialIndexs[0];
         let uCurPartIndex = g_GLObjectSet._arrObjectSet[objectIndex]._uPartIndex;
         g_webglControl.setVertexStride(uCurPartIndex);
         let curMaterial = null;
@@ -464,7 +570,7 @@ function WebGL1() {
         gl.bindBuffer(gl.ARRAY_BUFFER, g_webglControl.m_arrObjectSurface_VBOs[objectIndex][0]);
         gl.vertexAttribPointer(LINEPROGRAMINFO.attribLocations.vertexPosition, NUM_VERTEX, gl.FLOAT, false, STRIDE, 0);
         gl.enableVertexAttribArray(LINEPROGRAMINFO.attribLocations.vertexPosition);
-        gl.drawArrays(gl.LINES, 0, g_webglControl.m_arrVAOVertexCounts[objectIndex][0]);
+        gl.drawArrays(gl.LINES, 0, g_webglControl.m_arrObjectVAOUint[objectIndex][0].arrVertexCounts[0]);
     }
 
     this.drawBox_webgl1 = function() {
@@ -543,7 +649,7 @@ function WebGL1() {
         for (let i = 0; i < g_GLPartSet._arrPartSet.length; i++) {
             arrPartUsedFlag[i] = new Array();
         }
-        for (let i = 0; i < g_webglControl.m_arrMaterialIndex.length; i++) {
+        for (let i = 0; i < g_webglControl.m_arrObjectVAOUint.length; i++) {
             let uCurPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
             let equalFlags = g_webglControl.GetEqualFlags(uCurPartIndex, i, arrPartUsedFlag);
             let uBeforeObjectIndex = equalFlags.EqualBeforeIndex;
@@ -555,16 +661,16 @@ function WebGL1() {
                 // 创建曲面零件VAO缓存
                 if (!isEqualToBefore) {
                     let offset = 0;
-                    for (let j = 0; j < g_webglControl.m_arrMaterialIndex[i].length; j++) {
+                    for (let j = 0; j < g_webglControl.m_arrObjectVAOUint[i].length; j++) {
                         // 创建一个VBO
                         let buffer = gl.createBuffer();
                         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
                         let subData = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.subarray(
-                            offset, offset+g_webglControl.m_arrVAOVertexCounts[i][j]*VERTEX_DATA_COUNT);
+                            offset, offset+g_webglControl.m_arrObjectVAOUint[i][j].arrVertexCounts[0]*VERTEX_DATA_COUNT);
                         gl.bufferData(gl.ARRAY_BUFFER, subData, gl.STATIC_DRAW);
                         // 存值
                         arrSurfaceVBOs.push(buffer);
-                        offset += g_webglControl.m_arrVAOVertexCounts[i][j]*VERTEX_DATA_COUNT;
+                        offset += g_webglControl.m_arrObjectVAOUint[i][j].arrVertexCounts[0]*VERTEX_DATA_COUNT;
                     }
                 } else {
                     for (let j = 0; j < g_webglControl.m_arrObjectSurface_VBOs[uBeforeObjectIndex].length; j++) {
@@ -578,7 +684,7 @@ function WebGL1() {
                     let buffer = gl.createBuffer();
                     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
                     let subData = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.subarray(
-                        0, g_webglControl.m_arrVAOVertexCounts[i][0]*VERTEX_DATA_COUNT);
+                        0, g_webglControl.m_arrObjectVAOUint[i][0].arrVertexCounts[0]*VERTEX_DATA_COUNT);
                     gl.bufferData(gl.ARRAY_BUFFER, subData, gl.STATIC_DRAW);
                     // 存值
                     arrSurfaceVBOs.push(buffer);
@@ -754,56 +860,15 @@ function WebGL2() {
         gl.uniformMatrix4fv(SOLIDPROGRAMINFO.uniformLocations.MVPMatrix, false, this.MVPMatrix);
         // 同一个Object的不同Surface材质不同
         for (let j = 0; j < g_webglControl.m_arrObjectSurface_VAOs[objectIndex].length; j++) {
-            // 材质数据
-            let curMaterial = g_webglControl.GetObjectShowMaterial(objectIndex, j);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialDiffuse,
-                curMaterial._mtlPhysics.vDiffuse.x,
-                curMaterial._mtlPhysics.vDiffuse.y,
-                curMaterial._mtlPhysics.vDiffuse.z,
-                curMaterial._mtlPhysics.vDiffuse.w);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialAmbient,
-                curMaterial._mtlPhysics.vAmbient.x,
-                curMaterial._mtlPhysics.vAmbient.y,
-                curMaterial._mtlPhysics.vAmbient.z,
-                curMaterial._mtlPhysics.vAmbient.w);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialSpecular,
-                curMaterial._mtlPhysics.vSpecular.x,
-                curMaterial._mtlPhysics.vSpecular.y,
-                curMaterial._mtlPhysics.vSpecular.z,
-                curMaterial._mtlPhysics.vSpecular.w);
-            gl.uniform1f(SOLIDPROGRAMINFO.uniformLocations.power, curMaterial._mtlPhysics.fPower);
-            gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.materialEmissive,
-                curMaterial._mtlPhysics.vEmissive.x,
-                curMaterial._mtlPhysics.vEmissive.y,
-                curMaterial._mtlPhysics.vEmissive.z,
-                curMaterial._mtlPhysics.vEmissive.w * objectTrans);
-            if (curMaterial._eMtlType == ADFMTLTYPE_PHYSICS) {
-                // 自然材质
-                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
-            } else if (curMaterial._eMtlType == ADFMTLTYPE_PICTURE) {
-                if (curMaterial._arrTexID[0] instanceof WebGLTexture) {
-                    // 贴图材质
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 1);
-                    // 设置贴图
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.textureUnit, 0);
-                    gl.bindTexture(gl.TEXTURE_2D, curMaterial._arrTexID[0]);
-                } else {
-                    gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 0);
-                }
-            } else {
-                // 纯色材质
-                gl.uniform1i(SOLIDPROGRAMINFO.uniformLocations.fragmentTex, 2);
-                // 设置纯色
-                if (curMaterial._arrData.length > 0) {
-                    gl.uniform4f(SOLIDPROGRAMINFO.uniformLocations.pureColor, 
-                        curMaterial._arrData[0].x,
-                        curMaterial._arrData[0].y,
-                        curMaterial._arrData[0].z,
-                        curMaterial._arrData[0].w * objectTrans);
-                }
-            }
             gl.bindVertexArray(g_webglControl.m_arrObjectSurface_VAOs[objectIndex][j]);
-            gl.drawArrays(gl.TRIANGLES, 0, g_webglControl.m_arrVAOVertexCounts[objectIndex][j]);
+            let offset = 0;
+            for (let s = 0; s < g_webglControl.m_arrObjectVAOUint[objectIndex][j].splitSize; ++s) {
+                // 材质数据
+                let curMaterial = g_webglControl.GetObjectShowMaterial(objectIndex, j, s);
+                g_webglControl.setShaderMaterial(curMaterial, objectTrans);
+                gl.drawArrays(gl.TRIANGLES, offset, g_webglControl.m_arrObjectVAOUint[objectIndex][j].arrVertexCounts[s]);
+                offset += g_webglControl.m_arrObjectVAOUint[objectIndex][j].arrVertexCounts[s];
+            }
         }
     }
 
@@ -815,7 +880,7 @@ function WebGL2() {
         gl.useProgram(LINEPROGRAMINFO.program);
         mat4.multiply(this.MVPMatrix, this.PVMattrix, g_webglControl.m_arrObjectMatrix[objectIndex]);
         gl.uniformMatrix4fv(LINEPROGRAMINFO.uniformLocations.MVPMatrix, false, this.MVPMatrix);
-        let materialIndex = g_webglControl.m_arrMaterialIndex[objectIndex][0];
+        let materialIndex = g_webglControl.m_arrObjectVAOUint[objectIndex][0].arrMaterialIndexs[0];
         let curMaterial = null;
         if (materialIndex == -1) {
             curMaterial = this.defaultMaterial;
@@ -827,7 +892,7 @@ function WebGL2() {
                     curMaterial._mtlPhysics.vEmissive.y,
                     curMaterial._mtlPhysics.vEmissive.z);
         gl.bindVertexArray(g_webglControl.m_arrObjectSurface_VAOs[objectIndex][0]);
-        gl.drawArrays(gl.LINES, 0, g_webglControl.m_arrVAOVertexCounts[objectIndex][0]);
+        gl.drawArrays(gl.LINES, 0, g_webglControl.m_arrObjectVAOUint[objectIndex][0].arrVertexCounts[0]);
     }
 
     this.drawBox = function() {
@@ -866,7 +931,7 @@ function WebGL2() {
         for (let i = 0; i < g_GLPartSet._arrPartSet.length; i++) {
             arrPartUsedFlag[i] = new Array();
         }
-        for (let i = 0; i < g_webglControl.m_arrMaterialIndex.length; i++) {
+        for (let i = 0; i < g_webglControl.m_arrObjectVAOUint.length; i++) {
             let uCurPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
             let equalFlags = g_webglControl.GetEqualFlags(uCurPartIndex, i, arrPartUsedFlag);
             let uBeforeObjectIndex = equalFlags.EqualBeforeIndex;
@@ -982,7 +1047,7 @@ function WebGL2() {
         g_webglControl.setVertexStride(uPartIndex);
         // 创建曲面VAO缓存
         let offset = 0;
-        for (let j = 0; j< g_webglControl.m_arrMaterialIndex[uObjectIndex].length; j++) {
+        for (let j = 0; j< g_webglControl.m_arrObjectVAOUint[uObjectIndex].length; j++) {
             // 创建一个VAO
             let VAOArray = -1;
             VAOArray = gl.createVertexArray();
@@ -990,9 +1055,9 @@ function WebGL2() {
             // 创建一个VBO
             let buffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-            gl.bufferData(gl.ARRAY_BUFFER, g_webglControl.m_arrVAOVertexCounts[uObjectIndex][j]*STRIDE, gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, g_webglControl.m_arrObjectVAOUint[uObjectIndex][j].arrVertexCounts[0]*STRIDE, gl.STATIC_DRAW);
             gl.bufferSubData(gl.ARRAY_BUFFER, 0, g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex,
-                            offset, g_webglControl.m_arrVAOVertexCounts[uObjectIndex][j]*VERTEX_DATA_COUNT);
+                            offset, g_webglControl.m_arrObjectVAOUint[uObjectIndex][j].arrVertexCounts[0]*VERTEX_DATA_COUNT);
             // 绑定缓存区数据
             gl.vertexAttribPointer(SOLIDPROGRAMINFO.attribLocations.vertexPosition, NUM_VERTEX, gl.FLOAT, false, STRIDE, 0);
             gl.enableVertexAttribArray(SOLIDPROGRAMINFO.attribLocations.vertexPosition);
@@ -1005,7 +1070,7 @@ function WebGL2() {
             // 存值
             arrSurfaceVBOs.push(buffer);
             arrSurfaceVAOs.push(VAOArray);
-            offset += g_webglControl.m_arrVAOVertexCounts[uObjectIndex][j]*VERTEX_DATA_COUNT;
+            offset += g_webglControl.m_arrObjectVAOUint[uObjectIndex][j].arrVertexCounts[0]*VERTEX_DATA_COUNT;
         }
     }
 
@@ -1019,9 +1084,9 @@ function WebGL2() {
         // 创建一个VBO
         let buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.m_arrVAOVertexCounts[uObjectIndex][0]*STRIDE, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, g_webglControl.m_arrObjectVAOUint[uObjectIndex][0].arrVertexCounts[0]*STRIDE, gl.STATIC_DRAW);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0]._arrVertex,
-                        0, g_webglControl.m_arrVAOVertexCounts[uObjectIndex][0]*VERTEX_DATA_COUNT);
+                        0, g_webglControl.m_arrObjectVAOUint[uObjectIndex][0].arrVertexCounts[0]*VERTEX_DATA_COUNT);
         // 绑定缓存区数据
         gl.vertexAttribPointer(LINEPROGRAMINFO.attribLocations.vertexPosition, NUM_VERTEX, gl.FLOAT, false, STRIDE, 0);
         gl.enableVertexAttribArray(LINEPROGRAMINFO.attribLocations.vertexPosition);

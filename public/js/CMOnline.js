@@ -63,7 +63,6 @@ function CMOnlineLib(dom, callbacks) {
     this.CMHome = CMHome;
     this.CMGetSelObjIDs = CMGetSelObjIDs;
     this.CMGetMotionCaptureObjID = CMGetMotionCaptureObjID;
-    this.CMSetSelStatusByObjIDs = CMSetSelStatusByObjIDs;
     this.CMSetClearSelStatus = CMSetClearSelStatus;
     this.CMSetSelObjVisible = CMSetSelObjVisible;
     this.CMGetSelObjTransparent = CMGetSelObjTransparent;
@@ -89,12 +88,18 @@ function CMOnlineLib(dom, callbacks) {
 
     this.CMGetSceneCount = CMGetSceneCount;
     this.CMGetSceneInfo = CMGetSceneInfo;
+    this.CMPlaySceneAnim = CMPlaySceneAnim;
 
     this.CMTwinStart = CMTwinStart;
     this.CMTwinTerminal = CMTwinTerminal;
     this.CMSetObjectOriWorldMatrix = CMSetObjectOriWorldMatrix;
 
-    this.CMAddTempComment = CMAddTempComment;
+    this.CMSetUserCanCommentFlag = CMSetUserCanCommentFlag;
+    this.CMSetCommentUsrName = CMSetCommentUsrName;
+    this.CMAddComment = CMAddComment;
+    this.CMDelComment = CMDelComment;
+    this.CMImportComment = CMImportComment;
+    this.CMExportComment = CMExportComment;
 
     this.CMSetCameraPersonControl = CMSetCameraPersonControl;
     this.CMCameraRotate = CMCameraRotate;
@@ -170,6 +175,7 @@ function CMInitData(cledata) {
 // 清除数据
 function CMUninitData() {
     glRunTime.clear();
+    commentDataClear();
 
     // 释放解析数据流
     UnitCleStream();
@@ -406,9 +412,40 @@ function CMSetObjectOriWorldMatrix(objID, newMatrix) {
     }
 }
 
-// 添加注释信息
-function CMAddTempComment(objID, annoText) {
-    glRunTime.addCommentOnObjectById(objID, annoText);
+// 设置批注的权限，
+function CMSetUserCanCommentFlag(type) {
+    setUsrCommentRight(type);
+}
+
+// 设置批注作者信息
+function CMSetCommentUsrName(userName) {
+    // 内部需要判断权限
+    setCommentUsrName(userName);
+}
+
+// 创建批注信息
+function CMAddComment() {
+    setUsrCommentMode(1, 1);
+}
+
+// 删除批注信息
+function CMDelComment() {
+    // 内部需要判断权限
+    deleteCommentInput();
+}
+
+// 导入批注信息
+// 参数xmlDoc: XML Document对象
+function CMImportComment(xmlDoc) {
+    // 内部需要判断权限
+    importComment(xmlDoc);
+}
+
+// 导出批注信息
+// 返回值: XML Document对象
+function CMExportComment() {
+    // 内部需要判断权限
+    return exportComment();
 }
 
 // 设置摄像机视角

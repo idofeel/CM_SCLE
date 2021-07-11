@@ -229,5 +229,4 @@ function Camera() {
         this.t.set(0, 0, 0);
         this.s.set(0, 0, 0);
     }
-    
 }

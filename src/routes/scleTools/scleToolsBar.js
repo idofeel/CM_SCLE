@@ -202,6 +202,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	render() {
+		console.log('???scleStreamReady');
 		return (
 			<>
 				<Drawer

@@ -535,6 +535,14 @@ function GL_PARTLODDATA() {
         this._arrCurveVertexNum.splice(0, this._arrCurveVertexNum.length)
         this._boxset.Clear();
     }
+
+    this.GetSurfaceVertexSum = function(fromIndex, toIndex) {
+        let sum = 0;
+        for (let i = fromIndex; i < toIndex; ++i) {
+            sum += this._arrSurfaceVertexNum[i];
+        }
+        return sum;
+    }
 }
 
 // 零件数据
@@ -678,12 +686,22 @@ function GL_ANNOTATION() {
     }
 }
 
+// 文本长度与文本框大小对应关系表
+// length: 0-5，   width: 100
+//         5-10,   width: 200
+const WIDTH_UNIT = 100;
+const HEIGHT_UNIT = 25;
+function textMapWidth(text) {
+    return WIDTH_UNIT;
+}
+
 // 用户批注数据
 function GL_USRANNOTATION() {
     this.show = true;                      // 文本框使用参数
     this.disabled = false;
     this.style = null;
     this.value = "文本";
+    this.type = "";
 
     this._uAnnotID = -1;
     this._uAnnotName = "节点";              // 模型树显示
@@ -692,39 +710,75 @@ function GL_USRANNOTATION() {
     this._strCreateTime = "19710101010159"; // 注释日期，精确到秒，总共14位
     this._uStartFrame = 0;                  // 起始帧
     this._uFrameSize = 0;                   // 帧段长度
+    this._attachPt = new Point2(0, 0);      // 批注悬挂点
+
+    this.cvtPointToStyle = function(point2d) {
+        this.style = {left: 0, top: 0, width: 0};
+        this.style.top = point2d.y - HEIGHT_UNIT;
+        this.style.width = textMapWidth(this._uAnnotText);
+        this.style.left = point2d.x - this.style.width / 2;
+        return this.style;
+    }
+
+    this.cvtStyleToPoint = function() {
+        let y = this.style.top + HEIGHT_UNIT;
+        let x = this.style.left + this.style.width / 2;
+        return new Point2(x, y);
+    }
+
+    this.copyFromScle = function(comment, point2d, isVisible) {
+        this._uAnnotID = comment.stuAnnot.uID;
+        this._strUsrName = comment.stuProperty._strUserName;
+        this._strCreateTime = comment.stuProperty._strDateTime;
+        this._uAnnotText = comment.stuAnnot.pNote.strText;
+        this.value = comment.stuAnnot.pNote.strText;
+        this.style = this.cvtPointToStyle(point2d);
+        this.disabled = true;
+
+        // 根据有无引线，判断显示样式
+        if (comment.stuAnnot.pNote.arrLeaderPos == null || comment.stuAnnot.pNote.arrLeaderPos.length == 0) {
+            this.type = "input";
+        }
+        
+        this.show = isVisible;
+    }
 }
 
-// // 带法矢的平面（四边形）
-// function PLANE() {
-//     this.point1 = new Point3();
-//     this.point2 = new Point3();
-//     this.point3 = new Point3();
-//     this.point4 = new Point3();
-//     this.dir = new Point3();
+// GL绘制单元
+// 用于合并材质与材质分割
+function GL_VAO_UNIT(num) {
+    this.splitSize = 1;               // VAO被分割时记录
+    this.splitFlags = null;
+    this.arrVertexCounts = null;      // VAO顶点数量，数组长度等于合并的surface数量
+    this.arrMaterialIndexs = null;    // VAO材质索引，数组长度等于合并的surface数量
 
-//     this.set = function(nearPt1, nearPt2) {
+    this.uintVertexNum = 0;           // 记录不变量
+    this.uintMaterialIndex = 0;
+    this.surfaceStart = -1;
+    this.surfaceCount = 0;
 
-//     }
-// }
+    if (num < 0) {
+        return;
+    } else if (num == 0) {
+        this.arrVertexCounts = new Array();
+        this.arrMaterialIndexs = new Array();
+    } else {
+        this.arrVertexCounts = new Array();
+        this.arrMaterialIndexs = new Array();
+        for (let i = 0; i < num; ++i) {
+            this.arrVertexCounts.push(0);
+            this.arrMaterialIndexs.push(-1);
+        }
+    }
+}
 
-// // 框选，四棱台数据定义
-// function SELECTFRUSTUM3D() {
-//     this.topPlane = new PLANE();
-//     this.botomPlane = new PLANE();
-//     this.leftPlane = new PLANE();
-//     this.rightPlane = new PLANE();
-
-//     this.set = function(ptLu, ptRu, ptLd, ptRd) {
-//         this.topPlane.set(ptLu, ptRu);
-//         this.rightPlane.set(ptRu, ptRd);
-//         this.botomPlane.set(ptRd, ptLd);
-//         this.leftPlane.set(ptLd, ptLu);
-//     }
-
-//     this.isInerner = function(point) {
-
-//     }
-// }
+// GL绘制单元
+// 分割Uint标志量
+function GL_VAO_FLAG() {
+    this.flag = false;
+    this.fromIndex = 0;
+    this.toIndex = 0;
+}
 
 //===================================================================================================
 /**
@@ -733,8 +787,9 @@ function GL_USRANNOTATION() {
 
  // 材质显示优先级
 const GL_ORIGINAL         = 0;        // 模型原始材质
-const GL_USERDEFINE       = 1;        // 用户设置材质
-const GL_USERPICKED       = 2;        // 用户拾取材质
+const GL_USERDEFINE       = 1;        // 用户设置零件材质
+const GL_USERPICKED       = 2;        // 用户拾取零件材质
+const GL_USERSURFACE      = 3;        // 用户拾取曲面材质
 
 // 零件透明属性
 const GLTRANS_ALL         = 1;        // 零件全透明
@@ -800,14 +855,25 @@ function CalADFMat(matrix) {
 function ConvertCommetText(comment) {
    comment.stuAnnot.pNote.strText = GetSplitStringArray(comment.stuAnnot.pNote.strText);
 
-    comment.stuProperty._strUserName = "【用户名称】" + comment.stuProperty._strUserName;
-    let tmpDateTime = "【批注时间】" + comment.stuProperty._strDateTime.substring(0, 4);
+    let tmpDateTime = comment.stuProperty._strDateTime.substring(0, 4);
     tmpDateTime += comment.stuProperty._strDateTime.substring(4, 6);
     tmpDateTime += comment.stuProperty._strDateTime.substring(6, 8);
     tmpDateTime += comment.stuProperty._strDateTime.substring(8, 10);
     tmpDateTime += comment.stuProperty._strDateTime.substring(10, 12);
     tmpDateTime += comment.stuProperty._strDateTime.substring(12, 14);
     comment.stuProperty._strDateTime = tmpDateTime;
+}
+
+function getStandardCurTime() {
+    let tmpTime = "";
+    curDate = new Date();
+    tmpTime += curDate.getFullYear();
+    tmpTime += curDate.getMonth() + 1;
+    tmpTime += curDate.getDate();
+    tmpTime += curDate.getHours();
+    tmpTime += curDate.getMinutes();
+    tmpTime += curDate.getSeconds();
+    return tmpTime;
 }
 
 function GetStringLength(str) {

@@ -21,7 +21,7 @@ function CALLBACK_V2() {
     // 批注被单击事件
     this.commentOnClick = function(event, newOpion, item, index) {}
     // 批注被删除事件
-    this.deleteCommentInput = function(event, newOpion, item, index) {}
+    this.deleteCommentInput = function() {}
     // 批注被用户拖动修改位置
     this.moveCommentInput = function(event, newOpion, item, index) {}
 }
@@ -72,8 +72,6 @@ var isPhone = false;
 
 var g_resFoder = "./Resource/Background/";
 var g_bgImage = ["blue.jpg", "white.jpg", "grey.jpg"];
-var test_download_xml = "../../lab/data/202105172230wjl.xml";
-var test_upload_xml = "../../lab/index.php";
 var test_note = new GL_USRANNOTATION();
 
 var glRunTime = new GLRunTime();
@@ -108,15 +106,16 @@ var motionCaptureObjID = null;
 var handle2D = null;
 var handle3D = null;
 // 用户添加注释
+var usrCommentRight = 1;
+var usrCommentName = "unkown";
 var isUsrCommentFlag = false;
 var isUsrCommInputShow = false;
 var isSingleComment = false;
 var isShowUsrComment = true;
-var isShowScleComment = false;
-var g_xmlDoc = null;
-var g_xmlHttp = null;
+var isShowScleComment = true;
 var g_isXmlDocLoaded = false;
 var g_usrCommOption = {data: [], show: true};
+var pickedCommentIndex = -1;
 // 处理页面滚动坐标原点变化
 var scrollLeft = 0;
 var scrollTop = 0;
@@ -200,6 +199,8 @@ function render2D() {
  * 开始循环渲染
  */
 function startRender() {
+    initCMOnlineUI();
+
     web3dCanvas.width = container.offsetWidth;
     web3dCanvas.height = container.offsetHeight;
     text2dCanvas.width = container.offsetWidth;
@@ -239,7 +240,8 @@ function startRender() {
     document.addEventListener('DOMMouseScroll', fireFoxScollFun, false);
     window.onunload = addCloseListenser;
     window.onresize = canvasOnResize;
-    initCMOnlineUI();
+
+    CMOnlineUI.loadEnd();
 }
 
 /* 通用浏览器设置 */
@@ -513,8 +515,14 @@ function webKeyUp(event, textCanvas) {
                     break;
                 }
 
-                objectIndex = glRunTime.pick(lastX, lastY, isMultPick, true);
-                if (isMove || isMultPick) {
+                if (isMove) {
+                    objectIndex = glRunTime.pick(lastX, lastY, isMultPick, false);
+                    break;
+                } else {
+                    objectIndex = glRunTime.pick(lastX, lastY, isMultPick, true);
+                }
+
+                if (isMultPick) {
                     break;
                 }
 
@@ -547,6 +555,7 @@ function webKeyUp(event, textCanvas) {
             }
             break;
     }
+    pickedCommentIndex = -1;
     isKeyTap = false;
 }
 
@@ -576,21 +585,21 @@ function webKeyMove(event, textCanvas) {
             glRunTime.rotate(degreeX, degreeY, 0);
         }
 
-        if (isShiftDown && dragMid) {
+       if (isShiftDown && dragMid) {
             //视角平移
             glRunTime.move(2 * (x - lastX), -2 * (y - lastY));
         }
 
-        if (isShiftDown && dragLeft) {
-            // shift + 左键拖拽：模型平移
-            if (isMove) {
+        if (isMove) {
+            if (isShiftDown && dragLeft) {
+                // shift + 左键拖拽：模型平移
                 if (objectIndex > -1) {
                     if (Math.abs(x - lastX) > moveSensitivity || Math.abs(y - lastY) > moveSensitivity) {
                         glRunTime.objectMove(objectIndex, 2 * (x - lastX), -2 * (y - lastY));
                     }
                 }
             }
-        } else if (dragLeft) {
+        } else if (dragLeft && (Math.abs(x - selRect.min.x) > 3 || Math.abs(y - selRect.min.y) > 3)) {
             // 框选零件
             selRect.max.x = x;
             selRect.max.y = y;
@@ -599,10 +608,8 @@ function webKeyMove(event, textCanvas) {
         }
     } else {
         // 鼠标没有按下，但滑动，将操作标注信息
-        if (glRunTime.pickAnnotation(x, y, false) > -1) {
-            if (isMotionCapture) {
-                motionCaptureObjID = glRunTime.getPickObjectIdByIndex(glRunTime.pick(x, y, false, false));
-            }
+        if (isMotionCapture) {
+            motionCaptureObjID = glRunTime.getPickObjectIdByIndex(glRunTime.pick(x, y, false, false));
         }
     }
 
@@ -639,21 +646,25 @@ function addMouseListener(textCanvas) {
     } else {
         textCanvas.onmousedown = function (event) {
             webKeyDown(event, textCanvas);
+            stopDefault(event);
             callback_v3.CMOnMouseDownCallBack(event);
         }
 
         textCanvas.onmouseup = function (event) {
             webKeyUp(event, textCanvas);
+            stopDefault(event);
             callback_v3.CMOnMouseUpCallBack(event);
         }
 
         textCanvas.onmousewheel = function (event) {
             webWheel(event, textCanvas);
+            stopDefault(event);
             callback_v3.CMOnMouseWheelCallBack(event);
         }
 
         textCanvas.onmousemove = function (event) {
             webKeyMove(event, textCanvas);
+            stopDefault(event);
             callback_v3.CMOnMouseMoveCallBack(event);
         }
     }
@@ -723,7 +734,7 @@ function setView(selectIndex) {
 
 // 复位
 function setHome() {
-    glRunTime.home();
+    glRunTime.home(HOME_ALL);
 }
 
 // 动画相关参数
@@ -739,6 +750,7 @@ var uSleepTime = 40;
 
 // 开始动画、继续动画
 function setAnimationStart() {
+    animTerminal();
     uTotalFrame = glRunTime.getTotalFrame();
     isLockCavans = true;
     if (animationStatus == ANIMTERMINAL) {
@@ -869,6 +881,14 @@ function canvasOnResize() {
 
     if (initRenderFlag) {
         glRunTime.resetWindow(gl.canvas.clientWidth, gl.canvas.clientHeight);
+
+        // 刷新CMOnlineUI
+        let tmpPt = new Point2(0, 0)
+        for (let i = 0; i < g_usrCommOption.data.length; ++i) {
+            g_canvas.adapterLocalToScreen(g_usrCommOption.data[i]._attachPt.x, g_usrCommOption.data[i]._attachPt.y, tmpPt);
+            g_usrCommOption.data[i].cvtPointToStyle(tmpPt);
+        }
+        callback_v2.showCommentInput(g_usrCommOption);
     }
 
     gl2d.canvas.width = gl2d.canvas.clientWidth;
@@ -919,10 +939,29 @@ function addComment(objectID, annoText) {
     glRunTime.addCommentOnObjectById(objectID, annoText);
 }
 
+// 设置用户批注权限
+function setUsrCommentRight(type) {
+    if (type == 0) {
+        usrCommentRight = 0;
+    } else {
+        usrCommentRight = 1;
+    }
+}
+
+// 设置当前用户名
+function setCommentUsrName(userName) {
+    usrCommentName = userName;
+}
+
 // 用户添加批注开关
 // flag: 1表示开始批注，0表示结束
 // type: 0表示单引脚批注类型，1表示多引脚批注类型
 function setUsrCommentMode(flag, type) {
+    if (usrCommentRight == 0) {
+        // alert("operation is not allowed");
+        return;
+    }
+
     if (flag == 1) {
         glRunTime.setBoxShow(false);
         isUsrCommentFlag = true;
@@ -944,41 +983,6 @@ function setUsrCommentMode(flag, type) {
     glRunTime.pickModelByIDs(null);
 }
 
-function getStandardCurTime() {
-    let tmpTime = "";
-    curDate = new Date();
-    tmpTime += curDate.getFullYear();
-    tmpTime += curDate.getMonth() + 1;
-    tmpTime += curDate.getDate();
-    tmpTime += curDate.getHours();
-    tmpTime += curDate.getMinutes();
-    tmpTime += curDate.getSeconds();
-    return tmpTime;
-}
-
-// 文本长度与文本框大小对应关系表
-// length: 0-5，   width: 100
-//         5-10,   width: 200
-const WIDTH_UNIT = 100;
-const HEIGHT_UNIT = 30;
-function textMapWidth(text) {
-    return text.length < 5 ? WIDTH_UNIT : WIDTH_UNIT * 2;
-}
-
-function cvtPointToStyle(point2d, text) {
-    var style = {left: 0, top: 0, width: 0};
-    style.top = point2d.y - HEIGHT_UNIT;
-    style.width = textMapWidth(text);
-    style.left = point2d.x - style.width / 2;
-    return style;
-}
-
-function cvtStyleToPoint(style) {
-    let y = style.top + HEIGHT_UNIT;
-    let x = style.left + style.width / 2;
-    return new Point2(x, y);
-}
-
 // 更新批注界面列表
 function getNewCommentNote(x, y) {
     // 如果没有Update引线，则直接返回
@@ -987,9 +991,11 @@ function getNewCommentNote(x, y) {
     }
 
     var newCommentNode = new GL_USRANNOTATION();
-    newCommentNode.style = cvtPointToStyle(new Point2(x, y), newCommentNode.value);
+    newCommentNode.cvtPointToStyle(new Point2(x, y));
     newCommentNode._uAnnotID = g_canvas.commentId;
+    newCommentNode._strUsrName = usrCommentName;
     newCommentNode._strCreateTime = getStandardCurTime();
+    g_canvas.adapterScreenToLocal(x, y, newCommentNode._attachPt);
 
     // 弹出输入框
     g_usrCommOption.data.push(newCommentNode);
@@ -1006,7 +1012,7 @@ function commentOnSubmit (event, newOpion, item, index) {
     isUsrCommInputShow = false;
     let curComment = newOpion.data[index];
     curComment._uAnnotText = curComment.value;
-    let point2d = cvtStyleToPoint(curComment.style);
+    let point2d = curComment.cvtStyleToPoint();
     if (glRunTime.updateCommentById(point2d.x, point2d.y, curComment)) {
         setUsrCommentMode(0, 1);
         return true;
@@ -1024,17 +1030,39 @@ function commentOnClick(event, newOpion, item, index) {
     let curComment = newOpion.data[index];
     let commentObjIndexs = glRunTime.getCommentObjectIndexs(curComment._uAnnotID);
     glRunTime.pickModelByIndexs(commentObjIndexs);
+
+    pickedCommentIndex = index;
 }
 
 // 批注被删除时回调
-function deleteCommentInput(event, newOpion, item, index) {
-    let curComment = newOpion.data[index];
+function deleteCommentInput() {
+    if (usrCommentRight == 0) {
+        // alert("operation is not allowed");
+        return;
+    }
+
+    if (pickedCommentIndex < 0) {
+        return;
+    }
+
+    let curComment = g_usrCommOption.data[pickedCommentIndex];
     glRunTime.deleteCommentById(curComment._uAnnotID);
+
+    g_usrCommOption.data[pickedCommentIndex].show = false;
+    callback_v2.showCommentInput(g_usrCommOption);
 }
 
 // 批注被用户拖动修改位置时回调
 function moveCommentInput(event, newOpion, item, index) {
+    if (usrCommentRight == 0) {
+        // alert("operation is not allowed");
+        return;
+    }
+}
 
+function commentDataClear() {
+    g_usrCommOption.data.splice(0, g_usrCommOption.data.length);
+    callback_v2.showCommentInput(g_usrCommOption);
 }
 
 function addSingleComment(x, y, commentInfo) {
@@ -1055,7 +1083,6 @@ function uploadXmlLocal(e) {
         var xmlDoc = cvtToXMLDOM(this.result)
         if (xmlDoc != null) {
             glRunTime.importXmlComment(xmlDoc);
-            g_usrCommOption.data = glRunTime.initInputList();
             callback_v2.showCommentInput(g_usrCommOption);
         }
     }
@@ -1081,92 +1108,30 @@ function cvtToXMLDOM(xmlStr) {
     return xmlDoc
 }
 
-function getXMLDOM() {
-    var xmlDoc = null
-    if (window.ActiveXObject) {
-        // Internet Explorer
-        xmlDoc = new window.ActiveXObject('Microsoft.XMLDOM')
-    } else if (
-        document.implementation &&
-        document.implementation.createDocument) {
-        // Firefox, Mozilla, Opera
-        xmlDoc = document.implementation.createDocument('', '', null)
-    }
-    return xmlDoc
-}
-
-function getXMLHTTP() {
-    var xmlhttp = null;
-    if (window.XMLHttpRequest) {
-        xmlhttp = new XMLHttpRequest();
-    } else {
-        xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-    }
-    return xmlhttp;
-}
-
-// 下载xml文件
-function syncXmlCommentFromCloud() {
-    g_xmlDoc = getXMLDOM();
-
-    try {
-        g_xmlDoc.async = "false";
-        g_xmlDoc.load(test_download_xml);
-    } catch (e) {
-        // Chrome
-        g_xmlHttp = new window.XMLHttpRequest();
-        g_xmlHttp.open("GET", test_download_xml, false);
-        g_xmlHttp.send(null);
-        g_xmlDoc = g_xmlHttp.responseXML.documentElement;
+function importComment(xmlDoc) {
+    if (usrCommentRight == 0) {
+        // alert("operation is not allowed");
+        return;
     }
 
+    g_xmlDoc = xmlDoc;
     if (g_xmlDoc != null) {
         glRunTime.importXmlComment(g_xmlDoc);
-        g_usrCommOption.data = glRunTime.initInputList();
         callback_v2.showCommentInput(g_usrCommOption);
     }
 }
 
-// 上传xml文件
-function uploadXmlCommentToCloud() {
+function exportComment() {
+    if (usrCommentRight == 0) {
+        // alert("operation is not allowed");
+        return null;
+    }
+
     g_xmlDoc = getXMLDOM();
     if (g_xmlDoc != null) {
         g_xmlDoc = glRunTime.exportXmlComment(g_xmlDoc);
     }
-    if (g_xmlDoc == null) {
-        alert("上传失败");
-        return false;
-    }
-
-    var xml = new XMLSerializer().serializeToString(g_xmlDoc)
-    // 将xml 转 blob
-    var blob = new Blob([xml], { type: "text/xml" });
-    // blob 转 File
-    var file = new File([blob], "fileName.xml");
-    // 使用formData将File包装，进行上传
-    var formData = new FormData();
-
-    formData.append("file", file);
-    formData.append("filesize", file.size);
-    formData.append("contentid", '202105172230wjl');
-
-    g_xmlHttp = getXMLHTTP();
-    if (g_xmlHttp != null) {
-        g_xmlHttp.open("post", test_upload_xml, true);
-        g_xmlHttp.send(formData);
-        g_xmlHttp.onreadystatechange = success;
-    }
-}
-
-function success()//异步处理函数，当服务成功返回时
-{
-    if (g_xmlHttp.readyState == 4) {
-        if (g_xmlHttp.status == 200) {
-            alert(g_xmlHttp.responseText);
-        } else {
-            alert("上传失败");
-        }
-    }
+    return g_xmlDoc;
 }
 
 // 高亮objects

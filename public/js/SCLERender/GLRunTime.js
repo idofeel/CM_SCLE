@@ -90,6 +90,9 @@ function GLRunTime() {
         if (g_glprogram != null) {
             g_glprogram.uninitGLData();
         }
+        if (g_canvas != null) {
+            g_canvas.uninitAnnoData();
+        }
         
         this.clearCommon();
     }
@@ -100,6 +103,9 @@ function GLRunTime() {
     this.clear = function() {
         if (g_glprogram != null) {
             g_glprogram.clearGLData();
+        }
+        if (g_canvas != null) {
+            g_canvas.uninitAnnoData();
         }
         
         this.clearCommon();
@@ -390,7 +396,7 @@ function GLRunTime() {
     }
 
     this.cvtWorldToCMOnline = function(pos, objIndex) {
-        if (objIndex > 0) {
+        if (objIndex > -1) {
             let inPos = new Point3(pos.x, pos.y, pos.z);
             CalTranslatePoint(pos.x, pos.y, pos.z, g_glprogram.modelMatrix, inPos);
             CalInversePoint(inPos, g_webglControl.m_arrObjectMatrix[objIndex], pos);
@@ -424,7 +430,7 @@ function GLRunTime() {
 
     this.pickModelByIDs = function(objIDs) {
         if (objIDs == null || objIDs.length < 1) {
-            g_glprogram.pickByIndex(-1, false);
+            g_glprogram.pickByIndex(-1, -1, false);
             return;
         }
 
@@ -573,7 +579,7 @@ function GLRunTime() {
         if (intersectRet == null) {
             return false;
         } else {
-            g_glprogram.pickByIndex(intersectRet.uObjectIndex, true);
+            g_glprogram.pickByIndex(intersectRet.uObjectIndex, intersectRet.uSurfaceIndex, true);
             this.usrNewComment.stuAnnot.pNote.arrLeaderPos.push(intersectRet.ptIntersect);
             // 兼容处理，添加ObjectID数据
             if (this.usrNewComment.stuAnnot.pNote.arrObjectIndexs == null) {
@@ -623,6 +629,9 @@ function GLRunTime() {
         let isNewNote = true;
         let index = -1;
         for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            if (g_canvas.m_arrIsUsrCommentDel[i]) {
+                continue;
+            }
             if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == commentInfo._uAnnotID) {
                 isNewNote = false;
                 index = i;
@@ -640,6 +649,9 @@ function GLRunTime() {
     this.deleteCommentById = function(id) {
         let index = -1;
         for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            if (g_canvas.m_arrIsUsrCommentDel[i]) {
+                continue;
+            }
             if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == id) {
                 index = i;
                 break;
@@ -650,6 +662,9 @@ function GLRunTime() {
 
     this.getCommentObjectIndexs = function(id) {
         for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
+            if (g_canvas.m_arrIsUsrCommentDel[i]) {
+                continue;
+            }
             if (g_canvas.m_arrUsrComment[i].stuAnnot.uID == id) {
                 return g_canvas.m_arrUsrComment[i].stuAnnot.pNote.arrObjectIndexs;
             }
@@ -669,31 +684,16 @@ function GLRunTime() {
         }
         for (let i = 0; i < arrComment.length; ++i) {
             g_canvas.addUsrComment(arrComment[i], true);
+
+            // 添加UI
+            var newCommentNode = new GL_USRANNOTATION();
+            let point2d = new Point2(0, 0);
+            g_canvas.adapterLocalToScreen(arrComment[i].stuAnnot.annoPlaneLocal.x, arrComment[i].stuAnnot.annoPlaneLocal.y, point2d);
+            newCommentNode.copyFromScle(arrComment[i], point2d, true);
+            newCommentNode._attachPt.set(arrComment[i].stuAnnot.annoPlaneLocal.x, arrComment[i].stuAnnot.annoPlaneLocal.y);
+            g_usrCommOption.data.push(newCommentNode);
         }
         return true;
-    }
-
-    this.initInputList = function() {
-        if (g_canvas.m_arrUsrComment == null || g_canvas.m_arrUsrComment.length == 0) {
-            return null;
-        }
-
-        var inputData = new Array();
-        for (let i = 0; i < g_canvas.m_arrUsrComment.length; ++i) {
-            let curComment = g_canvas.m_arrUsrComment[i];
-            var newCommentNode = new GL_USRANNOTATION();
-            newCommentNode._uAnnotText = curComment.stuAnnot.pNote.strText;
-            newCommentNode._strUsrName = curComment.stuProperty._strUserName;
-            newCommentNode._strCreateTime = curComment.stuProperty._strDateTime;
-            
-            let point2d = new Point2(0, 0);
-            g_canvas.adapterLocalToScreen(curComment.stuAnnot.annoPlaneLocal.x, curComment.stuAnnot.annoPlaneLocal.y, point2d);
-            newCommentNode.value = curComment.stuAnnot.pNote.strText;
-            newCommentNode.style = cvtPointToStyle(point2d, newCommentNode.value);
-            newCommentNode.disabled = true;
-            inputData.push(newCommentNode);
-        }
-        return inputData;
     }
 
     this.exportXmlComment = function(xmlDoc) {

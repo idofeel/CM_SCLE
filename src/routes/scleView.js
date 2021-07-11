@@ -30,7 +30,6 @@ function ScleView() {
 	const [input, setInputText] = useState(null);
 
 	const setCoords = (state) => {
-		console.log(state);
 		setCoordinates(Object.assign(coordinates, state));
 	};
 
@@ -161,7 +160,7 @@ function ScleView() {
 		};
 
 		//  显示批注输入框
-		scleControl.showCommentInput = showInput;
+		// scleControl.showCommentInput = showInput;
 		// // 批注信息输入改变时触发的函数
 		// scleControl.commentOnChange = () => { }
 		// // 批注信息提交时触发的函数
@@ -215,7 +214,7 @@ function ScleView() {
 
 			if (percentComplete === 1) {
 				setMsgCode(1);
-				loadingChage(false);
+				loadingChange(false);
 			}
 		}
 
@@ -224,28 +223,43 @@ function ScleView() {
 		}
 	};
 
-	const loadingChage = (b) => {
+	const loadingChange = (b) => {
 		setLoading(b);
 		window.canvasOnResize && window.canvasOnResize();
 	};
 
 	useEffect(() => {
-		const cmcallbacks = new window.CM_CALLBACKS();
-		window.CM_LIB = new window.CMOnlineLib(
-			containerRef.current,
-			cmcallbacks
-		);
+		// console.log(CM_CALLBACKS);
+		// const cmcallbacks = new window.CM_CALLBACKS();
+		// window.CM_LIB = new window.CMOnlineLib(
+		// 	containerRef.current,
+		// 	cmcallbacks
+		// );
 		//
 		window.addEventListener('updateProgress', onProgress);
 		window.addEventListener('transferFailed', () => setMsgCode(2));
+		
+		// 创建内部UI对象
+		// var UI_Container = document.createElement('div');
+		// UI_Container.id ='CMOnlineUI_container';
+		// containerRef.current.appendChild(UI_Container);
+
 		// scleCustomEvent('scleViewOnReady')
-		// window.addEventListener('load', () => {
-		if (isHttp) openScle();
-		addScleAPi();
-		// })
+		window.addEventListener('load', () => {
+			const cmcallbacks = new window.CM_CALLBACKS();
+			window.CM_LIB = new window.CMOnlineLib(
+				containerRef.current,
+				cmcallbacks
+			);
+			// console.log(window.CM_LIB);
+			window.CM_LIB.CMSetUserCanCommentFlag(1);
+			window.CM_LIB.CMSetCommentUsrName("test");
+			if (isHttp) openScle();
+			addScleAPi();
+		})
 
 		window.addEventListener('scleStreamReady', () => {
-			loadingChage(false);
+			loadingChange(false);
 			addScleEvent();
 		});
 
@@ -333,12 +347,12 @@ function ScleView() {
 			return renderCommentItem(item, index);
 		}
 	}
-	console.log('render');
 	return (
 		<div
 			className={isFullScreen ? 'fullScreen container' : 'container'}
 			ref={containerRef}
 		>
+			<div id="CMOnlineUI_container"></div>
 			{/* <>
                 <canvas id="glcanvas" width="800" height="600"></canvas>
                 <canvas id="text" width="800" height="600"></canvas>

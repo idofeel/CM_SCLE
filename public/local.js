@@ -1,5 +1,5 @@
 ;(function () {
-	var ScleView = window.Scle
+	var ScleView = window.CMOnlineUI
 
 	var $el = function (id) {
 		return document.getElementById(id)

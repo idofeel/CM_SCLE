@@ -42,9 +42,10 @@ function Canvas2D() {
     this.annotTextHeight = 0;           // 注释文字总高度，临时变量
     this.isOutWindow = false;           // 注释文字是否超出界限，临时变量
 
-    this.commentId = 100000;
+    this.commentId = 200000;
     this.m_arrUsrComment = new Array();
     this.m_arrIsUsrCommentDel = new Array();
+    this.isDrawLeaderPos = true;
 
     /**
      * 初始化canvas参数
@@ -58,10 +59,12 @@ function Canvas2D() {
      * 初始化2D注释数据
      */
      this.initAnnoData = function() {
-        if (g_GLAnnoSet != null || g_GLAnnoSet._arrComment.length > 0) {
+        if (g_GLAnnoSet != null && g_GLAnnoSet._arrComment.length > 0) {
             this.setAnnotVisible();
             this.setPickAnnotIndexs();
-            this.setAnnotRect();
+            this.setAnnotUI();
+            // 初始化ID
+            this.commentId = g_GLAnnoSet._arrComment[g_GLAnnoSet._arrComment.length - 1].stuAnnot.uID + 1;
         }
     }
 
@@ -102,28 +105,12 @@ function Canvas2D() {
             if (!this.m_arrAnnotVisiable[i]) {
                 continue;
             }
-            // 判断是否被拾取
-            if (this.m_arrPickAnnotIndexs[i]) {
-                gl2d.font = FONT_DEFAULT_ANNOT;
-                gl2d.fillStyle = STYLE_HIGHLIGHT;
-                gl2d.strokeStyle = STYLE_HIGHLIGHT;
-            } else {
-                gl2d.font = FONT_DEFAULT_ANNOT;
-                gl2d.fillStyle = STYLE_DEFAULT;
-                gl2d.strokeStyle = STYLE_DEFAULT;
-            }
-
             // 绘制注释数据
-            this.drawAnnoData(this.m_arrAnnotRect[i], g_GLAnnoSet._arrComment[i].stuAnnot);
-
-            // 判断是否被拾取，绘制注释属性信息
-            if (this.m_arrPickAnnotIndexs[i]) {
-                this.drawAnnoProperty(this.m_arrAnnotRect[i], g_GLAnnoSet._arrComment[i].stuProperty);
-            }
+            this.drawAnnoData(g_GLAnnoSet._arrComment[i].stuAnnot);
         }
     }
 
-    this.drawAnnoData = function(annoRect, annotation) {
+    this.drawAnnoData = function(annotation) {
         // 计算引线位置
         gl2d.beginPath();
         this.adapterLocalToScreen(annotation.annoPlaneLocal.x, annotation.annoPlaneLocal.y, this.RealPoint2);
@@ -132,44 +119,10 @@ function Canvas2D() {
                 annotation.pNote.arrLeaderPos[j].y + annotation.annoPlaneLocal.y,
                 annotation.pNote.arrLeaderPos[j].z, this.MVPMatrix, this.RealPoint1);
             // 绘制引线
-            gl2d.moveTo(this.RealPoint1.x, this.RealPoint1.y);
-            gl2d.lineTo(this.RealPoint2.x, this.RealPoint2.y);
+            this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
+            this.drawLine(this.RealPoint1.x, this.RealPoint1.y, RealPoint2.x, RealPoint2.y);
         }
-        // 绘制文字
-        this.RealPoint2.x = annoRect.min.x;
-        this.RealPoint2.y = annoRect.max.y + this.annotTextFont;
-        for (let j = 0; j < this.annotTextRows; j++) {
-            gl2d.fillText(annotation.pNote.strText[j], this.RealPoint2.x, this.RealPoint2.y);
-            this.RealPoint2.y += this.annotTextFont + this.annotPropTextLineHeight;
-        }
-        // 绘制底线
-        gl2d.moveTo(annoRect.min.x, annoRect.min.y);
-        gl2d.lineTo(annoRect.max.x, annoRect.min.y);
         gl2d.stroke();
-    }
-
-    this.drawAnnoProperty = function(annoRect, property) {
-        this.RealPoint3.x = annoRect.max.x;
-        this.RealPoint3.y = annoRect.min.y;
-        if (this.RealPoint3.x + this.annotPropRectWidth > this.windowWidth) {
-            // 超过了右界，文本框在左侧
-            this.RealPoint3.x = annoRect.min.x - this.annotPropRectWidth - this.annotPropGap * 2;
-        } else {
-            // 没有超过右界，文本框在右侧
-            this.RealPoint3.x += this.annotPropGap;
-        }
-        this.RealPoint3.y -= this.annotTextFont/2 + this.annotPropRectHeight/2;
-
-        // 绘制文本矩形
-        gl2d.fillStyle = FILL_STYLE_PROPE_RECT;
-        gl2d.fillRect(this.RealPoint3.x, this.RealPoint3.y, this.annotPropRectWidth, this.annotPropRectHeight);
-        gl2d.font = FONT_DEFAULT_PROPE;
-        // 绘制文本信息
-        gl2d.fillStyle = STYLE_DEFAULT;
-        this.RealPoint3.y += this.annotPropTextFont + this.annotPropTextLineHeight;
-        gl2d.fillText(property._strUserName, this.RealPoint3.x + this.annotPropGap, this.RealPoint3.y);
-        this.RealPoint3.y += this.annotPropTextFont + this.annotPropTextLineHeight;
-        gl2d.fillText(property._strDateTime, this.RealPoint3.x + this.annotPropGap, this.RealPoint3.y);
     }
 
     this.drawTestMode = function() {
@@ -207,8 +160,10 @@ function Canvas2D() {
                 this.cvtWorldToScreen(leaderPt.x, leaderPt.y, leaderPt.z, this.MVPMatrix, this.RealPoint1);
                 this.adapterLocalToScreen(attachPt.x, attachPt.y, this.RealPoint2);
                 
-                this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
-                this.drawLine(this.RealPoint1.x, this.RealPoint1.y, this.RealPoint2.x, this.RealPoint2.y);
+                if (this.isDrawLeaderPos) {
+                    this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
+                    this.drawLine(this.RealPoint1.x, this.RealPoint1.y, this.RealPoint2.x, this.RealPoint2.y);
+                }
             }
         }
     }
@@ -225,8 +180,10 @@ function Canvas2D() {
             mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(objectIndex));
             this.cvtWorldToScreen(leaderPt.x, leaderPt.y, leaderPt.z, this.MVPMatrix, this.RealPoint1);
             
-            this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
-            this.drawLine(this.RealPoint1.x, this.RealPoint1.y, screenX, screenY);
+            if (this.isDrawLeaderPos) {
+                this.drawFillCircle(this.RealPoint1.x, this.RealPoint1.y, DOT_RIDUS);
+                this.drawLine(this.RealPoint1.x, this.RealPoint1.y, screenX, screenY);
+            }
         }
     }
 
@@ -258,6 +215,22 @@ function Canvas2D() {
         for (let i = 0; i < g_GLAnnoSet._arrComment.length; i++) {
             this.m_arrPickAnnotIndexs.push(false);
         }
+    }
+
+    /**
+     * 生成SCLE批注UI
+     */
+    this.setAnnotUI = function() {
+        for (let i = 0; i < g_GLAnnoSet._arrComment.length; i++) {
+            let curComment = g_GLAnnoSet._arrComment[i];
+            var newCommentNode = new GL_USRANNOTATION();
+            let point2d = new Point2(0, 0);
+            this.adapterLocalToScreen(curComment.stuAnnot.annoPlaneLocal.x, curComment.stuAnnot.annoPlaneLocal.y, point2d);
+            newCommentNode.copyFromScle(curComment, point2d, this.m_arrAnnotVisiable[i]);
+            newCommentNode._attachPt.set(curComment.stuAnnot.annoPlaneLocal.x, curComment.stuAnnot.annoPlaneLocal.y);
+            g_usrCommOption.data.push(newCommentNode);
+        }
+        callback_v2.showCommentInput(g_usrCommOption);
     }
 
     /**
@@ -451,6 +424,7 @@ function Canvas2D() {
      * 计算注释数据显隐性
      */
      this.setAnnotationAnim = function(uStartFrame) {
+        let isUIChanged = false;
         for (let i = 0; i < g_GLAnnoSet._arrComment.length; i++) {
             if (g_GLAnnoSet._arrComment[i].stuProperty._uStartFrameID == 0 &&
                 g_GLAnnoSet._arrComment[i].stuProperty._uFrameSize <= 1) {
@@ -459,9 +433,20 @@ function Canvas2D() {
                       uStartFrame < (g_GLAnnoSet._arrComment[i].stuProperty._uStartFrameID
                       + g_GLAnnoSet._arrComment[i].stuProperty._uFrameSize)){
                 this.m_arrAnnotVisiable[i] = true;
+                if (!g_usrCommOption.data[i].show) {
+                    g_usrCommOption.data[i].show = true;
+                    isUIChanged = true;
+                }
             } else {
                 this.m_arrAnnotVisiable[i] = false;
+                if (g_usrCommOption.data[i].show) {
+                    g_usrCommOption.data[i].show = false;
+                    isUIChanged = true;
+                }
             }
+        }
+        if (isUIChanged) {
+            callback_v2.showCommentInput(g_usrCommOption);
         }
     }
 
@@ -477,14 +462,12 @@ function Canvas2D() {
     this.addUsrComment = function(newComment, isXml) {
         if (newComment == null || newComment.stuAnnot.pNote.arrLeaderPos.length == 0) {
             return false;
-        } else {
-            if (!isXml) {
-                newComment.stuAnnot.uID = this.commentId++;
-            }
-            this.m_arrUsrComment.push(newComment);
-            this.m_arrIsUsrCommentDel.push(false);
-            return true;
         }
+
+        newComment.stuAnnot.uID = this.commentId++;
+        this.m_arrUsrComment.push(newComment);
+        this.m_arrIsUsrCommentDel.push(false);
+        return true;
     }
 
     this.updateUsrComment = function(oldComment, index) {
@@ -500,13 +483,20 @@ function Canvas2D() {
         if (index < 0 || index >= this.m_arrUsrComment.length) {
             return;
         }
+        this.m_arrUsrComment[index] = null;
         this.m_arrIsUsrCommentDel[index] = true;
     }
 
     this.cvtWorldToScreen = function(wldPos_x, wldPos_y, wldPos_z, transMat, screenPt) {
         CalTranslatePoint(wldPos_x, wldPos_y, wldPos_z, transMat, this.RealPoint1);
-        screenPt.x = (this.RealPoint1.x + 1.0) * this.windowWidth / 2;
-        screenPt.y = (1.0 - this.RealPoint1.y) * this.windowHeight / 2;
+        // 如果坐标在摄像机剪裁面之外
+        if (this.RealPoint1.z < 0.0 || this.RealPoint1.z > 1.0) {
+            this.isDrawLeaderPos = false;
+        } else {
+            screenPt.x = (this.RealPoint1.x + 1.0) * this.windowWidth / 2;
+            screenPt.y = (1.0 - this.RealPoint1.y) * this.windowHeight / 2;
+            this.isDrawLeaderPos = true;
+        }
     }
 
     this.adapterLocalToScreen = function(local_x, local_y, screenPt) {

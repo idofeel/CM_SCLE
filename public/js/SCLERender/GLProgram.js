@@ -38,6 +38,10 @@ function GLProgram() {
     this.modelMatrixTmp = mat4.create();
     this.modelCenter = new Point3(0, 0, 0);
     this.arrPickIndexs = new Array();
+    // 零件多选、曲面多选参数
+    this.isMultPick = false;
+    this.isObjectPick = true;
+    this.isSurfacePick = false;
 
     /**
      * 初始化渲染3D场景数据
@@ -114,35 +118,57 @@ function GLProgram() {
     /**
      * 零件拾取
      */
-    this.pickByIndex = function(index, isMult) {
-        if (index < -1 || index >= g_GLObjectSet._arrObjectSet.length) {
+    this.pickObjectSurfaces = function(objectIndex, surfaceIndex) {
+        if (!this.isMultPick) {
+            // 单选，清空之前所有选取标记
+            this.clearPickIndes();
+        } else if (this.isObjectPick) {
+            // 多选零件，清空之前曲面选取标记
+            this.clearPickSurfaceIndexs();
+        }
+
+        g_webglControl.arrPickObjectIndexs[objectIndex] = true;
+        if (this.isObjectPick) {
+            g_webglControl.isHighlightObject = true;
+        } else {
+            g_webglControl.arrPickObjectSurfaceIndexs[objectIndex][surfaceIndex] = true;
+            g_webglControl.splitVAOVertexCounts(objectIndex, surfaceIndex);
+            g_webglControl.isHighlightObject = false;
+        }
+    }
+    this.pickByIndex = function(objectIndex, surfaceIndex, isMult) {
+        if (objectIndex < -1 || objectIndex >= g_GLObjectSet._arrObjectSet.length) {
             return;
         }
-        if (index > -1) {
+        if (objectIndex > -1) {
+            g_webglControl.isPicked = true;
+            g_webglControl.eMaterialPriority = GL_USERPICKED;
+            if (g_webglControl.arrPickObjectIndexs[objectIndex]) {
+                // 重复点击同一个零件，自动进入拾取曲面模式
+                this.isSurfacePick = true;
+                this.isObjectPick = false;
+            } else {
+                this.isObjectPick = true;
+                this.isSurfacePick = false;
+            }
+
+            this.isMultPick = isMult;
             if (!isMult) {
                 g_webglControl.GL_PICKSTATUS = 1;
-                for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
-                    g_webglControl.arrPickObjectIndexs[i] = false;
-                }
             } else {
                 g_webglControl.GL_PICKSTATUS = 2;
             }
-            g_webglControl.arrPickObjectIndexs[index] = true;
-            g_webglControl.eMaterialPriority = GL_USERPICKED;
-            g_webglControl.isPicked = true;
+            return this.pickObjectSurfaces(objectIndex, surfaceIndex)
         } else {
-            for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
-                g_webglControl.arrPickObjectIndexs[i] = false;
-            }
+            this.clearPickIndes();
             g_webglControl.GL_PICKSTATUS = 0;
             g_webglControl.isPicked = false;
         }
     }
     this.pickMultByIndex = function(indexs) {
         let isAllNull = true;
-        for (let i = 0; i < g_webglControl.arrPickObjectIndexs.length; i++) {
-            g_webglControl.arrPickObjectIndexs[i] = false;
-        }
+        this.clearPickIndes();
+
         for (let i = 0; i < indexs.length; i++) {
             if (indexs[i] < 0 || indexs[i] >= g_GLObjectSet._arrObjectSet.length) {
                 continue;
@@ -166,16 +192,18 @@ function GLProgram() {
         }
     }
     this.pickByRay = function(RayPoint1, RayPoint2, isMult, isDoPick) {
-        let index = -1;
+        let objectIndex = -1;
+        let surfaceIndex = -1;
         let intersecRet = this.intersectRayScene(RayPoint1, RayPoint2);
         if (intersecRet != null) {
-            index = intersecRet.uObjectIndex;
+            objectIndex = intersecRet.uObjectIndex;
+            surfaceIndex = intersecRet.uSurfaceIndex;
         }
         // 获取拾取object得索引
         if (isDoPick) {
-            this.pickByIndex(index, isMult);
+            this.pickByIndex(objectIndex, surfaceIndex, isMult);
         }
-        return index;
+        return objectIndex;
     }
 
     /**
@@ -465,12 +493,14 @@ function GLProgram() {
             var uCurPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
             g_webglControl.setVertexDataNum(uCurPartIndex);
             if (g_GLObjectSet._arrObjectSet[i]._uPrimitType == ADFPT_TRIANGLELIST) {
+                var uSurfaceNum = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum.length;
+
                 // 只有曲面数据的合并材质
                 var isContainsNotTrans = false;
                 var isContainsTrans = false;
+                // 合并材质，固定长度为surface长度，但是合并后长度由size记录
+                var arrObjectVAOUint = new Array();
 
-                var arrVAOVertexCount = new Array();
-                var arrMaterial = new Array();
                 if (g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length == 1) {
                     var materialIndex = g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[0];
                     if (materialIndex >= 0 && materialIndex < g_GLMaterialSet._arrMaterialSet.length) {
@@ -481,12 +511,25 @@ function GLProgram() {
                         }
                     }
                     // object只有一种材质
-                    arrVAOVertexCount.push(g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.length / VERTEX_DATA_COUNT);
-                    arrMaterial.push(g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[0]);
+                    var vaoUnit = new GL_VAO_UNIT(uSurfaceNum);
+                    vaoUnit.arrVertexCounts[0] = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.length / VERTEX_DATA_COUNT;
+                    vaoUnit.arrMaterialIndexs[0] = materialIndex;
+                    vaoUnit.uintVertexNum = vaoUnit.arrVertexCounts[0];
+                    vaoUnit.uintMaterialIndex = materialIndex;
+                    vaoUnit.surfaceStart = 0;
+                    vaoUnit.surfaceCount = uSurfaceNum;
+                    arrObjectVAOUint.push(vaoUnit);
                 } else {
                     // Object有多个Surface，并且有多个材质
                     var uCurIndex = g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[0];
                     var uVertexCount = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[0];
+                    // 记录第一个材质VAO数据
+                    arrObjectVAOUint.push(new GL_VAO_UNIT(0));
+                    arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts.push(0);
+                    arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs.push(-1);
+                    arrObjectVAOUint[arrObjectVAOUint.length - 1].surfaceStart = 0;
+                    arrObjectVAOUint[arrObjectVAOUint.length - 1].surfaceCount = 1;
+
                     // 初始物体透明度标志
                     if (uCurIndex >= 0 && uCurIndex < g_GLMaterialSet._arrMaterialSet.length) {
                         if (g_GLMaterialSet._arrMaterialSet[uCurIndex]._mtlPhysics.vEmissive.w < 1.0) {
@@ -497,17 +540,40 @@ function GLProgram() {
                     }
                     for (let j = 1; j < g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length; j++) {
                         if (g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j] == uCurIndex) {
+                            // 归并到上一段材质VAO数据
                             uVertexCount += g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j];
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts.push(0);
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs.push(-1);
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].surfaceCount++;
+
                             if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length-1) {
-                                arrMaterial.push(uCurIndex);
-                                arrVAOVertexCount.push(uVertexCount);
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts[0] = uVertexCount;
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs[0] = uCurIndex;
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].uintVertexNum = uVertexCount;
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].uintMaterialIndex = uCurIndex;
                             }
                         } else {
-                            arrMaterial.push(uCurIndex);
-                            arrVAOVertexCount.push(uVertexCount);
+                            // 存储上一段材质的VAO数据
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts[0] = uVertexCount;
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs[0] = uCurIndex;
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].uintVertexNum = uVertexCount;
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].uintMaterialIndex = uCurIndex;
+                            // 开始新一段材质VAO数据的记录
+                            arrObjectVAOUint.push(new GL_VAO_UNIT(0));
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts.push(0);
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs.push(-1);
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].surfaceStart = j;
+                            arrObjectVAOUint[arrObjectVAOUint.length - 1].surfaceCount = 1;
+
                             if (j == g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex.length-1) {
-                                arrMaterial.push(g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j]);
-                                arrVAOVertexCount.push(g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j]);
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts[0] =
+                                    g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j];
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs[0] =
+                                    g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j];
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].uintVertexNum =
+                                    g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j];
+                                arrObjectVAOUint[arrObjectVAOUint.length - 1].uintMaterialIndex =
+                                    g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j];
                             } else {
                                 uCurIndex = g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[j];
                                 uVertexCount = g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum[j];
@@ -524,8 +590,8 @@ function GLProgram() {
                         }
                     }
                 }
-                g_webglControl.m_arrVAOVertexCounts.push(arrVAOVertexCount);
-                g_webglControl.m_arrMaterialIndex.push(arrMaterial);
+                g_webglControl.m_arrObjectVAOUint.push(arrObjectVAOUint);
+
                 if (isContainsTrans && (!isContainsNotTrans)) {
                     // 全透明
                     g_webglControl.m_arrObjectTransModeOrig.push(GLTRANS_ALL);
@@ -541,13 +607,14 @@ function GLProgram() {
                 }
             } else {
                 // 只有线缆数据的合并材质
-                var uCurPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
-                var arrVAOVertexCount = new Array();
-                var arrMaterial = new Array();
-                arrVAOVertexCount.push(g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.length / VERTEX_DATA_COUNT);
-                arrMaterial.push(g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[0]);
-                g_webglControl.m_arrVAOVertexCounts.push(arrVAOVertexCount);
-                g_webglControl.m_arrMaterialIndex.push(arrMaterial);
+                var arrObjectVAOUint = new Array();
+                arrObjectVAOUint.push(new GL_VAO_UNIT(0));
+                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrVertexCounts.push(
+                    g_GLPartSet._arrPartSet[uCurPartIndex]._arrPartLODData[0]._arrVertex.length / VERTEX_DATA_COUNT);
+                arrObjectVAOUint[arrObjectVAOUint.length - 1].arrMaterialIndexs.push(
+                    g_GLObjectSet._arrObjectSet[i]._arrSurfaceMaterialIndex[0]);
+
+                g_webglControl.m_arrObjectVAOUint.push(arrObjectVAOUint);
                 g_webglControl.m_arrObjectTransModeOrig.push(GLTRANS_NO);
                 g_webglControl.m_arrObjectTransMode.push(GLTRANS_NO);
             }
@@ -577,7 +644,44 @@ function GLProgram() {
     this.setPickIndexs = function() {
         for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
             g_webglControl.arrPickObjectIndexs.push(false);
+
+            let curPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
+            let surfaceFlags = new Array();
+            for (let j = 0; j < g_GLPartSet._arrPartSet[curPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum.length; ++j) {
+                surfaceFlags.push(false);
+            }
+            g_webglControl.arrPickObjectSurfaceIndexs.push(surfaceFlags);
         }
+    }
+
+    /**
+     * 清空零件拾取标志
+     */
+    this.clearPickIndes = function() {
+        for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
+            g_webglControl.arrPickObjectIndexs[i] = false;
+
+            let curPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
+            for (let j = 0; j < g_GLPartSet._arrPartSet[curPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum.length; ++j) {
+                g_webglControl.arrPickObjectSurfaceIndexs[i][j] = false;
+            }
+        }
+        g_webglControl.splitVAOVertexCounts(-1, -1);
+    }
+
+    this.clearPickObjectIndexs = function() {
+        for (let i = 0; i < g_GLObjectSet._arrObjectSet.length; i++) {
+            g_webglControl.arrPickObjectIndexs[i] = false;
+
+            let curPartIndex = g_GLObjectSet._arrObjectSet[i]._uPartIndex;
+            for (let j = 0; j < g_GLPartSet._arrPartSet[curPartIndex]._arrPartLODData[0]._arrSurfaceVertexNum.length; ++j) {
+                g_webglControl.arrPickObjectSurfaceIndexs[i][j] = false;
+            }
+        }
+    }
+
+    this.clearPickSurfaceIndexs = function() {
+        g_webglControl.splitVAOVertexCounts(-1, -1);
     }
 
     /**
