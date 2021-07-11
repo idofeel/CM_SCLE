@@ -5,6 +5,8 @@ import ScleToolsBar from './scleTools/scleToolsBar';
 // import ScleTools from './scleTools'
 import { IsPhone } from '../utils/Browser';
 import scleControl from './scleControl';
+import { scleCustomEvent } from '../utils'
+
 import './scle.less';
 // .default
 const logo = require('../assets/images/downloadAppIcon.png').default;
@@ -245,18 +247,26 @@ function ScleView() {
 		// containerRef.current.appendChild(UI_Container);
 
 		// scleCustomEvent('scleViewOnReady')
-		window.addEventListener('load', () => {
+
+		window.CM_LIBReady = false
+
+		function asyncLoad() {
 			const cmcallbacks = new window.CM_CALLBACKS();
 			window.CM_LIB = new window.CMOnlineLib(
 				containerRef.current,
 				cmcallbacks
 			);
-			// console.log(window.CM_LIB);
+			console.log('load',window.CM_LIB);
 			window.CM_LIB.CMSetUserCanCommentFlag(1);
 			window.CM_LIB.CMSetCommentUsrName("test");
 			if (isHttp) openScle();
 			addScleAPi();
-		})
+			window.CM_LIBReady = true
+		}
+
+		window.CM_onload = asyncLoad
+
+
 
 		window.addEventListener('scleStreamReady', () => {
 			loadingChange(false);
@@ -266,6 +276,12 @@ function ScleView() {
 		window.addEventListener('resize', () => {
 			scleControl.refreshNotation();
 		});
+
+
+		window.addEventListener("load", asyncLoad);
+		
+		scleCustomEvent('scleViewOnload')
+
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 

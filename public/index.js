@@ -1,6 +1,5 @@
 ;(function () {
 	var onload = function () {
-        
 		const keyCodeMap = {
 			// 91: true, // command
 			61: true,
@@ -78,10 +77,17 @@
 		document.addEventListener('gesturestart', function (event) {
 			event.preventDefault()
 		})
+		
 	}
 
 
 	window.addEventListener('load',onload)
+
+	window.addEventListener('scleViewOnload',function(){
+		if(!window.CM_LIBReady && window.CM_onload){
+			window.CM_onload()
+		}
+	})
 
 	function scleCustomEvent(name, detail) {
 		const event = document.createEvent('CustomEvent')
@@ -149,7 +155,7 @@
 		},
 		startLoadFile: function (res) {
 			// 使用CM_LIB API
-			return CM_LIB.CMInitData(res)
+			return window.CM_LIB.CMInitData(res)
 			const self = this
 			const new_zip = new window.JSZip()
 			new_zip.loadAsync(res).then(function (zip) {
@@ -177,5 +183,7 @@
 	Scle.prototype = scle
 	// window.Scle = new Scle()
 	window.CMOnlineUI = Object.assign(window.CMOnlineUI, scle)
-	console.log(window.CMOnlineUI);
+
+
+	
 })()
