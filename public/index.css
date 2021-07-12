@@ -1,60 +1,51 @@
 /*
-    * 自定义修改scleView 大小及样式
+    * 鑷畾涔変慨鏀箂cleView 澶у皬鍙婃牱寮�
     *
     */
 #scleView {
-	/* 给SCLE设定宽高 */
-	min-width: 80%; 
+	/* 缁橲CLE璁惧畾瀹介珮 */
+	width: 100%;
 	height: 100%;
-	float: left;
 }
 .content {
-	/* display: inline-block; */
-	width: 20%;
-	height: 100%;
-	padding: 10px;
-	overflow: auto;
-	word-break: break-all;
+	display: none;
 }
 
 #scleView.mobile + .content {
-    width: 100%;
-    height: auto;
+	display: none;
 }
 #scleView.mobile {
 	width: 100%;
-	height: 450px;
+	height: 100%;
 }
 
-
-
-.upload-group .ant-upload{
-    /* margin-left: 10px; */
-    display: inline-block;
-    margin-right: 10px;
-    margin-bottom: 6px;
-}
-.upload-group .ant-upload:last-child{
-    margin-right: 0;
+.upload-group {
+	display: flex;
 }
 
-.partListTable{
-    width: 100%;
-    text-align: center;
+.upload-group .ant-upload {
+	margin-left: 10px;
 }
 
-#sceneNode{
-    margin: 10px 0;
-    width: 200px;
-    line-height: 1.5;
-    border-bottom: 1px solid #d9d9d9;
+.partListTable {
+	width: 100%;
+	text-align: center;
 }
 
-#partListHeader > tr > th,#partList > tr > td {
-    padding:10px 5px;
-    text-align: center;
+#sceneNode {
+	margin: 10px 0;
+	width: 200px;
+	line-height: 1.5;
+	border-bottom: 1px solid #d9d9d9;
 }
 
-#partListHeader > tr > th:nth-child(1),#partListHeader > tr > th:nth-child(3){
-    width: 48px;
+#partListHeader > tr > th,
+#partList > tr > td {
+	padding: 10px 5px;
+	text-align: center;
+}
+
+#partListHeader > tr > th:nth-child(1),
+#partListHeader > tr > th:nth-child(3) {
+	width: 48px;
 }
