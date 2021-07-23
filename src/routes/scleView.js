@@ -240,7 +240,11 @@ function ScleView() {
 		//
 		window.addEventListener('updateProgress', onProgress);
 		window.addEventListener('transferFailed', () => setMsgCode(2));
-		
+		console.log(window.Vue);
+		window.CMOnlineView.default.install(window.Vue);
+		new window.Vue({
+			el: '#CMOnlineUI_container',
+		});
 		// 创建内部UI对象
 		// var UI_Container = document.createElement('div');
 		// UI_Container.id ='CMOnlineUI_container';
@@ -368,7 +372,9 @@ function ScleView() {
 			className={isFullScreen ? 'fullScreen container' : 'container'}
 			ref={containerRef}
 		>
-			<div id="CMOnlineUI_container"></div>
+			<div id="CMOnlineUI_container">
+				<c-m-online-view/>
+			</div>
 			{/* <>
                 <canvas id="glcanvas" width="800" height="600"></canvas>
                 <canvas id="text" width="800" height="600"></canvas>

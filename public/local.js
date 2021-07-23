@@ -15,6 +15,7 @@
 		if (!e.target.files[0]) return
 		// 打开本地scle文件
 		ScleView.loadLocalFile(e.target)
+		document.getElementsByClassName('ant-btn')[0].blur()
 	}
 
 	function createSceneNodes(optNode) {
@@ -150,6 +151,7 @@
 			var data = xml2json(this.result).Root
 			createScleInfo(data)
 		}
+		document.getElementsByClassName('ant-btn')[1].blur();
 	}
 
 	notationNode.onchange = function (e) {
