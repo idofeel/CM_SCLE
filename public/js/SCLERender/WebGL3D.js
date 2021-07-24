@@ -114,6 +114,10 @@ function WebGLControl() {
         if (this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitSize > 1 &&
             this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags[splitIndex].flag) {
             return DefaultData.Brightgreen();
+        } else if (this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags != null &&
+            this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags.length == 1 &&
+            this.m_arrObjectVAOUint[objectIndex][vaoIndex].splitFlags[splitIndex].flag) {
+            return DefaultData.Brightgreen();
         } else {
             return objectMaterial;
         }
@@ -129,7 +133,6 @@ function WebGLControl() {
                 switch (this.eMaterialPriority) {
                     case GL_USERPICKED:
                         return this.GetUsrPickedMaterial(objectIndex, vaoIndex, splitIndex);
-                        break;
                     case GL_ORIGINAL:
                         return this.GetOriginMaterial(objectIndex, vaoIndex);
                     case GL_USERDEFINE:
@@ -374,7 +377,7 @@ function WebGLControl() {
         }
         arrSplitFlags[arrSplitFlags.length - 1].toIndex = uCurStartIndex + this.m_arrObjectVAOUint[objectIndex][vaoIndex].surfaceCount;
 
-        if (arrSplitFlags.length > 1) {
+        if (arrSplitFlags.length > 0) {
             for (let s = 0; s < arrSplitFlags.length; ++s) {
                 this.m_arrObjectVAOUint[objectIndex][vaoIndex].arrVertexCounts[s] =
                     g_GLPartSet._arrPartSet[uPartIndex]._arrPartLODData[0].GetSurfaceVertexSum(arrSplitFlags[s].fromIndex, arrSplitFlags[s].toIndex);

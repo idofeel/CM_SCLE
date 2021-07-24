@@ -381,8 +381,6 @@ function GLProgram() {
         if (Green > 1.0) {Green = 1.0;}
         if (Blue < 0.0) {Blue = 0.0;}
         if (Blue > 1.0) {Blue = 1.0;}
-        if (Alpha > 1.0) {Alpha = 1.0;}
-        if (Alpha < 0.0) {Alpha = 0.0;}
 
         let objectMaterial  = new ADF_MATERIAL();
         objectMaterial._eMtlType = ADFMTLTYPE_PHYSICS;
@@ -396,9 +394,7 @@ function GLProgram() {
 
         for (let i = 0; i <= g_webglControl.arrPickObjectIndexs.length; i++) {
             if (g_webglControl.arrPickObjectIndexs[i]) {
-                g_webglControl.switchObjectTranList(i, Alpha);
                 g_webglControl.m_arrObjectMaterial[i] = objectMaterial;
-                g_webglControl.m_arrObjectTransparent[i] = Alpha;
             }
         }
         g_webglControl.eMaterialPriority = GL_USERDEFINE;

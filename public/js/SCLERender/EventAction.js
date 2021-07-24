@@ -87,6 +87,9 @@ var pickObjectIndexs = null;        // 选中的零件索引，没选中为null
 var pickObjectVisible = false;      // 选中的零件的显隐性，单选表示显隐性，多选无效
 var pickObjectTransparent = 0.0;    // 选中的零件的透明度参数，单选表示透明度，多选无效
 var pickObjectMaterial = null;      // 选中的零件的材质数据，暂时无定义
+var pickObjectID = null;            // 选中的零件的ID
+var pickObjectName = null;          // 选中的零件的名称
+var pickObjectParams = null;        // 选中的零件的参数数据
 // 零件移动
 var isMove = false;
 // 时间
@@ -240,8 +243,9 @@ function startRender() {
     document.addEventListener('DOMMouseScroll', fireFoxScollFun, false);
     window.onunload = addCloseListenser;
     window.onresize = canvasOnResize;
-
-    CMOnlineUI.loadEnd();
+    if (callback_v2.loadEnd) {
+		callback_v2.loadEnd();
+	}
 }
 
 /* 通用浏览器设置 */
@@ -526,9 +530,7 @@ function webKeyUp(event, textCanvas) {
                     break;
                 }
 
-                pickObjectVisible = glRunTime.getObjectVisible(objectIndex);
-                pickObjectTransparent = glRunTime.getObjectTransparent(objectIndex);
-                pickObjectIndexs = glRunTime.getPickObjectIndexs();
+                
                 curDate = new Date();
                 curTime = curDate.getTime();
                 if (curTime - lastTime < doubleClickTimeMS && lastObjectIndex == objectIndex) {
@@ -536,7 +538,7 @@ function webKeyUp(event, textCanvas) {
                 }
                 lastTime = curTime;
                 lastObjectIndex = objectIndex;
-                setPickObjectParameters();
+                getPickObjectUnit(objectIndex);
             }
             break;
         case 1:
@@ -683,6 +685,26 @@ document.onmousewheel = function (event) {
     return false;
 }
 
+// 鼠标选中零件时获取零件相关数据
+function getPickObjectUnit(objectIndex) {
+    if (objectIndex < 0) {
+        pickObjectVisible = null;
+        pickObjectTransparent = null;
+        pickObjectIndexs = null;
+        pickObjectID = null;
+        pickObjectName = null;
+        pickObjectParams = null;
+    } else {
+        pickObjectVisible = glRunTime.getObjectVisible(objectIndex);
+        pickObjectTransparent = glRunTime.getObjectTransparent(objectIndex);
+        pickObjectIndexs = glRunTime.getPickObjectIndexs();
+        pickObjectID = glRunTime.getObjectIdByIndex(objectIndex);
+        pickObjectName = glRunTime.getObjectNameByID(pickObjectID, g_GLData.GLModelTreeNode);
+        pickObjectParams = glRunTime.getObjectParamsByID(pickObjectID, g_GLData.GLModelTreeNode);
+    }
+    setPickObjectParameters();
+}
+
 /**
  * 响应页面控件
  */
@@ -759,17 +781,17 @@ function setAnimationStart() {
     if (uCurFrame >= uTotalFrame) {
         uCurFrame = 0;
     }
-    animationStatus = ANIMRUN;
     animRun();
 }
 // 执行动画循环
 function animRun() {
-    if (glRunTime.setCameraAnim(uCurFrame)) {
+    if (uCurFrame < uTotalFrame && glRunTime.setCameraAnim(uCurFrame)) {
         glRunTime.setObjectAnim(uCurFrame);
         glRunTime.setAnnotationAnim(uCurFrame);
         getCurFrame(uCurFrame);
         uCurFrame++;
         animationClock = setTimeout("animRun()", uSleepTime);
+        animationStatus = ANIMRUN;
     } else {
         animPause();
         animationStatus = ANIMEND;
@@ -789,6 +811,7 @@ function animPause() {
 function animTerminal() {
     uCurFrame = 0;
     getCurFrame(uCurFrame);
+    uTotalFrame = 0;
     if (glRunTime.setCameraAnim(uCurFrame)) {
         glRunTime.setObjectAnim(uCurFrame);
         glRunTime.setAnnotationAnim(uCurFrame);
@@ -813,7 +836,7 @@ function PlaySceneAnimation() {
 
 // 场景动画循环
 function animSceneRun() {
-    if (glRunTime.setCameraAnim(uCurFrame) && uCurFrame <= g_nAnimationEnd) {
+    if (uCurFrame < g_nAnimationEnd && glRunTime.setCameraAnim(uCurFrame)) {
         glRunTime.setObjectAnim(uCurFrame);
         glRunTime.setAnnotationAnim(uCurFrame);
         getCurFrame(uCurFrame);
@@ -1121,13 +1144,13 @@ function importComment(xmlDoc) {
     }
 }
 
-function exportComment() {
+function exportComment(xmlDoc) {
     if (usrCommentRight == 0) {
         // alert("operation is not allowed");
         return null;
     }
 
-    g_xmlDoc = getXMLDOM();
+    g_xmlDoc = xmlDoc;
     if (g_xmlDoc != null) {
         g_xmlDoc = glRunTime.exportXmlComment(g_xmlDoc);
     }

@@ -729,6 +729,36 @@ function GLRunTime() {
         return g_GLData.GLObjectSet._arrObjectSet[index]._uObjectID;
     }
 
+    this.getObjectNameByID = function(objId, treeNode) {
+        if (treeNode._uObjectID == objId) {
+            return treeNode._strName;
+        }
+
+        let subName = null
+        for (let i = 0; i < treeNode._arrSubNode.length; ++i) {
+            subName = this.getObjectNameByID(objId, treeNode._arrSubNode[i]);
+            if (subName != null) {
+                return subName;
+            }
+        }
+        return null;
+    }
+
+    this.getObjectParamsByID = function(objId, treeNode) {
+        if (treeNode._uObjectID == objId) {
+            return treeNode._arrNodeParameters;
+        }
+
+        let subParams = null
+        for (let i = 0; i < treeNode._arrSubNode.length; ++i) {
+            subParams = this.getObjectParamsByID(objId, treeNode._arrSubNode[i]);
+            if (subParams != null) {
+                return subParams;
+            }
+        }
+        return null;
+    }
+
     this.getObjectCenterById = function(objectID) {
         let index = this.getObjectIndexById(objectID);
         let center = null;
@@ -864,6 +894,9 @@ function GLRunTime() {
                 break;
         }
         g_camera.setPerspectiveMatrix(45 * Math.PI / 180, this.WIDTH / this.HEIGHT);
+        // 模型聚焦回到中心
+        g_glprogram.pickByIndex(-1, -1, false);
+        this.setFocusOnObject();
     }
 
     /**

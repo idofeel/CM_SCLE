@@ -18,9 +18,16 @@ function ScleView() {
 	const [loading, setLoading] = useState(true);
 	const [isHttp] = useState(window.location.origin.startsWith('http'));
 	const [percent, setPercent] = useState(0);
+	const obj = useRef({})
 	const [notation, setNotation] = useReducer((state, action) => {
-		return Object.assign({}, state, action.payload);
+		obj.current = Object.assign({},state, action.payload)
+		return {
+			...state,
+			...action.payload
+		}
 	}, {});
+
+
 	const [showTools, toggleTools] = useState(true);
 
 	const [coordinates, setCoordinates] = useState({
@@ -152,8 +159,8 @@ function ScleView() {
 		};
 		// 刷新
 		scleControl.refreshNotation = (parmas) => {
-			if (notation.objID) {
-				scleControl.setTips({ ...notation, ...parmas });
+			if (obj.current.objID) {
+				scleControl.setTips({ ...obj.current, ...parmas });
 			}
 		};
 		// 设置是否显示提示信息
@@ -189,7 +196,6 @@ function ScleView() {
 		try {
 			files = await get(API.fileInfo.cle, { pid, lic });
 		} catch (error) {
-			console.log(error);
 		}
 
 		if (files.success) {
@@ -201,7 +207,6 @@ function ScleView() {
 			window.CMOnlineUI.getByRequest(cle.replace(/(.cle)$/, '.scle'));
 			//
 			// window.Scle.getByRequest('../../src/assets/68b0.scle')
-			// console.log('openCle', window.g_strResbaseUrl, cle.replace(/(.cle)$/, '.scle'));
 		} else {
 			message.error(files.faildesc);
 		}
@@ -231,7 +236,6 @@ function ScleView() {
 	};
 
 	useEffect(() => {
-		// console.log(CM_CALLBACKS);
 		// const cmcallbacks = new window.CM_CALLBACKS();
 		// window.CM_LIB = new window.CMOnlineLib(
 		// 	containerRef.current,
@@ -240,7 +244,6 @@ function ScleView() {
 		//
 		window.addEventListener('updateProgress', onProgress);
 		window.addEventListener('transferFailed', () => setMsgCode(2));
-		console.log(window.Vue);
 		window.CMOnlineView.default.install(window.Vue);
 		new window.Vue({
 			el: '#CMOnlineUI_container',
@@ -260,7 +263,6 @@ function ScleView() {
 				containerRef.current,
 				cmcallbacks
 			);
-			console.log('load',window.CM_LIB);
 			window.CM_LIB.CMSetUserCanCommentFlag(1);
 			window.CM_LIB.CMSetCommentUsrName("test");
 			if (isHttp) openScle();
