@@ -32,9 +32,9 @@ message.config({
 })
 export default class scleTools extends PureComponent {
 	#toolsKeyIndex = {
-		visibleIndex: 4,
-		alphaIndex: 6,
-		fullScreen: 10
+		visibleIndex: 3,
+		alphaIndex: 5,
+		fullScreen: 9
 	}
 	#tools = [
 		{ type: 'home', title: '复位', onClick: () => window.setHome() },
@@ -43,11 +43,11 @@ export default class scleTools extends PureComponent {
 			title: '移动零件'
 			// onClick: () => this.isPickNull(() => window.moveModel())
 		},
-		{
-			type: 'font-colors',
-			title: '批注',
-			popover: () => this.renderAnnotation()
-		},
+		// {
+		// 	type: 'font-colors',
+		// 	title: '批注',
+		// 	popover: () => this.renderAnnotation()
+		// },
 		{
 			type: 'apartment',
 			title: '模型树',
@@ -482,7 +482,9 @@ export default class scleTools extends PureComponent {
 				type: 'pause-circle',
 				title: '暂停'
 			}
-			window.setAnimationStart()
+			// window.setAnimationStart()
+			window.animRun();
+
 		}
 		if (item.type === 'pause-circle') {
 			newTools[index] = {
