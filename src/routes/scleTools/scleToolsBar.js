@@ -202,7 +202,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	render() {
-		console.log('???scleStreamReady');
+		
 		return (
 			<>
 				<Drawer
@@ -482,9 +482,8 @@ export default class scleTools extends PureComponent {
 				type: 'pause-circle',
 				title: '暂停'
 			}
-			// window.setAnimationStart()
-			window.animRun();
-
+			newTools.length ===3 ? window.animRun() : window.setAnimationStart();
+			// window.animRun();
 		}
 		if (item.type === 'pause-circle') {
 			newTools[index] = {
