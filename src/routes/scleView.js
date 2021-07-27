@@ -5,7 +5,7 @@ import ScleToolsBar from './scleTools/scleToolsBar';
 // import ScleTools from './scleTools'
 import { IsPhone } from '../utils/Browser';
 import scleControl from './scleControl';
-import { scleCustomEvent } from '../utils'
+import { scleCustomEvent } from '../utils';
 
 import './scle.less';
 // .default
@@ -18,15 +18,14 @@ function ScleView() {
 	const [loading, setLoading] = useState(true);
 	const [isHttp] = useState(window.location.origin.startsWith('http'));
 	const [percent, setPercent] = useState(0);
-	const obj = useRef({})
+	const obj = useRef({});
 	const [notation, setNotation] = useReducer((state, action) => {
-		obj.current = Object.assign({},state, action.payload)
+		obj.current = Object.assign({}, state, action.payload);
 		return {
 			...state,
-			...action.payload
-		}
+			...action.payload,
+		};
 	}, {});
-
 
 	const [showTools, toggleTools] = useState(true);
 
@@ -132,7 +131,14 @@ function ScleView() {
 		scleControl.toggleTools = (bl) => toggleTools(bl);
 		// 设置提示信息
 		scleControl.setTips = (options) => {
-			if (!options.objID) return;
+			if (
+				!options.objID ||
+				options.objID.lenth === 0 ||
+				options.objID.filter((i) => i).length === 0
+			) {
+				return;
+			}
+
 			setNotation({
 				payload: { ...options, type: options.type || null },
 			});
@@ -158,11 +164,11 @@ function ScleView() {
 			setVisible(true);
 		};
 		// 刷新
-		scleControl.refreshNotation = (parmas) => {
-			if (obj.current.objID) {
-				scleControl.setTips({ ...obj.current, ...parmas });
-			}
-		};
+		// scleControl.refreshNotation = (parmas) => {
+		// 	if (obj.current.objID) {
+		// 		scleControl.setTips({ ...obj.current, ...parmas });
+		// 	}
+		// };
 		// 设置是否显示提示信息
 		scleControl.setTipsVisible = (bl) => {
 			setVisible(bl);
@@ -195,8 +201,7 @@ function ScleView() {
 		let files;
 		try {
 			files = await get(API.fileInfo.cle, { pid, lic });
-		} catch (error) {
-		}
+		} catch (error) {}
 
 		if (files.success) {
 			let { cle } = files.data;
@@ -255,7 +260,7 @@ function ScleView() {
 
 		// scleCustomEvent('scleViewOnReady')
 
-		window.CM_LIBReady = false
+		window.CM_LIBReady = false;
 
 		function asyncLoad() {
 			const cmcallbacks = new window.CM_CALLBACKS();
@@ -264,15 +269,13 @@ function ScleView() {
 				cmcallbacks
 			);
 			window.CM_LIB.CMSetUserCanCommentFlag(1);
-			window.CM_LIB.CMSetCommentUsrName("test");
+			window.CM_LIB.CMSetCommentUsrName('test');
 			if (isHttp) openScle();
 			addScleAPi();
-			window.CM_LIBReady = true
+			window.CM_LIBReady = true;
 		}
 
-		window.CM_onload = asyncLoad
-
-
+		window.CM_onload = asyncLoad;
 
 		window.addEventListener('scleStreamReady', () => {
 			loadingChange(false);
@@ -283,10 +286,9 @@ function ScleView() {
 			scleControl.refreshNotation();
 		});
 
+		window.addEventListener('load', asyncLoad);
 
-		window.addEventListener("load", asyncLoad);
-		
-		scleCustomEvent('scleViewOnload')
+		scleCustomEvent('scleViewOnload');
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
@@ -375,7 +377,7 @@ function ScleView() {
 			ref={containerRef}
 		>
 			<div id="CMOnlineUI_container">
-				<c-m-online-view/>
+				<c-m-online-view />
 			</div>
 			{/* <>
                 <canvas id="glcanvas" width="800" height="600"></canvas>

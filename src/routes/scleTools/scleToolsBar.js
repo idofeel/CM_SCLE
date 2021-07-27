@@ -609,7 +609,7 @@ export default class scleTools extends PureComponent {
 		this.setState({
 			tools: [...newTools],
 			// activeTab: null,
-			alpha: window.pickObjectTransparent
+			alpha: window.pickObjectTransparent || 0
 		})
 	}
 

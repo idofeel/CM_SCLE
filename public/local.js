@@ -12,10 +12,11 @@
 
 	// 读取SCLE 文件
 	scleFile.onchange = function (e) {
+		document.getElementsByClassName('ant-btn')[0].blur();
 		if (!e.target.files[0]) return;
 		// 打开本地scle文件
 		ScleView.loadLocalFile(e.target);
-		document.getElementsByClassName('ant-btn')[0].blur();
+		this.value = '';
 	};
 
 	function createSceneNodes(optNode) {
@@ -143,6 +144,7 @@
 
 	// 读取XML 文件
 	scleXMLFile.onchange = function (e) {
+		document.getElementsByClassName('ant-btn')[1].blur();
 		if (!e.target.files[0]) return;
 		// 读取本地xml文件
 		var reader = new FileReader();
@@ -151,7 +153,7 @@
 			var data = xml2json(this.result).Root;
 			createScleInfo(data);
 		};
-		document.getElementsByClassName('ant-btn')[1].blur();
+		this.value = '';
 	};
 
 	notationNode.onchange = function (e) {
@@ -190,7 +192,7 @@
 		'pickParams',
 		function () {
 			ScleView.setTips({
-				objID: [window.pickObjectID], // 批注id
+				objID: window.pickObjectID && [window.pickObjectID], // 批注id
 				content: window.pickObjectName, // 批注内容 default | lead 时有效
 				type: notationNode.value, // 控制批注显示样式  default | lead | table
 				columns: [
