@@ -136,9 +136,11 @@ function ScleView() {
 				options.objID.lenth === 0 ||
 				options.objID.filter((i) => i).length === 0
 			) {
+				setNotation({
+					payload: { type :null },
+				});
 				return;
 			}
-
 			setNotation({
 				payload: { ...options, type: options.type || null },
 			});
@@ -164,11 +166,11 @@ function ScleView() {
 			setVisible(true);
 		};
 		// 刷新
-		// scleControl.refreshNotation = (parmas) => {
-		// 	if (obj.current.objID) {
-		// 		scleControl.setTips({ ...obj.current, ...parmas });
-		// 	}
-		// };
+		scleControl.refreshNotation = (parmas) => {
+			if (obj.current.objID) {
+				scleControl.setTips({ ...obj.current, ...parmas });
+			}
+		};
 		// 设置是否显示提示信息
 		scleControl.setTipsVisible = (bl) => {
 			setVisible(bl);
