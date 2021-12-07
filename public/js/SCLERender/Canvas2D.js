@@ -15,12 +15,25 @@ const STYLE_DEFAULT = "#000000";
 const STYLE_HIGHLIGHT = "#ff0000";
 const STYLE_WHITE = "#ffffff";
 const DOT_RIDUS = 3;
+const FILL_STYLE_GEOM_TEXT_RECT = "rgba(220,220,220,0.3)";
+const FILL_STYLE_GEOM_TEXT_RECT_H = "rgba(220,220,220,0.9)";
+const DOT_LENGTH = 10;
 
 function Canvas2D() {
+    this.isShowScleComment = true;
+    this.isShowUsrComment = true;
+    this.isDuringComment = false;
+    this.isDuringRectSel = false;
+    this.isContainsGeom = false;
+    this.isDuringMeasure = false;
 
     this.m_arrAnnotVisiable = new Array();
     this.m_arrAnnotRect = new Array();
     this.m_arrPickAnnotIndexs = new Array();
+    this.m_arrMeasureDispalyInfo = new Array();
+    this.m_arrMeasureUintIndex = new Array();
+    this.m_arrMeasureUnitVisible = new Array();
+
     this.GL_PICKSTATUSANNO = 0;
 
     this.MVPMatrix = mat4.create();
@@ -29,6 +42,9 @@ function Canvas2D() {
     this.RealPoint1 = new Point3(0, 0, 0);
     this.RealPoint2 = new Point3(0, 0, 0);
     this.RealPoint3 = new Point3(0, 0, 0);
+    this.measureUnit = null;
+    this.measureShape = null;
+    this.measureInfo = null;
 
     this.annotTextRows = 1;             // 注释行数
     this.annotTextFont = 20;            // 注释文本字号
@@ -46,6 +62,25 @@ function Canvas2D() {
     this.m_arrUsrComment = new Array();
     this.m_arrIsUsrCommentDel = new Array();
     this.isDrawLeaderPos = true;
+
+    this.selRect = new Rect2D(0, 0, 0, 0);
+    this.lineDistance = 0;
+    this.dotLineNum = 0;
+    this.curDotPoint = new Point2(0, 0);
+    this.curAttachPos = new Point3(0, 0, 0);
+    this.curLeaderPos = new Point3(0, 0, 0);
+    this.curShapeToLeaderPos = new Point3(0, 0, 0);
+    this.curShapePos = new Point3(0, 0, 0);
+    this.curAxisEnd1 = new Point3(0, 0, 0);
+    this.curAxisEnd2 = new Point3(0, 0, 0);
+
+    this.pickMVPMatrix = mat4.create();
+    this.pickMeasureInfo = null;
+    this.pickAttachPos = new Point3(0, 0, 0);
+    this.measureUnitCount = 0;
+    this.measureInfoRect = new Rect2D(0, 0, 0, 0);
+
+    this.captureUnit = null;
 
     /**
      * 初始化canvas参数
@@ -78,6 +113,14 @@ function Canvas2D() {
             this.m_arrPickAnnotIndexs.splice(0, this.m_arrPickAnnotIndexs.length);
             this.m_arrUsrComment.splice(0, this.m_arrUsrComment.length);
             this.m_arrIsUsrCommentDel.splice(0, this.m_arrIsUsrCommentDel.length);
+            for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+                if (this.m_arrMeasureDispalyInfo[i] != null) {
+                    this.m_arrMeasureDispalyInfo[i].Clear();
+                }
+            }
+            this.m_arrMeasureDispalyInfo.splice(0, this.m_arrMeasureDispalyInfo.length);
+            this.m_arrMeasureUintIndex.splice(0, this.m_arrMeasureUintIndex.length);
+            this.m_arrMeasureUnitVisible.splice(0, this.m_arrMeasureUnitVisible.length);
         }
     }
 
@@ -92,6 +135,36 @@ function Canvas2D() {
                 break;
             default:
                 return;
+        }
+    }
+
+    this.draw = function() {
+        gl2d.clearRect(0, 0, gl2d.canvas.width, gl2d.canvas.height);
+        if (this.isShowScleComment) {
+            this.drawAnnotation2D();
+        }
+        if (this.isShowUsrComment) {
+            this.drawUsrAnnotation();
+            if (this.isDuringComment) {
+                this.drawDuringUsrAnnoation(glRunTime.usrNewComment, glRunTime.mousePt.x, glRunTime.mousePt.y);
+            }
+            if (this.isDuringRectSel) {
+                this.selRect.normalize();
+                this.drawFillRect(this.selRect, FILL_STYLE_SELE_RECT);
+            }
+        }
+        if (g_bTestMode) {
+            this.drawTestMode();
+        }
+        if (this.isDuringMeasure) {
+            this.drawDuringMeasure(glRunTime.pickUnitFirst, glRunTime.pickLeaderPos, glRunTime.mousePt.x, glRunTime.mousePt.y);
+        }
+        if (this.measureUnitCount > 0) {
+            this.drawGeomMeasureShape();
+            this.drawGeomMeasureInfo();
+        }
+        if (this.captureUnit != null) {
+            this.drawCaptureGemotry();
         }
     }
 
@@ -197,15 +270,275 @@ function Canvas2D() {
 
     this.drawLine = function(start_x, start_y, end_x, end_y) {
         gl2d.beginPath();
+        gl2d.setLineDash([]);
         gl2d.moveTo(start_x, start_y);
         gl2d.lineTo(end_x, end_y);
         gl2d.stroke();
     }
 
-    this.drawFillRect = function(rect2D) {
+    this.drawFillRect = function(rect2D, fillStyle) {
         gl2d.beginPath();
-        gl2d.fillStyle = FILL_STYLE_SELE_RECT;
+        gl2d.fillStyle = fillStyle;
         gl2d.fillRect(rect2D.min.x, rect2D.min.y, rect2D.max.x - rect2D.min.x, rect2D.max.y - rect2D.min.y);
+        gl2d.stroke();
+    }
+
+    this.drawDottedLine = function(end1, end2) {
+        gl2d.beginPath();
+        gl2d.setLineDash([8, 8]);
+        gl2d.moveTo(end1.x, end1.y);
+        gl2d.lineTo(end2.x, end2.y);
+        gl2d.stroke();
+    }
+
+    this.drawShortDottedLine = function(end1, end2) {
+        gl2d.beginPath();
+        gl2d.setLineDash([8, 4, 2, 4]);
+        gl2d.moveTo(end1.x, end1.y);
+        gl2d.lineTo(end2.x, end2.y);
+        gl2d.stroke();
+    }
+
+    this.drawBorderFillRect = function(x, y, width, height) {
+        gl2d.beginPath();
+        gl2d.setLineDash([]);
+        gl2d.moveTo(x, y);
+        gl2d.lineTo(x + width, y);
+        gl2d.lineTo(x + width, y + height);
+        gl2d.lineTo(x, y + height);
+        gl2d.lineTo(x, y);
+        gl2d.stroke();
+    }
+
+    this.drawMultiLineText = function(x, y, arrText, arrPos) {
+        gl2d.beginPath();
+        gl2d.font = FONT_DEFAULT_COPY;
+        gl2d.fillStyle = STYLE_DEFAULT;
+        for (let j = 0; j < arrText.length; ++j) {
+            gl2d.fillText(arrText[j], x + arrPos[j].x, y + arrPos[j].y);
+        }
+        gl2d.stroke();
+    }
+
+    this.drawGeomMeasureInfo = function() {
+        for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+            if (this.m_arrMeasureDispalyInfo[i] == null || this.m_arrMeasureUnitVisible[i] == false) {
+                continue;
+            }
+
+            this.measureUnit = this.m_arrMeasureDispalyInfo[i];
+            this.measureInfo = this.measureUnit.measureInfo;
+
+            let uObjectIndex = this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex;
+            mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+            gl2d.strokeStyle = STYLE_WHITE;
+            this.cvtWorldToScreen(this.measureInfo.attachPos.x, this.measureInfo.attachPos.y, this.measureInfo.attachPos.z,
+                this.MVPMatrix, this.curAttachPos);
+            if (!this.isDrawLeaderPos) {
+                continue;
+            }
+            // 绘制引线
+            for (let j = 0; j < this.measureUnit.arrMeasureShapes.length; ++j) {
+                uObjectIndex = this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[j].objectIndex;
+                mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+
+                this.cvtWorldToScreen(this.measureUnit.arrMeasureShapes[j].leaderPos.x, this.measureUnit.arrMeasureShapes[j].leaderPos.y,
+                    this.measureUnit.arrMeasureShapes[j].leaderPos.z, this.MVPMatrix, this.curLeaderPos);
+                if (!this.isDrawLeaderPos) {
+                    continue;
+                }
+                // 绘制引线原点
+                this.drawFillCircle(this.curLeaderPos.x, this.curLeaderPos.y, DOT_RIDUS);
+                // 绘制引线
+                this.drawLine(this.curLeaderPos.x, this.curLeaderPos.y, this.curAttachPos.x, this.curAttachPos.y);
+            }
+            
+            // 绘制矩形框
+            this.drawBorderFillRect(this.curAttachPos.x, this.curAttachPos.y - this.measureInfo.rectHeight,
+                this.measureInfo.rectWidth, this.measureInfo.rectHeight);
+            
+            // 填充矩形框
+            this.measureInfoRect.set(this.curAttachPos.x, this.curAttachPos.y - this.measureInfo.rectHeight,
+                this.curAttachPos.x + this.measureInfo.rectWidth, this.curAttachPos.y);
+            if (this.m_arrMeasureUintIndex[i] == true) {
+                this.drawFillRect(this.measureInfoRect, FILL_STYLE_GEOM_TEXT_RECT_H);
+            } else {
+                this.drawFillRect(this.measureInfoRect, FILL_STYLE_GEOM_TEXT_RECT);
+            }
+            
+            // 绘制测量文本
+            this.drawMultiLineText(this.curAttachPos.x, this.curAttachPos.y - this.measureInfo.rectHeight,
+                this.measureInfo.displayText, this.measureInfo.displayTextPos);
+        }
+    }
+
+    this.drawGeomMeasureShape = function() {
+        for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+            if (this.m_arrMeasureDispalyInfo[i] == null || this.m_arrMeasureUnitVisible[i] == false) {
+                continue;
+            }
+            // 几何数据只在被选中时显示
+            if (this.m_arrMeasureUintIndex[i] == false) {
+                continue;
+            }
+
+            this.measureUnit = this.m_arrMeasureDispalyInfo[i];
+            for (let j = 0; j < this.measureUnit.arrMeasureShapes.length; ++j) {
+                let uObjectIndex = this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[j].objectIndex;
+                let uCurPartIndex = g_GLObjectSet._arrObjectSet[uObjectIndex]._uPartIndex;
+                mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+                if (this.measureUnit.arrMeasureShapes[j] != null) {
+                    this.drawGeomShape(uObjectIndex, uCurPartIndex, this.measureUnit.arrMeasureShapes[j]);
+                }
+            }
+        }
+    }
+
+    this.drawGeomShape = function(objectIndex, partIndex, measureShape) {
+        gl2d.strokeStyle = STYLE_WHITE;
+        if (this.measureUnit.measureType == MEASURE_CURVE || this.measureUnit.measureType == MEASURE_TWO_CURVES) {
+            this.drawCurveShape(partIndex, measureShape.geomCurveIndex, this.MVPMatrix);
+        } else if (this.measureUnit.measureType == MEASURE_SURFACE ) {
+            this.drawSurfaceShape(partIndex, measureShape.geomSurfaceIndex, this.MVPMatrix);
+        } else if (this.measureUnit.measureType == MEASURE_OBJECT) {
+            this.drawObjectShape(objectIndex, this.MVPMatrix);
+        }
+
+        // 绘制形状引线，虚线
+        if (measureShape.arrShapePos != null) {
+            this.cvtWorldToScreen(measureShape.leaderPos.x, measureShape.leaderPos.y, measureShape.leaderPos.z,
+                this.MVPMatrix, this.curLeaderPos);
+            if (this.isDrawLeaderPos) {
+                for (let j = 0; j < measureShape.arrShapePos.length; ++j) {
+                    this.cvtWorldToScreen(measureShape.arrShapePos[j].x, measureShape.arrShapePos[j].y,
+                        measureShape.arrShapePos[j].z, this.MVPMatrix, this.curShapeToLeaderPos);
+                    if (this.isDrawLeaderPos) {
+                        this.drawDottedLine(this.curShapeToLeaderPos, this.curLeaderPos);
+                    }
+                }
+            }
+        }
+
+        // 绘制形状轴线，点划线
+        if (measureShape.arrAxis != null) {
+            this.cvtWorldToScreen(measureShape.arrAxis[0].x, measureShape.arrAxis[0].y,
+                measureShape.arrAxis[0].z, this.MVPMatrix, this.curAxisEnd1);
+            if (this.isDrawLeaderPos) {
+                this.cvtWorldToScreen(measureShape.arrAxis[1].x, measureShape.arrAxis[1].y,
+                    measureShape.arrAxis[1].z, this.MVPMatrix, this.curAxisEnd2);
+                if (this.isDrawLeaderPos) {
+                    this.drawShortDottedLine(this.curAxisEnd1, this.curAxisEnd2);
+                }
+            }
+        }
+    }
+
+    this.drawCurveShape = function(partIndex, curveIndex, mvpMat) {
+        let curvePointsCounts = g_GLPartSet._arrPartSet[partIndex]._CurveShape._arrShapeOfPointsCounts;
+        let curvePoints = g_GLPartSet._arrPartSet[partIndex]._CurveShape._arrShapeOfPoints;
+        let offset = 0;
+        for (let i = 0; i < curveIndex; ++i) {
+            offset += curvePointsCounts[i] * 3;
+        }
+
+        if (curvePointsCounts[curveIndex] == 0) {
+            return;
+        } else {
+            gl2d.strokeStyle = STYLE_WHITE;
+            gl2d.beginPath();
+            gl2d.setLineDash([]);
+            // 移动到初始点
+            this.cvtWorldToScreen(curvePoints[offset], curvePoints[offset+1], curvePoints[offset+2], mvpMat, this.curShapePos);
+            if (!this.isDrawLeaderPos) {
+                return;
+            }
+            gl2d.moveTo(this.curShapePos.x, this.curShapePos.y);
+            offset += 3;
+
+            // 绘制
+            if (curvePointsCounts[curveIndex] == 2) {
+                this.cvtWorldToScreen(curvePoints[offset], curvePoints[offset+1], curvePoints[offset+2], mvpMat, this.curShapePos);
+                if (!this.isDrawLeaderPos) {
+                    return;
+                }
+                gl2d.lineTo(this.curShapePos.x, this.curShapePos.y);
+            
+            } else {
+                for (let i = 1; i <= curvePointsCounts[curveIndex] / 2; ++i) {
+                    this.cvtWorldToScreen(curvePoints[offset], curvePoints[offset+1], curvePoints[offset+2], mvpMat, this.curShapePos);
+                    if (!this.isDrawLeaderPos) {
+                        continue;
+                    }
+                    gl2d.lineTo(this.curShapePos.x, this.curShapePos.y);
+                    offset += 6;
+                }
+            }
+            gl2d.stroke();
+        }
+    }
+
+    this.drawPointShape = function(pointPos, mvpMat) {
+        this.cvtWorldToScreen(pointPos.x, pointPos.y, pointPos.z, mvpMat, this.curShapePos);
+        if (!this.isDrawLeaderPos) {
+            return;
+        }
+        gl2d.strokeStyle = STYLE_WHITE;
+        this.drawFillCircle(this.curShapePos.x, this.curShapePos.y, DOT_RIDUS);
+    }
+
+    this.drawSurfaceShape = function(partIndex, curveIndex, mvpMat) {
+
+    }
+
+    this.drawObjectShape = function(objectIndex) {
+        
+    }
+
+    this.drawDuringMeasure = function(measureUnit, leaderPt, screenX, screenY) {
+        if (measureUnit.objectIndex < 0) {
+            return;
+        }
+        mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(measureUnit.objectIndex));
+        gl2d.strokeStyle = STYLE_WHITE;
+        if (measureUnit.elementType == PICK_GEOM_CURVE) {
+            if (measureUnit.geomCurveIndex < 0) {
+                return;
+            }
+            let partIndex = g_GLObjectSet._arrObjectSet[measureUnit.objectIndex]._uPartIndex;
+            this.drawCurveShape(partIndex, measureUnit.geomCurveIndex, this.MVPMatrix);
+            this.cvtWorldToScreen(leaderPt.x, leaderPt.y, leaderPt.z, this.MVPMatrix, this.curLeaderPos);
+            if (this.isDrawLeaderPos) {
+                this.drawFillCircle(this.curLeaderPos.x, this.curLeaderPos.y, DOT_RIDUS);
+                gl2d.beginPath();
+                gl2d.setLineDash([]);
+                gl2d.moveTo(this.curLeaderPos.x, this.curLeaderPos.y);
+                gl2d.lineTo(screenX, screenY);
+                gl2d.stroke();
+            }
+        } else if (measureUnit.elementType == PICK_GEOM_POINT) {
+            this.cvtWorldToScreen(measureUnit.intersectPt.x, measureUnit.intersectPt.y, measureUnit.intersectPt.z,
+                this.MVPMatrix, this.curLeaderPos);
+            if (this.isDrawLeaderPos) {
+                this.drawFillCircle(this.curLeaderPos.x, this.curLeaderPos.y, DOT_RIDUS);
+                gl2d.beginPath();
+                gl2d.setLineDash([]);
+                gl2d.moveTo(this.curLeaderPos.x, this.curLeaderPos.y);
+                gl2d.lineTo(screenX, screenY);
+                gl2d.stroke();
+            }
+        }        
+    }
+
+    this.drawCaptureGemotry = function() {
+        let uObjectIndex = this.captureUnit.objectIndex;
+        let uCurPartIndex = g_GLObjectSet._arrObjectSet[uObjectIndex]._uPartIndex;
+        mat4.multiply(this.MVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+
+        if (this.captureUnit.elementType == PICK_GEOM_CURVE) {
+            this.drawCurveShape(uCurPartIndex, this.captureUnit.geomCurveIndex, this.MVPMatrix);
+        } else if (this.captureUnit.elementType == PICK_GEOM_POINT) {
+            this.drawPointShape(this.captureUnit.intersectPt, this.MVPMatrix);
+        }
     }
 
     /**
@@ -514,6 +847,134 @@ function Canvas2D() {
     this.adapterScreenToLocal = function(screen_x, screen_y, local) {
         local.x = (screen_x * 2 / this.windowHeight) - this.windowWidth / this.windowHeight;
         local.y = (this.windowHeight - screen_y) * 2 / this.windowHeight - 1.0;
+    }
+
+    this.addMeasureUnit = function(measureUnit) {
+        this.m_arrMeasureDispalyInfo.push(measureUnit);
+        this.m_arrMeasureUintIndex.push(true);
+        this.m_arrMeasureUnitVisible.push(true);
+        this.measureUnitCount++;
+    }
+
+    this.deleteMeasureUnit = function(index) {
+        if (this.measureUnitCount == 0 || this.m_arrMeasureDispalyInfo[index] == null) {
+            return;
+        }
+        this.m_arrMeasureDispalyInfo[index].Clear();
+        this.m_arrMeasureDispalyInfo[index] = null;
+        this.m_arrMeasureUintIndex[index] = false;
+        this.m_arrMeasureUnitVisible[index] = false;
+        this.measureUnitCount--;
+    }
+
+    this.hideMeasureUnit = function(index, visible) {
+        if (this.measureUnitCount == 0 || this.m_arrMeasureDispalyInfo[index] == null) {
+            return;
+        }
+        this.m_arrMeasureUnitVisible[index] = visible;
+    }
+
+    this.isContainMeasureUnit = function(objectIndex, geomIndex, measureType) {
+        if (measureType == MEASURE_OBJECT) {
+            for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+                if (this.m_arrMeasureDispalyInfo[i] != null &&
+                    this.m_arrMeasureDispalyInfo[i].measureType == MEASURE_OBJECT &&
+                    objectIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        } else if (measureType == MEASURE_SURFACE) {
+            for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+                if (this.m_arrMeasureDispalyInfo[i] != null &&
+                    this.m_arrMeasureDispalyInfo[i].measureType == MEASURE_SURFACE &&
+                    objectIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex &&
+                    geomIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].geomSurfaceIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        } else if (measureType == MEASURE_CURVE) {
+            for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+                if (this.m_arrMeasureDispalyInfo[i] != null &&
+                    this.m_arrMeasureDispalyInfo[i].measureType == MEASURE_CURVE &&
+                    objectIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex &&
+                    geomIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].geomCurveIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        } else if (measureType == MEASURE_POINT) {
+            for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+                if (this.m_arrMeasureDispalyInfo[i] != null &&
+                    this.m_arrMeasureDispalyInfo[i].measureType == MEASURE_POINT &&
+                    objectIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex &&
+                    this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].geomPointIndex != -1 &&
+                    geomIndex == this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].geomPointIndex) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        return -1;
+    }
+
+    this.pickMeasureUintByRay = function(x, y, isMult) {
+        for (let i = 0; i < this.m_arrMeasureDispalyInfo.length; ++i) {
+            if (this.m_arrMeasureDispalyInfo[i] == null || this.m_arrMeasureUnitVisible[i] == false) {
+                continue;
+            }
+            let uObjectIndex = this.m_arrMeasureDispalyInfo[i].arrMeasureShapes[0].objectIndex;
+            mat4.multiply(this.pickMVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+            this.pickMeasureInfo = this.m_arrMeasureDispalyInfo[i].measureInfo;
+            this.cvtWorldToScreen(this.pickMeasureInfo.attachPos.x, this.pickMeasureInfo.attachPos.y,
+                this.pickMeasureInfo.attachPos.z, this.pickMVPMatrix, this.pickAttachPos);
+            if (!this.isDrawLeaderPos) {
+                continue;
+            }
+            if (x > this.pickAttachPos.x && x < (this.pickAttachPos.x + this.pickMeasureInfo.rectWidth) &&
+                y > (this.pickAttachPos.y - this.pickMeasureInfo.rectHeight) && y < this.pickAttachPos.y) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    this.pickMeasureUnitByIndex = function(index, isMult) {
+        if (index < 0) {
+            for (let i = 0; i < this.m_arrMeasureUintIndex.length; ++i) {
+                this.m_arrMeasureUintIndex[i] = false;
+            }
+            return;
+        }
+
+        if (this.m_arrMeasureDispalyInfo[index] == null) {
+            return;
+        }
+
+        if (!isMult) {
+            for (let i = 0; i < this.m_arrMeasureUintIndex.length; ++i) {
+                this.m_arrMeasureUintIndex[i] = false;
+            }
+        }
+        this.m_arrMeasureUintIndex[index] = true;
+    }
+
+    this.getPickMeasureUnitPos = function(index, x, y, pos) {
+        if (this.m_arrMeasureDispalyInfo[index] == null) {
+            return;
+        }
+        let uObjectIndex = this.m_arrMeasureDispalyInfo[index].arrMeasureShapes[0].objectIndex;
+        mat4.multiply(this.pickMVPMatrix, g_webgl.PVMattrix, g_glprogram.getObjectModelMatrix(uObjectIndex));
+        this.pickMeasureInfo = this.m_arrMeasureDispalyInfo[index].measureInfo;
+        this.cvtWorldToScreen(this.pickMeasureInfo.attachPos.x, this.pickMeasureInfo.attachPos.y,
+            this.pickMeasureInfo.attachPos.z, this.pickMVPMatrix, this.pickAttachPos);
+        if (x > this.pickAttachPos.x && x < (this.pickAttachPos.x + this.pickMeasureInfo.rectWidth) &&
+            y > (this.pickAttachPos.y - this.pickMeasureInfo.rectHeight) && y < this.pickAttachPos.y) {
+            pos.set(x - this.pickAttachPos.x, y - this.pickAttachPos.y);
+        } else {
+            pos.set(0, 0);
+        }
     }
 
 }

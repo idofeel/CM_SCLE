@@ -11,6 +11,23 @@ var ObjectMin = new Point3(0, 0, 0);
 var ObjectMax = new Point3(0, 0, 0);
 var objectMat = mat4.create();
 
+var t = 0.05;
+var alpha = 0.157;
+var axisLen = 10;
+
+var prePoint = null;
+var srcPoint = new Point3(0, 0, 0);
+var splitPoint = new Point3(0, 0, 0);
+var coordsTransMatrix = mat4.create();
+var arcTransMatrix = mat4.create();
+var bpCoordsTransMatrix = new ADF_BASEMATRIX();
+var bpArcTransMatrix = new ADF_BASEMATRIX();
+
+var arrAxisPoints = new Array();
+var arrCirclePoints = new Array();
+var arrArcPoints = new Array();
+var arrLinePoints = new Array();
+
 /**
  * 将ADFUSDK的g_sceneData数据转化为Global的WebGL数据
  * 返回：GLObjectSet    零件实例数据�?
@@ -33,6 +50,8 @@ function Scene2GLData() {
     getModelDefEyePos(modelBox, defEyePos, defUpAxis);
     var annotSet = new GL_ANNOTATION();
     getAnnotationData(g_sceneData.arrComment, annotSet);
+    var sceneUnit = new GL_SECNE_UNIT();
+    getSceneUnit(g_sceneData.stuConfig, sceneUnit);
     // 释放内存
     g_sceneData.Clear();
     g_cleParser = null;
@@ -49,61 +68,7 @@ function Scene2GLData() {
         GLDefEyePos: defEyePos,
         GLDefUpAxis: defUpAxis,
         GLAnnotData: annotSet,
-    };
-}
-
-/**
- * 测试，两个立方体
- * 返回：GLObjectSet    立方体实例数据集
- *      GLPartSet      立方体零件数据集
- *      GLMatertalSet  材质数据�?
- */
-function TestCube() {
-    var Cube = DefaultData.Cube();
-    var CubeLODPart = new GL_PARTLODDATA();
-    CubeLODPart._arrVertex = Cube.vertex;
-    CubeLODPart._arrSurfaceVertexNum = Cube.surfaceVertexNum;
-    var CubePart = new GL_PART();
-    CubePart._arrPartLODData.push(CubeLODPart);
-    var partSet = new GL_PARTSET();
-    partSet._arrPartSet.push(CubePart);
-
-    var matertalSet = new GL_MATERIALSET();
-    matertalSet._arrMaterialSet.push(DefaultData.DefaultMaterial());
-    matertalSet._arrMaterialSet.push(DefaultData.Pink());
-    matertalSet._arrMaterialSet.push(DefaultData.Green());
-
-    var object1 = new GL_OBJECT();
-    object1._uPartIndex = 0;
-    object1._arrSurfaceMaterialIndex.push(0);
-    object1._arrSurfaceMaterialIndex.push(1);
-    object1._arrSurfaceMaterialIndex.push(2);
-    object1._arrSurfaceMaterialIndex.push(0);
-    object1._arrSurfaceMaterialIndex.push(1);
-    object1._arrSurfaceMaterialIndex.push(2);
-    object1._uObjectVertexNum = 36;
-    var object2 = new GL_OBJECT();
-    object2._uPartIndex = 0;
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._arrSurfaceMaterialIndex.push(1);
-    object2._uObjectVertexNum = 36;
-    var matTmp = mat4.create();
-    var trans = vec3.create();
-    trans[0] = -2;
-    trans[2] = -2;
-    object2._matObject = mat4.translate(matTmp, object2._matObject, trans);
-    var objectSet = new GL_OBJECTSET();
-    objectSet._arrObjectSet.push(object1);
-    objectSet._arrObjectSet.push(object2);
-
-    return {
-        GLObjectSet: objectSet,
-        GLPartSet: partSet,
-        GLMatertalSet: matertalSet,
+        GLSceneUnit: sceneUnit,
     };
 }
 
@@ -112,25 +77,24 @@ function GetSVZMaterialSet() {
     var GLMatertalSet = new GL_MATERIALSET();
     // 获取材质数据
     for (let i=0; i<g_sceneData.stuMtlSaveDataMgr._arrMtlSaveData.length; i++) {
-        GLMatertalSet._arrMaterialSet.push(g_sceneData.stuMtlSaveDataMgr._arrMtlSaveData[i]._MtlData);
+        GLMatertalSet._arrMaterialSet.push(g_sceneData.stuMtlSaveDataMgr._arrMtlSaveData[i]);
     }
     // 设置默认材质数据
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Red());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Brightgreen());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Blue());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Yellow());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Pink());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.CyanGreen());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Black());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.White());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Grey());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.DarkRed());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Green());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.DarkBlue());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.DarkYellow());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.Violet());
-    GLMatertalSet._arrMaterialSet.push(DefaultData.CyanBlue());
-
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Red);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Brightgreen);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Blue);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Yellow);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Pink);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.CyanGreen);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Black);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.White);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Grey);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.DarkRed);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Green);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.DarkBlue);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.DarkYellow);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.Violet);
+    GLMatertalSet._arrMaterialSet.push(g_materialData.CyanBlue);
     // 将贴图材质绑定到OpenGL
     GetTextureMtlByUrl(GLMatertalSet);
 
@@ -144,7 +108,11 @@ function GetSVZPartSet() {
     for (let i=0; i<g_sceneData.arrModelData.length; i++) {
         // 没有LOD数据
         let tempGLPart = new GL_PART();
-        tempGLPart._arrPartLODData[0] = GetSVZPartData(g_sceneData.arrModelData[i]._ModelInfo._stuModelData, 0, 0.0);
+        let tempGLPartData = GetSVZPartData(g_sceneData.arrModelData[i]._ModelInfo._stuModelData, 0, 0.0)
+        tempGLPart._arrPartLODData[0] = tempGLPartData.PARTLODDATA;
+        tempGLPart._SurfaceShape = tempGLPartData.PARTSURFACEDATA;
+        tempGLPart._CurveShape = tempGLPartData.PARTCURVEDATA;
+
         GLPartSet._arrPartSet.push(tempGLPart);
     }
     return GLPartSet;
@@ -253,24 +221,27 @@ function GetSVZPartData (modelData, uLevel, fZDist) {
     // 取网格数�?
     GL_PartLODData._uIsUV = modelData._uIsUV;
     GL_PartLODData._arrVertex = modelData._arrVertexData;
+
     for (let j=0; j<modelData._arrSubset.length; j++) {
         if (modelData._arrSubset[j]._nPrimitType == ADFPT_TRIANGLELIST) {
             GL_PartLODData._arrSubsetPrimitType[j] = ADFPT_TRIANGLELIST;
             // Surface网格顶点数量
             GL_PartLODData._arrSurfaceVertexNum.push(modelData._arrSubset[j]._uIndexCount);
+            GL_PartLODData._arrGeomSurfaceIndex.push(modelData._arrSubset[j]._uGeomIndex);
             // 计算子集包围�?
             let tmpBox = new GL_Box();
             this.CalGLBox(modelData._arrSubset[j]._box, tmpBox);
             GL_PartLODData._boxset._SurfaceBoxes.push(tmpBox);
         }
     }
-    // 取曲线数据（线缆
+    // 取曲线数据（线缆)
     // 注意：只有一个零件中不存在线缆数据与曲面数据混合的现象时才有�?
     for (let j=0; j<modelData._arrSubset.length; j++) {
         if (modelData._arrSubset[j]._nPrimitType == ADFPT_LINELIST) {
             GL_PartLODData._arrSubsetPrimitType[j] = ADFPT_LINELIST;
             // Curve顶点数量
             GL_PartLODData._arrCurveVertexNum.push(modelData._arrSubset[j]._uIndexCount);
+            GL_PartLODData._arrGeomCurveIndex.push(modelData._arrSubset[j]._uGeomIndex);
             // 计算子集包围�?
             let tmpBox = new GL_Box();
             this.CalGLBox(modelData._arrSubset[j]._box, tmpBox);
@@ -278,7 +249,53 @@ function GetSVZPartData (modelData, uLevel, fZDist) {
         }
     }
 
-    return GL_PartLODData;
+    let tmpGeomData = null;
+    // 取几何数据，曲面数据
+    let GL_SurfaceData = null;
+    if (modelData._arrSurface != null) {
+        GL_SurfaceData = new GL_SURFACE();
+        GL_SurfaceData._arrSurface = modelData._arrSurface;
+        GL_SurfaceData._arrShapeOfPoints = new Array();
+        GL_SurfaceData._arrShapeOfPointsCounts = new Array();
+        for (let j = 0; j < modelData._arrSurface.length; j++) {
+            // tmpGeomData = GetSurfaceShapeData(modelData._arrSurface[j]);
+            // if (tmpGeomData != null) {
+            //     for (let p = 0; p < tmpGeomData.length; ++p) {
+            //         GL_SurfaceData._arrShapeOfPoints.push(tmpGeomData[p]);
+            //     }
+            //     GL_SurfaceData._arrShapeOfPointsCounts.push(tmpGeomData.length);
+            // } else {
+            //     GL_SurfaceData._arrShapeOfPointsCounts.push(0)
+            // }
+            GL_SurfaceData._arrShapeOfPointsCounts.push(0);
+        }
+    }
+    
+    // 取几何数据，曲线数据
+    let GL_CurveData = null;
+    if (modelData._arrCurve != null) {
+        GL_CurveData = new GL_CURVE();
+        GL_CurveData._arrCurve = modelData._arrCurve;
+        GL_CurveData._arrShapeOfPoints = new Array();
+        GL_CurveData._arrShapeOfPointsCounts = new Array();
+        for (let j = 0; j < modelData._arrCurve.length; j++) {
+            tmpGeomData = GetCurveShapeData(modelData._arrCurve[j]);
+            if (tmpGeomData != null) {
+                for (let p = 0; p < tmpGeomData.length; ++p) {
+                    GL_CurveData._arrShapeOfPoints.push(tmpGeomData[p]);
+                }
+                GL_CurveData._arrShapeOfPointsCounts.push(tmpGeomData.length / 3);
+            } else {
+                GL_CurveData._arrShapeOfPointsCounts.push(0);
+            }
+        }
+    }
+
+    return {
+        PARTLODDATA: GL_PartLODData,
+        PARTSURFACEDATA: GL_SurfaceData,
+        PARTCURVEDATA: GL_CurveData,
+    };
 }
 
 function CalGLBox (ModelBox, gl_box) {
@@ -560,6 +577,14 @@ function getAnnotationData(arrComment, annotSet) {
 }
 
 /**
+ * 
+ * 转化场景单位
+ */
+function getSceneUnit(stuConfig, sceneUnit) {
+    sceneUnit.Clone(stuConfig._stuSceneUnit);
+}
+
+/**
  * 转化背景图片数据
  */
 function GetDefaultBgImg() {
@@ -587,9 +612,9 @@ function GetTextureMtlByUrl(GLMatertalSet) {
         let nCurImageID = g_sceneData.arrImageFile[i]._FileInfo.uResID;
         let curTexMaterial = new Array();
         for (let j=0; j<GLMatertalSet._arrMaterialSet.length; j++) {
-            if (GLMatertalSet._arrMaterialSet[j]._eMtlType == ADFMTLTYPE_PICTURE) {
-                for (let k=0; k<GLMatertalSet._arrMaterialSet[j]._arrTexID.length; k++) {
-                    if (GLMatertalSet._arrMaterialSet[j]._arrTexID[k] == nCurImageID) {
+            if (GLMatertalSet._arrMaterialSet[j]._MtlData._eMtlType == ADFMTLTYPE_PICTURE) {
+                for (let k=0; k<GLMatertalSet._arrMaterialSet[j]._MtlData._arrTexID.length; k++) {
+                    if (GLMatertalSet._arrMaterialSet[j]._MtlData._arrTexID[k] == nCurImageID) {
                         curTexMaterial.push(j);
                     }
                 }
@@ -606,14 +631,14 @@ function GetTextureMtlByUrl(GLMatertalSet) {
                         image = g_sceneData.arrResFile[j];
                         texID = getTexImage(image, false);
                         for (let k=0; k<curTexMaterial.length; k++) {
-                            GLMatertalSet._arrMaterialSet[curTexMaterial[k]]._arrTexID[0] = texID;
+                            GLMatertalSet._arrMaterialSet[curTexMaterial[k]]._MtlData._arrTexID[0] = texID;
                         }
                     } else {
                         image = new Image();
                         image.onload = function() {
                             texID = getTexImage(image, true);
                             for (let k=0; k<curTexMaterial.length; k++) {
-                                GLMatertalSet._arrMaterialSet[curTexMaterial[k]]._arrTexID[0] = texID;
+                                GLMatertalSet._arrMaterialSet[curTexMaterial[k]]._MtlData._arrTexID[0] = texID;
                             }
                         }
                         image.src = g_strResbaseUrl + curImageName;
@@ -681,4 +706,135 @@ function GetDefaultCameraAxis() {
         GLSceneUpType: nUp,
         GLUpAxisNegative: bNeg,
     };
+}
+
+/**
+ * 计算几何曲面的形状数据
+ */
+function GetSurfaceShapeData(geomSurface) {
+    let surfaceData = null;
+    switch (geomSurface.nType) {
+        case ADF_SURFT_PLANE:
+            surfaceData = geomSurface.Surfacedata.plane;
+            return null;
+        case ADF_SURFT_CYLINDER:
+            surfaceData = geomSurface.Surfacedata.cylinder;
+            return SplitCirclePoints(surfaceData.vOrigin, surfaceData.vAxisX, surfaceData.vAxisY, surfaceData.vAxisZ, surfaceData.radius);
+        case ADF_SURFT_CONE:
+            surfaceData = geomSurface.Surfacedata.cone;
+            return null;
+        case ADF_SURFT_TORUS:
+            surfaceData = geomSurface.Surfacedata.torus;
+            return SplitCirclePoints(surfaceData.vOrigin, surfaceData.vAxisX, surfaceData.vAxisY, surfaceData.vAxisZ, (surfaceData.radius1 + surfaceData.radius2) / 2);
+        case ADF_SURFT_REVOLVE:
+            surfaceData = geomSurface.Surfacedata.revolve;
+            return null;
+        case ADF_SURFT_TABCYL:
+            surfaceData = geomSurface.Surfacedata.tabcyl;
+            return null;
+        case ADF_SURFT_SPHERE:
+            surfaceData = geomSurface.Surfacedata.sphere;
+            return SplitCirclePoints(surfaceData.vOrigin, surfaceData.vAxisX, surfaceData.vAxisY, surfaceData.vAxisZ, surfaceData.radius);
+        default:
+            return null;
+    }
+}
+
+/**
+ * 计算几何曲线的形状数据
+ */
+function GetCurveShapeData(geomCurve) {
+    switch (geomCurve.nType) {
+        case ADF_CURVT_LINE:
+            arrLinePoints.splice(0, arrLinePoints.length);
+            ArrayPushPoint3(arrLinePoints, geomCurve.curvedata.line.end1);
+            ArrayPushPoint3(arrLinePoints, geomCurve.curvedata.line.end2);
+            return arrLinePoints;
+        case ADF_CURVT_ARC:
+            return SplitArcPoints(geomCurve.curvedata.arc);
+        default:
+            return null;
+    }
+}
+
+/**
+ * 轴线数据分割为离散点
+ */
+function SplitAxisPoints(origin, dir) {
+    arrAxisPoints.splice(0, arrAxisPoints.length);
+    for (let i = 0; i * t < 1; ++i) {
+        if (prePoint != null) {
+            ArrayPushPoint3(arrAxisPoints, prePoint);
+        }
+        splitPoint.x = origin.x + dir.x * axisLen * i * t;
+        splitPoint.y = origin.y + dir.y * axisLen * i * t;
+        splitPoint.z = origin.z + dir.z * axisLen * i * t;
+        ArrayPushPoint3(arrAxisPoints, splitPoint);
+        prePoint = splitPoint;
+    }
+
+    prePoint = null;
+    return arrAxisPoints;
+}
+
+/**
+ * circle数据分割为离散点
+ */
+function SplitCirclePoints(origin, axisX, axisY, axisZ, radius) {
+    GetCoordsTransformMatrix(origin, axisX, axisY, axisZ, bpCoordsTransMatrix);
+    CalMat4(coordsTransMatrix, bpCoordsTransMatrix);
+
+    arrCirclePoints.splice(0, arrCirclePoints.length);
+    srcPoint.z = 0;
+    let radusEx = radius / Math.cos(alpha / 2);
+    for (let i = 0; i * alpha < 2 * Math.PI; ++i) {
+        if (prePoint != null) {
+            ArrayPushPoint3(arrCirclePoints, prePoint);
+        }
+        srcPoint.x = radusEx * Math.cos(i * alpha);
+        srcPoint.y = radusEx * Math.sin(i * alpha);
+        CalTranslatePoint(srcPoint.x, srcPoint.y, srcPoint.z, coordsTransMatrix, splitPoint);
+        ArrayPushPoint3(arrCirclePoints, splitPoint);
+        prePoint = splitPoint;
+    }
+
+    prePoint = null;
+    return arrCirclePoints;
+}
+
+/**
+ * arc数据分割为离散点
+ */
+function SplitArcPoints(bpArcData) {
+    let startAngle = bpArcData.fStartAngle > bpArcData.fEndAngle ? bpArcData.fEndAngle : bpArcData.fStartAngle;
+    let endAngle = bpArcData.fStartAngle > bpArcData.fEndAngle ? bpArcData.fStartAngle : bpArcData.fEndAngle;
+    GetArcTransformMatrix(bpArcData.vOrigin, bpArcData.vVector1, bpArcData.vVector2, startAngle, endAngle, bpArcData.fRadius, null, bpArcTransMatrix);
+    CalMat4(bpArcTransMatrix, arcTransMatrix);
+
+    arrArcPoints.splice(0, arrArcPoints.length);
+    srcPoint.z = 0;
+    let radusEx = bpArcData.fRadius / Math.cos(alpha / 2);
+    let i = 0;
+    for (; startAngle + (i + 1) * alpha < endAngle; ++i) {
+        srcPoint.x = radusEx * Math.cos(i * alpha);
+        srcPoint.y = radusEx * Math.sin(i * alpha);
+        CalTranslatePoint(srcPoint.x, srcPoint.y, srcPoint.z, arcTransMatrix, splitPoint);
+        ArrayPushPoint3(arrArcPoints, splitPoint);
+
+        srcPoint.x = radusEx * Math.cos((i + 1) * alpha);
+        srcPoint.y = radusEx * Math.sin((i + 1) * alpha);
+        CalTranslatePoint(srcPoint.x, srcPoint.y, srcPoint.z, arcTransMatrix, splitPoint);
+        ArrayPushPoint3(arrArcPoints, splitPoint);
+    }
+
+    srcPoint.x = radusEx * Math.cos(i * alpha);
+    srcPoint.y = radusEx * Math.sin(i * alpha);
+    CalTranslatePoint(srcPoint.x, srcPoint.y, srcPoint.z, arcTransMatrix, splitPoint);
+    ArrayPushPoint3(arrArcPoints, splitPoint);
+    // 终止点
+    srcPoint.x = radusEx * Math.cos(endAngle - startAngle);
+    srcPoint.y = radusEx * Math.sin(endAngle - startAngle);
+    CalTranslatePoint(srcPoint.x, srcPoint.y, srcPoint.z, arcTransMatrix, splitPoint);
+    ArrayPushPoint3(arrArcPoints, splitPoint);
+    return arrArcPoints;
 }

@@ -67,6 +67,8 @@ var g_vVec5 = null;
 var g_vVec6 = null;
 var g_vVec7 = null;
 var g_vVec8 = null;
+var g_vVec9 = null;
+var g_vVec10 = null;
 
 var g_n1 = null;
 var g_n2 = null;
@@ -86,6 +88,12 @@ var g_vBaseDouble4_2 = null;
 var g_vBaseDouble4_3 = null;
 var g_vBaseDouble4_4 = null;
 var g_vBaseDouble4_5 = null;
+
+// 3个ADF_BASEMATRIX临时变量
+var g_vBaseMatrix1 = null;
+var g_vBaseMatrix2 = null;
+var g_vBaseMatrix3 = null;
+var g_vBaseMatrix4 = null;
 
 var g_bMathInt = false;
 
@@ -132,6 +140,10 @@ function ADFMathInt() {
 	g_vVec6 = new ADF_BASEFLOAT3();
 	g_vVec7 = new ADF_BASEFLOAT3();
 	g_vVec8 = new ADF_BASEFLOAT3();
+  g_vVec9 = new ADF_BASEFLOAT3();
+  g_vVec10 = new ADF_BASEFLOAT3();
+
+
 
 	g_o1 = new ADF_BASEFLOAT3();
 	g_o2 = new ADF_BASEFLOAT3();
@@ -150,6 +162,11 @@ function ADFMathInt() {
 	g_vBaseDouble4_3 = new ADF_BASEDOUBLE4();
 	g_vBaseDouble4_4 = new ADF_BASEDOUBLE4();
 	g_vBaseDouble4_5 = new ADF_BASEDOUBLE4();
+
+	g_vBaseMatrix1 = new ADF_BASEMATRIX();
+	g_vBaseMatrix2 = new ADF_BASEMATRIX();
+	g_vBaseMatrix3 = new ADF_BASEMATRIX();
+	g_vBaseMatrix4 = new ADF_BASEMATRIX();
 }
 
 //===================================================================================================
@@ -323,6 +340,14 @@ function ADFMatrixRotationAxis(pOut, pV, dAngle) {
 	pOut._31 = pV.x * pV.z * (1.0 - dCos) + pV.y * dSin;
 	pOut._32 = pV.y * pV.z * (1.0 - dCos) - pV.x * dSin;
 	pOut._33 = dCos + pV.z * pV.z * (1.0 - dCos);
+}
+
+// 生成绕Z轴旋转的矩阵
+function ADFMatrixRotationZ(pOut, fAngle)
+{
+	g_vVec1.Clear();
+	g_vVec1.z = 1.0;
+	ADFMatrixRotationAxis(pOut, g_vVec1, fAngle);
 }
 
 function ADFVec3Length(pV) {
@@ -916,3 +941,110 @@ function CalcIntersectOfLineSegTriangle(vLinePt1, vLinePt2, vTriVert1, vTriVert2
 		}
 	}
 }
+
+// 获取将原始坐标系变换为输入坐标系的转换矩阵
+// vOrigin，类型ADF_BASEFLOAT3，表示坐标系原点
+// vAxisX，类型ADF_BASEFLOAT3，表示坐标系X轴
+// vAxisY，类型ADF_BASEFLOAT3，表示坐标系Y轴
+// vAxisZ，类型ADF_BASEFLOAT3，表示坐标系Z轴
+function GetCoordsTransformMatrix(vOrigin, vAxisX, vAxisY, vAxisZ, matrix)
+{
+    g_vVec1.Copy(vAxisX);
+    g_vVec2.Copy(vAxisY);
+    g_vVec3.Copy(vAxisZ);
+
+	ADFVec3Normalize(g_vVec3);
+	ADFVec3Cross(g_vVec2, g_vVec3, g_vVec1);
+	ADFVec3Normalize(g_vVec2);
+	ADFVec3Cross(g_vVec1, g_vVec2, g_vVec3);
+	ADFVec3Normalize(g_vVec1);
+
+	matrix._11 = g_vVec1.x;
+	matrix._12 = g_vVec1.y;
+	matrix._13 = g_vVec1.z;
+	matrix._14 = 0.0;
+	matrix._21 = g_vVec2.x;
+	matrix._22 = g_vVec2.y;
+	matrix._23 = g_vVec2.z;
+	matrix._24 = 0.0;
+	matrix._31 = g_vVec3.x;
+	matrix._32 = g_vVec3.y;
+	matrix._33 = g_vVec3.z;
+	matrix._34 = 0.0;
+	matrix._41 = vOrigin.x;
+	matrix._42 = vOrigin.y;
+	matrix._43 = vOrigin.z;
+}
+
+// 获取将原始圆弧变换为目标圆弧的转换矩阵
+// (原始圆弧:半径1,vec1为X轴,vec2为Y轴,起始弧度为0;目标圆弧:起始角是原始圆弧"起始角和终止角中的较小值",即目标圆弧起始角到终止角的方向一定是正方向)
+function GetArcTransformMatrix(vOrigin, vVector1, vVector2, dStartAngle, dEndAngle, dRadius, pScaleMatrix, pRotTransMatrix)
+{
+	ADFMatrixIdentity(g_vBaseMatrix1); // matScale
+	ADFMatrixIdentity(g_vBaseMatrix2); // matWorld
+	ADFMatrixIdentity(g_vBaseMatrix3); // matRotStart
+	ADFMatrixIdentity(g_vBaseMatrix4);
+
+	ADFMatrixScaling(g_vBaseMatrix1, dRadius, dRadius, dRadius);
+
+	ADFVec3Cross(g_vVec3, vVector1, vVector2); // vVector3
+	ADFVec3Normalize(g_vVec3);
+	GetCoordsTransformMatrix(vOrigin, vVector1, vVector2, g_vVec3, g_vBaseMatrix2);
+	if (dEndAngle < dStartAngle) {
+		ADFMatrixRotationZ(g_vBaseMatrix3, dEndAngle);
+	}
+	else {
+		ADFMatrixRotationZ(g_vBaseMatrix3, dStartAngle);
+	}
+
+	ADFMatrixMultiply(g_vBaseMatrix3, g_vBaseMatrix2, g_vBaseMatrix4)
+
+	if (pScaleMatrix != null) {
+		pScaleMatrix.Copy(g_vBaseMatrix1);
+	}
+	if (pRotTransMatrix != null) {
+		pRotTransMatrix.Copy(g_vBaseMatrix4);
+	}
+}
+
+function BPVec3Dot(pV1, pV2)
+{
+	return pV1.x * pV2.x + pV1.y * pV2.y + pV1.z * pV2.z;
+}
+
+function CalcDistanceOfPtLineSeg(vPt, vLinePt1, vLinePt2, pNearestLinePt)
+{
+	// 计算线段AB与点C之间的最短距离
+	g_vVec8.x = vLinePt2.x - vLinePt1.x; g_vVec8.y = vLinePt2.y - vLinePt1.y; g_vVec8.z = vLinePt2.z - vLinePt1.z;  // ab
+	g_vVec9.x = vPt.x - vLinePt1.x; g_vVec9.y = vPt.y - vLinePt1.y; g_vVec9.z = vPt.z - vLinePt1.z;  // ac
+
+	let dDot1 = BPVec3Dot(g_vVec8, g_vVec9);
+	if (dDot1 < 0)
+	{
+		if (pNearestLinePt != null) {
+			pNearestLinePt.set(vLinePt1.x, vLinePt1.y, vLinePt1.z);
+		}
+		return CalculateDistance(vPt, vLinePt1);
+	}
+
+	let dDot2 = BPVec3Dot(g_vVec8, g_vVec8);
+	if (dDot1 > dDot2)
+	{
+		if (pNearestLinePt != null) {
+			pNearestLinePt.set(vLinePt2.x, vLinePt2.y, vLinePt2.z);
+		}
+		return CalculateDistance(vPt, vLinePt2);
+	}
+
+	dDot1 = dDot1 / dDot2;
+	// vPt在线段上的投影点
+	g_vVec10.x = vLinePt1.x + g_vVec8.x * dDot1;
+	g_vVec10.y = vLinePt1.y + g_vVec8.y * dDot1;
+	g_vVec10.z = vLinePt1.z + g_vVec8.z * dDot1;
+
+	if (pNearestLinePt != null) {
+		pNearestLinePt.set(g_vVec10.x, g_vVec10.y, g_vVec10.z);
+	}
+	return CalculateDistance(vPt, g_vVec10);
+}
+

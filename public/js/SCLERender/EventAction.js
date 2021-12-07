@@ -51,6 +51,8 @@ function CALLBACK_V3() {
     this.CMOnTouchMoveCallBack = function(event) {}
     // 回调函数，手机触屏抬起事件，发生在CMOnline已经执行内部事件之后
     this.CMOnTouchEndCallBack = function(event) {}
+    // 回调函数，模型加载完毕
+    this.CMOnLoadModelEndCallback = function() {}
 }
 
 //===================================================================================================
@@ -64,7 +66,7 @@ var isWebgl2 = true;
 var text2dCanvas = null;
 var gl2d = null;
 var callback_v2 = new CALLBACK_V2();
-var callback_v3 = new CALLBACK_V3;
+var callback_v3 = new CALLBACK_V3();
 
 var g_nEventVersion = 2;
 var g_bTestMode = true;
@@ -114,8 +116,6 @@ var usrCommentName = "unkown";
 var isUsrCommentFlag = false;
 var isUsrCommInputShow = false;
 var isSingleComment = false;
-var isShowUsrComment = true;
-var isShowScleComment = true;
 var g_isXmlDocLoaded = false;
 var g_usrCommOption = {data: [], show: true};
 var pickedCommentIndex = -1;
@@ -156,7 +156,6 @@ function initComponet(dom) {
     }
 
     container = dom;
-    container.style.position = 'relative';
 
     web3dCanvas = document.createElement('canvas');
     web3dCanvas.style.position = 'absolute'
@@ -198,6 +197,16 @@ function render2D() {
     handle2D = requestAnimationFrame(render2D);
 }
 
+function destoryComponet() {
+    glRunTime.clear();
+    commentDataClear();
+
+    window.cancelAnimationFrame(handle2D);
+    handle2D = null;
+    window.cancelAnimationFrame(handle3D);
+    handle3D = null;
+}
+
 /**
  * 开始循环渲染
  */
@@ -211,16 +220,16 @@ function startRender() {
     phoneFactor = 400.0 / text2dCanvas.height;
     webFactor = 200.0 / text2dCanvas.height;
 
-    gl = web3dCanvas.getContext('webgl2');
+    gl = web3dCanvas.getContext('webgl2', {alpha: false, antialias: true});
     if (!gl) {
-        gl = web3dCanvas.getContext('webgl')
+        gl = web3dCanvas.getContext('webgl', {alpha: false, antialias: true})
         if (!gl) {
-            gl = web3dCanvas.getContext('experimental-webgl');
+            gl = web3dCanvas.getContext('experimental-webgl', {alpha: false, antialias: true});
         }
         isWebgl2 = false;
     }
 
-    gl2d = text2dCanvas.getContext("2d");
+    gl2d = text2dCanvas.getContext("2d", {alpha: true});
 
     if (!gl || !gl2d) {
         return;
@@ -246,6 +255,9 @@ function startRender() {
     if (callback_v2.loadEnd) {
 		callback_v2.loadEnd();
 	}
+    if (callback_v3.CMOnLoadModelEndCallback) {
+        callback_v3.CMOnLoadModelEndCallback();
+    }
 }
 
 /* 通用浏览器设置 */
@@ -287,10 +299,9 @@ function addKeyboardListener() {
 
 // 获取画布左上角坐标真实坐标，考虑dom偏移以及页面滚动
 function getCanvasOrigin() {
-    scrollLeft = document.body.scrollLeft || document.documentElement.scrollLeft;
-    scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
-    originPt.x = container.offsetLeft - scrollLeft;
-    originPt.y = container.offsetTop - scrollTop;
+    let box = container.getBoundingClientRect();
+    originPt.x = box.left;
+    originPt.y = box.top;
 }
 
 function onDocumentKeyDown(event) {
@@ -478,6 +489,10 @@ function webKeyDown(event, textCanvas) {
             }
             if (isShiftDown) {
                 objectIndex = glRunTime.pick(x, y, isMultPick, false);
+            } else {
+                if (glRunTime.pickMeasureUnitIndex >= 0) {
+                    glRunTime.refreshPickMeasureUnitPos(x, y);
+                }
             }
             break;
         case 1:
@@ -505,16 +520,16 @@ function webKeyUp(event, textCanvas) {
             dragLeft = false;
 
             if (isKeyTap) {
-                if (glRunTime.isDuringRectSel) {
+                if (glRunTime.getRectSelectionStatus()) {
                     glRunTime.pickModelByIDs(null);
-                    glRunTime.pickModelByRect(glRunTime.selRect);
-                    glRunTime.isDuringRectSel = false;
+                    glRunTime.pickModelByRect(selRect);
+                    glRunTime.setRectSelection(false, selRect);
                     break;
                 }
 
                 if (isUsrCommentFlag && isSingleComment) {
                     addSingleComment(lastX, lastY, test_note);
-                } else if (isUsrCommentFlag && glRunTime.isDuringComment) {
+                } else if (isUsrCommentFlag && g_canvas.isDuringComment) {
                     glRunTime.createCommentUpdate(lastX, lastY);
                     break;
                 }
@@ -543,7 +558,7 @@ function webKeyUp(event, textCanvas) {
             break;
         case 1:
             dragMid = false;
-            if (isUsrCommentFlag && glRunTime.isDuringComment) {
+            if (isUsrCommentFlag && g_canvas.isDuringComment) {
                 // 弹出文本框
                 getNewCommentNote(lastX, lastY);
                 break;
@@ -553,6 +568,10 @@ function webKeyUp(event, textCanvas) {
             dragRight = false;
             if (isUsrCommentFlag && !isUsrCommInputShow) {
                 glRunTime.createCommentCancel();
+                break;
+            }
+            if (glRunTime.pickMeasureMode) {
+                glRunTime.createMeasureCancel();
                 break;
             }
             break;
@@ -579,46 +598,62 @@ function webKeyMove(event, textCanvas) {
     getCanvasOrigin();
     let x = event.clientX - originPt.x, y = event.clientY - originPt.y;
     if (isKeyTap) {
-        // 在鼠标按下的情况下才能进行视角旋转、模型平移等操作
-        if ((!isShiftDown) && dragMid) {
-            // 视角旋转
-            let degreeX = webFactor * (x - lastX);
-            let degreeY = webFactor * (y - lastY);
-            glRunTime.rotate(degreeX, degreeY, 0);
-        }
-
-       if (isShiftDown && dragMid) {
-            //视角平移
-            glRunTime.move(2 * (x - lastX), -2 * (y - lastY));
-        }
-
-        if (isMove) {
-            if (isShiftDown && dragLeft) {
-                // shift + 左键拖拽：模型平移
-                if (objectIndex > -1) {
-                    if (Math.abs(x - lastX) > moveSensitivity || Math.abs(y - lastY) > moveSensitivity) {
-                        glRunTime.objectMove(objectIndex, 2 * (x - lastX), -2 * (y - lastY));
+        if (isShiftDown) {
+            // 按下shift键
+            if (dragLeft) {
+                if (isMove) {
+                    // 左键拖拽：模型平移
+                    if (objectIndex > -1) {
+                        if (Math.abs(x - lastX) > moveSensitivity || Math.abs(y - lastY) > moveSensitivity) {
+                            glRunTime.objectMove(objectIndex, 2 * (x - lastX), -2 * (y - lastY));
+                        }
                     }
+                } else {
+                    // 无效操作
                 }
+            } else if (dragMid) {
+                // 中键拖拽：视角平移
+                glRunTime.move(2 * (x - lastX), -2 * (y - lastY));
             }
-        } else if (dragLeft && (Math.abs(x - selRect.min.x) > 3 || Math.abs(y - selRect.min.y) > 3)) {
-            // 框选零件
-            selRect.max.x = x;
-            selRect.max.y = y;
-            glRunTime.selRect.copy(selRect);
-            glRunTime.isDuringRectSel = true;
+        } else {
+            if (dragLeft) {
+                if (isMove) {
+                    // 无效操作
+                } else if (glRunTime.pickMeasureUnitIndex >= 0) {
+                    // 拖拽测量控件
+                    if (Math.abs(x - lastX) > moveSensitivity || Math.abs(y - lastY) > moveSensitivity) {
+                        glRunTime.moveMeasureUnit(glRunTime.pickMeasureUnitIndex, x, y);
+                    }
+                } else if ((Math.abs(x - selRect.min.x) > 3 || Math.abs(y - selRect.min.y) > 3)) {
+                    // 框选零件
+                    selRect.max.x = x;
+                    selRect.max.y = y;
+                    glRunTime.setRectSelection(true, selRect);
+                } else {
+                    // 无效操作
+                }
+            } else if (dragMid) {
+                // 视角旋转
+                let degreeX = webFactor * (x - lastX);
+                let degreeY = webFactor * (y - lastY);
+                glRunTime.rotate(degreeX, degreeY, 0);
+            }
         }
     } else {
         // 鼠标没有按下，但滑动，将操作标注信息
         if (isMotionCapture) {
-            motionCaptureObjID = glRunTime.getPickObjectIdByIndex(glRunTime.pick(x, y, false, false));
+            let captureUnit = glRunTime.captureGeomtry(x, y);
+            if (captureUnit != null) {
+                motionCaptureObjID = glRunTime.getPickObjectIdByIndex(captureUnit.objectIndex);
+            } else {
+                motionCaptureObjID = null;
+            }
         }
     }
 
     // 创建批注状态时，捕获鼠标位置
-    if (isUsrCommentFlag && !isUsrCommInputShow) {
-        glRunTime.runtimeMouseX = x;
-        glRunTime.runtimeMouseY = y;
+    if ((isUsrCommentFlag && !isUsrCommInputShow) || (glRunTime.pickMeasureMode)) {
+        glRunTime.mousePt.set(x, y);
     }
 
     lastX = x, lastY = y;
@@ -768,7 +803,10 @@ var animationClock = null;
 var animationStatus = ANIMTERMINAL;
 var uTotalFrame = 0;
 var uCurFrame = 0;
+var uFrameStep = 1;
 var uSleepTime = 40;
+var uBaseTime = 40;
+var uAnimSpeed = 1.0;
 
 // 开始动画、继续动画
 function setAnimationStart() {
@@ -789,7 +827,7 @@ function animRun() {
         glRunTime.setObjectAnim(uCurFrame);
         glRunTime.setAnnotationAnim(uCurFrame);
         getCurFrame(uCurFrame);
-        uCurFrame++;
+        uCurFrame += uFrameStep;
         animationClock = setTimeout("animRun()", uSleepTime);
         animationStatus = ANIMRUN;
     } else {
@@ -819,6 +857,26 @@ function animTerminal() {
     animPause();
     animationStatus = ANIMTERMINAL;
 }
+// 设置动画播放倍速
+// 可选值：0.5 - 10.0
+function setAnimSpeed(speed) {
+    if (speed < 0.5 || speed > 10.0) {
+        return;
+    }
+    if (speed > 4.0) {
+        uAnimSpeed = 1.0;
+        uSleepTime = uBaseTime;
+        uFrameStep = Math.ceil(speed);
+    } else {
+        uFrameStep = 1;
+        uAnimSpeed = speed;
+        uSleepTime = uBaseTime / uAnimSpeed;
+    }
+}
+// 获取当前动画播放倍速
+function getAnimSpeed() {
+    return uAnimSpeed * uFrameStep;
+}
 
 // 场景动画接口
 var g_nAnimationStart = 0;
@@ -840,7 +898,7 @@ function animSceneRun() {
         glRunTime.setObjectAnim(uCurFrame);
         glRunTime.setAnnotationAnim(uCurFrame);
         getCurFrame(uCurFrame);
-        uCurFrame++;
+        uCurFrame += uFrameStep;
         animationClock = setTimeout("animSceneRun()", uSleepTime);
     } else {
         animPause();
@@ -1173,6 +1231,120 @@ function getObjectsCenter(objectIDs) {
     }
     return arrCenters;
 }
+
+function setMeasureMode(measureMode) {
+    if (measureMode == MEASURE_NONE) {
+        isMotionCapture = false;
+    } else {
+        isMotionCapture = true;
+    }
+    glRunTime.setMeasureMode(measureMode);
+}
+
+function cancelMeacureMode() {
+    isMotionCapture = false;
+    glRunTime.setMeasureMode(MEASURE_NONE);
+}
+
+// 获取当前选取的测量单元索引
+function getMeasureUnitIndex() {
+    return glRunTime.pickMeasureUnitIndex;
+}
+
+// index: 选取的测量单元索引。
+// 如果是-1则表示导出全部测量单元。
+// 如果是-2则表示导出当前已拾取的测量单元。
+function exportMeasureUnits(index) {
+    if (index < -2 || index >= g_canvas.m_arrMeasureDispalyInfo.length) {
+        return;
+    }
+    if (index == -1) {
+        let arrMeasureUnits = new Array();
+        for (let i = 0; i < g_canvas.m_arrMeasureDispalyInfo.length; ++i) {
+            if (g_canvas.m_arrMeasureDispalyInfo == null) {
+                continue;
+            }
+            arrMeasureUnits.push(g_canvas.m_arrMeasureDispalyInfo[i].Copy());
+        }
+        return arrMeasureUnits;
+    } else if (index == -2) {
+        return g_canvas.m_arrMeasureDispalyInfo[glRunTime.pickMeasureUnitIndex].Copy();
+    } else {
+        return g_canvas.m_arrMeasureDispalyInfo[index] == null ? null : g_canvas.m_arrMeasureDispalyInfo[index].Copy();
+    }
+}
+
+// index: 选取的测量单元索引。
+// 如果是-1则表示操作全部测量单元。
+// 如果是-2，则表示操作当前已拾取的测量单元。
+function setMeasureUnitVisible(index, visible) {
+    if (index < -2 || index >= g_canvas.m_arrMeasureDispalyInfo.length) {
+        return;
+    }
+    if (index == -2) {
+        return glRunTime.hideMeasureUnit(glRunTime.pickMeasureUnitIndex, visible);
+    } else {
+        return glRunTime.hideMeasureUnit(index, visible);
+    }
+}
+
+// index: 选取的测量单元索引。
+// 如果是-1则表示操作全部测量单元。
+// 如果是-2，则默认操作当前已拾取的测量单元。
+function deleteMeasureUnit(index) {
+    if (index < -2 || index >= g_canvas.m_arrMeasureDispalyInfo.length) {
+        return;
+    }
+    if (index == -2) {
+        glRunTime.deleMeasureUnit(glRunTime.pickMeasureUnitIndex);
+        glRunTime.pickMeasureUnitIndex = -1;
+    } else {
+        return glRunTime.deleMeasureUnit(index);
+    }
+}
+
+// 设置动态捕捉模式
+function setCaptureMode(captureMode) {
+    if (captureMode == CAPTURE_NONE) {
+        isMotionCapture = false;
+    } else {
+        isMotionCapture = true;
+    }
+    glRunTime.setCaptrueMode(captureMode);
+}
+
+// 材质操作
+function getObjectMetialList(objectId) {
+    return glRunTime.getObjectMetialList(objectId);
+}
+
+function setObjectMaterialID(objID, objSubsetIndexs, uMtlID) {
+    let objectIndex = glRunTime.getObjectIndexById(objID);
+    if (objectIndex >= 0) {
+        for (let i = 0; i < objSubsetIndexs.length; ++i) {
+            setSurfaceMaterialById(objectIndex, objSubsetIndexs[i], uMtlID);
+        }
+    }
+}
+
+function setSurfaceMaterialMode(flag) {
+    if (flag == 1) {
+        g_glprogram.setPickType(PICK_GEOM_SURFACE);
+    } else {
+        g_glprogram.setPickType(PICK_OBJECT);
+    }
+}
+
+function setSurfaceMaterial(red, green, blue, alpha) {
+    let curPickUnit = glRunTime.getPickUnit();
+    glRunTime.setObjectSurfaceMaterial(curPickUnit.objectIndex, curPickUnit.surfaceIndex, red, green, blue, alpha);
+}
+
+function setSurfaceMaterialById(objectIndex, surfaceIndex, mtlID) {
+    glRunTime.setObjectSurfaceMaterialById(objectIndex, surfaceIndex, mtlID);
+}
+
+// =========================================================================
 
 // 回调函数，刷新界面
 function OnUpdateUICallBack() {

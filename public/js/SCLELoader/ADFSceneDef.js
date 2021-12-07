@@ -666,27 +666,27 @@ function ADF_OBJ_SAVEDATAMGR() {
 			this._arrObjSaveData[i] = data._arrObjSaveData[i];
 		}
 	}	
-} 
+}
 
 // 模型子集存储数据
 function ADF_MODELSUBSET_SAVEDATA() {    
-    this._nPrimitType = ADFPT_TRIANGLELIST;			    // 图元类型,参看枚举型ADF_PRIMITIVETYPE， Int32
-	this._uStartIndex = 0;			                    // 首索引偏移值， Uint32
-	this._uIndexCount = 0;			                    // 索引数量， Uint32
-	this._box = new ADF_BBOX();					        // 子集包围盒
-//	this._nSubsetType = ADF_MDLSUBSET_UNKOWN;			// 子集类型,参看枚举型ADF_MDLSUBSETTYPE， Int32
-//  this._uGeomIndex = -1;			                    // 几何(曲面曲线等)索引(注意:若该索引不为-1,则该子集与对应的几何是一一对应关系)， Uint32
+    this._nPrimitType = ADFPT_TRIANGLELIST;             // 图元类型,参看枚举型ADF_PRIMITIVETYPE， Int32
+    this._uStartIndex = 0;                              // 首索引偏移值， Uint32
+    this._uIndexCount = 0;                              // 索引数量， Uint32
+    this._box = new ADF_BBOX();                         // 子集包围盒
+    this._nSubsetType = ADF_MDLSUBSET_UNKOWN;           // 子集类型,参看枚举型ADF_MDLSUBSETTYPE， Int32
+    this._uGeomIndex = -1;                              // 几何(曲面曲线等)索引(注意:若该索引不为-1,则该子集与对应的几何是一一对应关系)， Uint32
         
-    this.Clear = function () { 
-        this._nPrimitType = ADFPT_TRIANGLELIST;		
-        this._uStartIndex = 0;			                  
-        this._uIndexCount = 0;			                 
-        this._box.Clear();					      
-//      this._nSubsetType = ADF_MDLSUBSET_UNKOWN;		
-//      this._uGeomIndex = -1;	
+    this.Clear = function () {
+        this._nPrimitType = ADFPT_TRIANGLELIST;
+        this._uStartIndex = 0;
+        this._uIndexCount = 0;
+        this._box.Clear();                        
+        this._nSubsetType = ADF_MDLSUBSET_UNKOWN;
+        this._uGeomIndex = -1;
     }
     
-	this.Clone = function () {
+    this.Clone = function () {
         var newData = new ADF_MODELSUBSET_SAVEDATA();
 
         newData._nPrimitType = this._nPrimitType;
@@ -695,22 +695,22 @@ function ADF_MODELSUBSET_SAVEDATA() {
 
         newData._box.Copy(this._box);
 
-//      newData._nSubsetType = this._nSubsetType;
-//      newData._nReverse4 = this._nReverse4;
+        newData._nSubsetType = this._nSubsetType;
+        newData._nReverse4 = this._nReverse4;
 
-    	return newData;
-	}
-	this.Copy = function (data) {
+        return newData;
+    }
+    this.Copy = function (data) {
         this._nPrimitType = data._nPrimitType;
         this._uStartIndex = data._uStartIndex;          
         this._uIndexCount = data._uIndexCount;
 
         this._box.Copy(data._box);
 
-//      this._nSubsetType = data._nSubsetType;
-//      this._uGeomIndex = data._uGeomIndex;        
- 	}	
-} 
+        this._nSubsetType = data._nSubsetType;
+        this._uGeomIndex = data._uGeomIndex;        
+    }   
+}
 
 // 模型存储数据
 function ADF_MODEL_SAVEDATA() {    
@@ -733,8 +733,8 @@ function ADF_MODEL_SAVEDATA() {
         }
                    
         this._arrSubset.splice(0, this._arrSubset.length);	
-        this._arrSurface.splice(0, this._arrSurface.length); 
-        this._arrCurve.splice(0, this._arrCurve.length);	
+        // this._arrSurface.splice(0, this._arrSurface.length); 
+        // this._arrCurve.splice(0, this._arrCurve.length);	
 
         this._box.Clear();   
 

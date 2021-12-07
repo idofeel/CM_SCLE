@@ -716,10 +716,8 @@ function ADFCleParser() {
         data._uStartIndex = this.parseStreamADF_UINT();
         data._uIndexCount = this.parseStreamADF_UINT();
         this.parseStreamADF_BBOX(data._box);
-        this._cur_pos += 4;
-        this._cur_pos += 4;
-       // data._nSubsetType = this.parseStreamADF_INT();
-       // data._uGeomIndex = this.parseStreamADF_UINT();
+        data._nSubsetType = this.parseStreamADF_INT();
+        data._uGeomIndex = this.parseStreamADF_UINT();
     } 
 
     // 模型数据

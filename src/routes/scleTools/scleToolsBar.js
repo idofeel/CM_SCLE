@@ -22,7 +22,7 @@ import './scleTools.less'
 import { scleCustomEvent } from '../../utils'
 
 const IconFont = Icon.createFromIconfontCN({
-	// scriptUrl: '//at.alicdn.com/t/font_1616415_x0co1i09pnp.js'
+	// scriptUrl: '//at.alicdn.com/t/font_1616415_u6ht57qahg.js'
 	scriptUrl: './js/localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
@@ -73,6 +73,15 @@ export default class scleTools extends PureComponent {
 			popover: () => this.renderViewDire()
 		},
 		{
+			type: 'icon-a-ziyuan10',
+			isFont: true,
+			onClick: () => {
+				this.setState({
+					tools: [...this.#measurement]
+				})
+			}
+		},
+		{
 			type: 'play-circle',
 			title: '播放',
 			onClick: () => {
@@ -82,6 +91,108 @@ export default class scleTools extends PureComponent {
 			}
 		},
 		{ type: 'fullscreen', title: '全屏' }
+	]
+
+
+	#measurement = [
+		{
+			type: 'icon-lingjian',
+			isFont: true,
+			title: '零件测量',
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_OBJECT)
+			}
+		},
+		{
+			type: 'icon-qumian',
+			title: '曲面测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_SURFACE)
+			}
+		},
+		{
+			type: 'icon-quxian',
+			title: '曲线测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_CURVE)
+			}
+		},
+		{
+			type: 'icon-min_quxianceliang',
+			title: '曲线与曲线测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_TWO_CURVES)
+			}
+		},
+		{
+			type: 'icon-zuobiaoceliang',
+			title: '点测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_POINT)
+			}
+		},
+		{
+			type: 'icon-dianceliang',
+			title: '点与点测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureMode(MEASURE_TWO_POINTS)
+			}
+		},
+		{
+			type: 'icon-qingchuceliang1',
+			title: '取消测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.cancelMeacureMode()
+			}
+		},
+		{
+			type: 'icon-yincang',
+			title: '隐藏测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureUnitVisible(-2, false)
+			}
+		},
+		{
+			type: 'icon-xianshi',
+			title: '显示测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.setMeasureUnitVisible(-1, true)
+			}
+		},
+		{
+			type: 'icon-shanchuceliang',
+			title: '删除测量',
+			isFont: true,
+			onClick: () => {
+				// eslint-disable-next-line
+				window.deleteMeasureUnit(-2)
+			}
+		},
+		{
+			type: 'poweroff',
+			title: '退出测量',
+			onClick: () => {
+				this.exitMeasurement()
+				window.cancelMeacureMode()
+			}
+		}
 	]
 
 	#playerTools = [
@@ -600,17 +711,20 @@ export default class scleTools extends PureComponent {
 	}
 
 	pickObjectParameters() {
-		const icon = window.pickObjectVisible ? 'eye-invisible' : 'eye'
-		const newTools = this.state.tools
-		const { visibleIndex, alphaIndex } = this.#toolsKeyIndex
-		newTools[visibleIndex].type = icon
-		newTools[visibleIndex].title = icon === 'eye' ? '显示' : '隐藏'
-		newTools[alphaIndex].visible = false
-		this.setState({
-			tools: [...newTools],
-			// activeTab: null,
-			alpha: window.pickObjectTransparent || 0
-		})
+		console.log('this.activeTab',this.activeTab);
+		if(this.activeTab){
+			const icon = window.pickObjectVisible ? 'eye-invisible' : 'eye'
+			const newTools = this.state.tools
+			const { visibleIndex, alphaIndex } = this.#toolsKeyIndex
+			newTools[visibleIndex].type = icon
+			newTools[visibleIndex].title = icon === 'eye' ? '显示' : '隐藏'
+			newTools[alphaIndex].visible = false
+			this.setState({
+				tools: [...newTools],
+				// activeTab: null,
+				alpha: window.pickObjectTransparent || 0
+			})
+		}
 	}
 
 	//   停止播放
@@ -620,6 +734,13 @@ export default class scleTools extends PureComponent {
 		this.setState({
 			tools: [...this.#tools]
 		})
+	}
+
+	// 退出测量
+	exitMeasurement() {
+		this.setState({
+			tools: [...this.#tools]
+		})	
 	}
 
 	changeVisible(visible, index) {

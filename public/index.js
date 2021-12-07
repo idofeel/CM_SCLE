@@ -155,7 +155,8 @@
 		},
 		startLoadFile: function (res) {
 			// 使用CM_LIB API
-			return window.CM_LIB.CMInitData(res)
+			return Module.onData(res);
+			// return window.CM_LIB.CMInitData(res)
 			const self = this
 			const new_zip = new window.JSZip()
 			new_zip.loadAsync(res).then(function (zip) {

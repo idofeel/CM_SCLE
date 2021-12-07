@@ -18,6 +18,8 @@ function Camera() {
     this.eVec = new Vector3(0, 0, 0);
     this.viewMatrix = mat4.create();
     this.projectionMatrix = mat4.create();
+    this.angle = 0;
+    this.aspect = 0;
     this.zNear = -1.0;
     this.zFar = -1.0;
     this.personControl = 0;
@@ -71,6 +73,8 @@ function Camera() {
             this.zNear = focusDistance * 0.02;
             this.zFar = focusDistance * 200.0;
         }
+        this.angle = angle;
+        this.aspect = aspect;
         mat4.perspective(this.projectionMatrix, angle, aspect, this.zNear, this.zFar);
     }
 
@@ -78,11 +82,16 @@ function Camera() {
         this.zNear = near; this.zFar = far;
     }
 
-    this.resetPerspectiveMatrix = function(angle, aspect) {
+    this.setPerspective = function(angle, aspect) {
+        this.angle = angle;
+        this.aspect = aspect;
+    }
+
+    this.updatePerspectiveMatrix = function() {
         let focusDistance = this.getDist();
         this.zNear = focusDistance * 0.02;
         this.zFar = focusDistance * 200.0;
-        mat4.perspective(this.projectionMatrix, angle, aspect, this.zNear, this.zFar);
+        mat4.perspective(this.projectionMatrix, this.angle, this.aspect, this.zNear, this.zFar);
     }
 
     /**
@@ -186,6 +195,7 @@ function Camera() {
         // this.look.y += du*this.u.y + dv*this.v.y + dn*this.n.y;
         // this.look.z += du*this.u.z + dv*this.v.z + dn*this.n.z;
         this.setViewMatrix();
+        this.updatePerspectiveMatrix();
     }
 
     /**
