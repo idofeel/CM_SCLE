@@ -288,7 +288,7 @@ function ScleView() {
 			scleControl.refreshNotation();
 		});
 
-		window.addEventListener('load', asyncLoad);
+		// window.addEventListener('load', asyncLoad);
 
 		scleCustomEvent('scleViewOnload');
 
