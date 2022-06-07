@@ -266,6 +266,9 @@ function ScleView() {
 
 		function asyncLoad() {
 			const cmcallbacks = new window.CM_CALLBACKS();
+			cmcallbacks.CMOnLoadModelEndCallback = function () {
+				scleCustomEvent('CMOnLoadModelEndCallback');
+			}
 			window.CM_LIB = new window.CMOnlineLib(
 				containerRef.current,
 				cmcallbacks
@@ -275,6 +278,7 @@ function ScleView() {
 			if (isHttp) openScle();
 			addScleAPi();
 			window.CM_LIBReady = true;
+			
 		}
 
 		window.CM_onload = asyncLoad;
@@ -386,7 +390,6 @@ function ScleView() {
                 <canvas id="text" width="800" height="600"></canvas>
             </> */}
 			{posInput.show !== false ? posInput.data.map(renderComment) : null}
-
 			{loading ? (
 				<div className="scle_loading">
 					{isHttp ? (

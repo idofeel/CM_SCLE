@@ -132,13 +132,6 @@ let	ADF_AT_DATUM                = 3;	// 基准
 let	ADF_AT_GTOL                 = 4;	// 形位公差
 let	ADF_AT_SURFFINISH           = 5;	// 粗糙度
 let	ADF_AT_TECHREQU             = 6;	// 技术要求
-let	ADF_AT_SYMBOL               = 7;	// 一般符号
-let	ADF_AT_WELDFILLET           = 8;	// 焊角符号
-let	ADF_AT_WELD                 = 9;	// 焊接符号
-let	ADF_AT_SAMEHOLE             = 10;	// 相同孔符号
-let	ADF_AT_SKETCH               = 20;	// 草绘（当作一种特殊符号处理）
-let	ADF_AT_COSMETIC             = 21;	// 修饰特征（当作一种特殊符号处理）
-let	ADF_AT_SECTIONPLANE         = 100	// 剖切平面
 
 // 形位公差引线方式
 let	ADF_AS_UNKNOWN              = -1;
@@ -485,6 +478,7 @@ function ADF_OBJ_TREENODE() {
 	this._uObjectID = -1;				            // 节点对应的物件ID, Uint32
 	this._strName = '';					            // 节点名称
     this._matTranform = new ADF_BASEMATRIX();		// 变换矩阵(当前模型(组件/零件)在上一层组件中的世界变换矩阵)
+    this._uAnnoID = -1;		                        // 标注（PMI）ID, Uint32
     this._arrParamData = new Array();			    // 参数，存储ADF_PARAMETER对象
     this._arrSubNode = new Array();			        // 子节点，存储ADF_OBJ_TREENODE对象
     
@@ -494,6 +488,8 @@ function ADF_OBJ_TREENODE() {
         this._strName = '';	
         
         this._matTranform.Clear();
+        this._uAnnoID = -1;
+
         this._arrParamData.splice(0, this._arrParamData.length);	
         this._arrSubNode.splice(0, this._arrSubNode.length);		
  	}
@@ -504,7 +500,8 @@ function ADF_OBJ_TREENODE() {
         newData._uObjectID  = this._uObjectID;	
         newData._strName  = this._strName;	
         newData._matTranform.Copy(this._matTranform);
-
+        newData._uAnnoID  = this._uAnnoID;	
+   
 		for (var i in this._arrParamData){
 			newData._arrParamData[i] = this._arrParamData[i];
         }
@@ -519,6 +516,7 @@ function ADF_OBJ_TREENODE() {
         this._uObjectID  = data._uObjectID;	
         this._strName  = data._strName;	
         this._matTranform.Copy(data._matTranform);
+        this._uAnnoID  = data._uAnnoID;	
 
 		this._arrParamData.splice(0, this._arrParamData.length);
 		for (var i in data._arrParamData){
@@ -725,16 +723,12 @@ function ADF_MODEL_SAVEDATA() {
                                                                     // UV坐标不能存在时， 顶点数据(每个顶点包含6个Float32(3个位置+3个法矢向量)), Float32Array类型
     
     this.Clear = function () {  
-        // if (_arrVertexData != null) 
-        //     this._arrVertexData.splice(0, this._arrVertexData.length);
+        this._arrVertexData = null;
+        this._arrIndexData = null;
+        this._arrSurface = null;
+        this._arrCurve = null;
 
-        if (_arrIndexData != null) {
-            this._arrIndexData.splice(0, this._arrIndexData.length);    
-        }
-                   
         this._arrSubset.splice(0, this._arrSubset.length);	
-        // this._arrSurface.splice(0, this._arrSurface.length); 
-        // this._arrCurve.splice(0, this._arrCurve.length);	
 
         this._box.Clear();   
 
@@ -744,21 +738,24 @@ function ADF_MODEL_SAVEDATA() {
 
 // 模型存储数据
 function ADF_MODEL() {    
+    this._Loaded = false;           // 模型数据是否已经加载
     this._uModelID = -1;
 	this._strModelName = '';
-//	this._strModelFilePath = '';
+    // this._strModelFilePath = '';
     this._stuModelData = new ADF_MODEL_SAVEDATA();
             
     this.Clear = function () { 
+        this._Loaded = false;
         this._uModelID = -1;
         this._strModelName = '';
-//        this._strModelFilePath = '';
+        // this._strModelFilePath = '';
         this._stuModelData.Clear();                    
     }
     
 	this.Clone = function () {
         var newData = new ADF_MODEL();
 
+        newData._Loaded = this._Loaded;
         newData._uModelID = this._uModelID;
         newData._strModelName = this._strModelName;
 //       newData._strModelFilePath = this._strModelFilePath;
@@ -766,6 +763,7 @@ function ADF_MODEL() {
     	return newData;
 	}
 	this.Copy = function (data) {
+        this._Loaded = data._Loaded;
         this._uModelID = data._uModelID;
         this._strModelName = data._strModelName;
 //       this._strModelFilePath = data._strModelFilePath;
@@ -1475,17 +1473,17 @@ function ADF_NoteInfo() {
  	}	
 }
 
-// 标注
-function ADF_Annotation() {
-    this.uID = -1;					                    // 标注ID, UInt32
+// 批注数据
+function ADF_COMMENT_Data() {
+    this.uID = -1;					                    // ID, UInt32
     this.pNote = new ADF_NoteInfo();		            // 注释集
 
-	this.strOriAnnotID = '';		                    // 标注原始ID(从CAD导出时的标注ID,用于原CAD标注更新当前标注), 暂时不用
-	this.nType = 0;					                    // 标注类型,参看枚举型AnnotationType, 暂时不用
+	this.strOriAnnotID = '';		                    // 原始ID(从CAD导出时的标注ID,用于原CAD标注更新当前标注), 暂时不用
+	this.nType = 0;					                    // 类型,参看枚举型AnnotationType, 暂时不用
 	this.strName = '';				                    // 名称,暂时不用
-	this.annoPlaneLocal = new ADF_BASEFLOAT3();	        // 标注的局部注释平面，3各float， 剩余3*3个float, 暂时不用
-	this.annoRenderProp;	                            // 标注的渲染属性， 3个Int32, 暂时不用
-	this.uMtlID = -1;					                // 材质ID, UInt32, 暂时不用
+	this.annoPlaneLocal = new ADF_BASEFLOAT3();	        // 的局部注释平面，3各float， 剩余3*3个float, 暂时不用
+	this.annoRenderProp;	                            // 渲染属性， 3个Int32, 暂时不用
+	this.uMtlID = -1;					                // ID, UInt32, 暂时不用
 
     this.Clear = function () { 
         this.uID = -1
@@ -1494,7 +1492,7 @@ function ADF_Annotation() {
     }
 
     this.Clone = function () {
-        var newData = new ADF_Annotation();
+        var newData = new ADF_COMMENT_Data();
 
         newData.uID = this.uID;
         newData.pNote.Copy(this.pNote); 
@@ -1512,7 +1510,7 @@ function ADF_Annotation() {
 
 // 批注
 function ADF_COMMENT() {
-    this.stuAnnot = new ADF_Annotation();		        // 标注数据
+    this.stuAnnot = new ADF_COMMENT_Data();		        // 标注数据
     this.stuProperty = new ADF_COMMENTPROPERTY();		// 批注属性
 
     this.Clear = function () { 
@@ -1535,6 +1533,241 @@ function ADF_COMMENT() {
  	}
 }
 
+// 注释平面
+function ADF_AnnotationPlane() {
+	this.origin = new ADF_BASEFLOAT3();
+	this.x = new ADF_BASEFLOAT3();
+	this.y = new ADF_BASEFLOAT3();
+	this.z = new ADF_BASEFLOAT3();
+
+	this.Clear = function () { 
+        this.origin.Clear();  
+        this.x.Clear(); 
+        this.y.Clear(); 
+        this.z.Clear(); 
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_AnnotationPlane();
+
+        newData.origin.Copy(this.origin);   
+        newData.x.Copy(this.x);   
+        newData.y.Copy(this.y);   
+        newData.z.Copy(this.z);   
+
+    	return newData;
+    }
+
+    this.Copy = function (data) {  
+        this.origin.Copy(data.origin);   
+        this.x.Copy(data.x); 
+        this.y.Copy(data.y); 
+        this.z.Copy(data.z);    
+ 	}	
+}
+
+// 线框数据
+function ADF_WireFrameData() {
+    this.bitMask = 0;					                // 线框数据标识符，见ADF_WIREFRAMEBITMASK
+    this.points = new Array();                          // 线框集（每个子集代表经过一系列点的折线），存储ADF_BASEFLOAT3对象
+
+    this.Clear = function () {
+        this.bitMask = 0;		       
+        this.points.splice(0, this.points.length);		
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_WireFrameData();
+        
+        newData.bitMask  = this.bitMask;    
+        for (var i in this.points){
+            newData.points[i] = this.points[i];
+        }
+ 
+        return newData;
+    }
+    
+    this.Copy = function (data) {
+        this.bitMask  = data.bitMask;
+       
+        this.points.splice(0, this.points.length);
+        for (var i in data.points){
+            this.points[i] = data.points[i];
+        } 
+    }
+}
+
+// 标注图形数据
+function ADF_AnnotationGraphicData() {
+    this.points = new Array();                          // 三角形顶点数据集（3的倍数，每三个代表一个三角片），存储ADF_BASEFLOAT3对象
+	this.normal = new ADF_BASEFLOAT3();		            // 三角形法矢数据
+    this.wires = new Array();                           // 线框数据（每个子集代表经过一系列点的折线），存储ADF_WireFrameData对象
+
+    this.Clear = function () {
+        this.points.splice(0, this.points.length);	
+        this.normal.Clear();
+        this.wires.splice(0, this.wires.length); 
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_AnnotationGraphicData();
+
+        for (var i in this.points){
+            newData.points[i] = this.points[i];
+        }
+ 
+        newData.normal.Copy(this.normal);
+
+        for (var i in this.wires){
+            newData.wires[i] = this.wires[i];
+        }
+
+        return newData;
+    }
+    this.Copy = function (data) {
+
+        this.points.splice(0, this.points.length);
+        for (var i in data.points){
+            this.points[i] = data.points[i];
+        } 
+
+        this.normal.Copy(data.normal); 
+
+        this.wires.splice(0, this.wires.length);
+        for (var i in data.wires){
+            this.wires[i] = data.wires[i];
+        } 
+    }			
+}
+
+// 标注项
+function ADF_AnnotationItem() {
+	this.uID = -1;  						            // 标注ID, ADF_UINT类型
+	this.nType = ADF_AT_UNKNOWN;			            // 标注类型,参看"标注类型"定义
+	this.strName = '';					                // 名称
+    this.annoPlaneLocal = new ADF_AnnotationPlane();	// 标注的局部注释平面（通常情况下位于原点和xyz）	
+	this.bIsScreenAnnot = false;				        // 是否平行于屏幕, Int32
+    this.graphicData = new ADF_AnnotationGraphicData(); // 图形数据
+
+    this.Clear = function () {
+        this.uID = -1;
+        this.nType = ADF_AT_UNKNOWN;
+        this.strName = '';
+        this.annoPlaneLocal.Clear();
+
+        this.bIsScreenAnnot = false;
+        this.graphicData.Clear();
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_AnnotationItem();
+
+        newData.uID  = this.uID;  
+        newData.nType  = this.nType;  
+        newData.strName  = this.strName;    
+        newData.annoPlaneLocal.Copy(this.annoPlaneLocal);
+        newData.bIsScreenAnnot  = this.bIsScreenAnnot;  
+        newData.graphicData.Copy(this.graphicData);
+        return newData;
+    }
+
+    this.Copy = function (data) {
+        this.uID  = data.uID; 
+        this.nType  = data.nType; 
+        this.strName  = data.strName; 
+        this.annoPlaneLocal.Copy(data.annoPlaneLocal);  
+        this.strbIsScreenAnnotName  = data.bIsScreenAnnot;
+        this.graphicData.Copy(data.graphicData);
+    }	
+}
+
+// 标注视图，包含一系列注释元素
+function ADF_AnnotationView() {
+	this.uID = -1;  						            // 标注ID, ADF_UINT类型
+	this.strName = '';					                // 名称
+    this.annoPlane = new ADF_AnnotationPlane();	        // 标注平面
+    this.arrAnnotationID = new Array();                 // 标注集，存储ADF_UINT对象
+
+    this.Clear = function () {
+        this.uID = -1;
+        this.strName = '';
+        this.annoPlane.Clear();
+        this.arrAnnotationID.splice(0, this.arrAnnotationID.length);
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_AnnotationView();
+
+        newData.uID  = this.uID;  
+        newData.strName  = this.strName;    
+        newData.annoPlane.Copy(this.annoPlane);
+
+        for (var i in this.arrAnnotationID){
+            newData.arrAnnotationID[i] = this.arrAnnotationID[i];
+        }
+
+        return newData;
+    }
+
+    this.Copy = function (data) {
+        this.uID  = data.uID; 
+        this.strName  = data.strName; 
+        this.annoPlane.Copy(data.annoPlane);  
+
+        this.arrAnnotationID.splice(0, this.arrAnnotationID.length);
+        for (var i in data.arrAnnotationID){
+            this.arrAnnotationID[i] = data.arrAnnotationID[i];
+        } 
+    }	
+}
+
+// 标注
+function ADF_Annotation() {
+    this.uID = -1;  						            // 标注ID, ADF_UINT类型
+	this.strName = '';					                // 名称
+    this.arrAnnotationItem = new Array();               // 标注项，存储ADF_AnnotationItem对象
+    this.arrAnnotationView = new Array();               // 视图集，存储ADF_AnnotationView对象
+
+	this.Clear = function () {
+        this.uID = -1;
+        this.strName = '';
+        this.arrAnnotationItem.splice(0, this.arrAnnotationItem.length);
+        this.arrAnnotationView.splice(0, this.arrAnnotationView.length);
+    }
+
+    this.Clone = function () {
+        var newData = new ADF_Annotation();
+
+        newData.uID  = this.uID;  
+        newData.strName  = this.strName;    
+
+        for (var i in this.arrAnnotationItem){
+            newData.arrAnnotationItem[i] = this.arrAnnotationItem[i];
+        }
+
+        for (var i in this.arrAnnotationView){
+            newData.arrAnnotationView[i] = this.arrAnnotationView[i];
+        }
+
+        return newData;
+    }
+
+    this.Copy = function (data) {
+        this.uID  = data.uID; 
+        this.strName  = data.strName; 
+
+        this.arrAnnotationItem.splice(0, this.arrAnnotationItem.length);
+        for (var i in data.arrAnnotationItem){
+            this.arrAnnotationItem[i] = data.arrAnnotationItem[i];
+        } 
+
+        this.arrAnnotationView.splice(0, this.arrAnnotationView.length);
+        for (var i in data.arrAnnotationView){
+            this.arrAnnotationView[i] = data.arrAnnotationView[i];
+        } 
+    }	
+}
+
 // 场景数据
 function ADF_SCENEDATA() {  
     this.arrModelData = new Array();			                    // 模型集，存储ADF_MODEL_OPINFO对象
@@ -1550,6 +1783,7 @@ function ADF_SCENEDATA() {
     this.arrAudioFile = new Array();			                    // 音频文件数据集，存储ADF_FILE_OPINFO对象
     this.arrResFile = new Array();			                        // 资源数据集，存储CleStreamResFileInfo对象
     this.arrComment = new Array();			                        // 批注数据集，存储ADF_COMMENT对象
+    this.arrAnnotation = new Array();			                    // 标注数据集，存储ADF_Annotation对象
 
     this.Clear = function () { 
         this.arrModelData.splice(0, this.arrModelData.length);
@@ -1566,5 +1800,6 @@ function ADF_SCENEDATA() {
         this.arrAudioFile.splice(0, this.arrAudioFile.length);
         this.arrResFile.splice(0, this.arrResFile.length);
         this.arrComment.splice(0, this.arrComment.length);
+        this.arrAnnotation.splice(0, this.arrAnnotation.length);
     }
 }

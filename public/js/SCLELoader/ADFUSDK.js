@@ -17,8 +17,8 @@ var g_matRTWorld = null;
 var g_arrKeyFrameIndex = null;
 var g_arrRatio = null;
 
-// 解析数据
-function ParseCleStream() { 
+// 初始化数据
+function InitCleStream() { 
     g_sceneData = new ADF_SCENEDATA();
     g_cleParser = new ADFCleParser();
 
@@ -38,7 +38,10 @@ function ParseCleStream() {
     ADFMathInt();
     // 全局方法使用的临时变量
     ADFGlobalInt();
-    
+ }
+
+// 解析数据
+function ParseCleStream() {    
     // 主入口函数
     return g_cleParser.parseMain(g_sceneData);
 } 
@@ -47,7 +50,6 @@ function ParseCleStream() {
 function UnitCleStream() { 
     g_sceneData = null;
     g_cleParser = null;
-    g_nResFileCount = 0;
  }
  
 // 计算物件世界矩阵

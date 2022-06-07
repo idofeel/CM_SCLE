@@ -1,10 +1,14 @@
 //===================================================================================================
 
+// 版本号
+const CMONLINE_VERSION = "2.1.0.1011";
+
 // 模型树
 function CM_MODELTREENODE() {
     this._uTreeNodeID = -1;
     this._uObjectID = -1;
     this._strName = "";
+    this._uAnnoID = -1;		                // 标注（PMI）ID, Uint32
     this._bVisible = true;
     this._arrNodeParameters = new Array(); // 类型CM_NODEPARAMETER
     this._arrSubNode = new Array();        // 类型CM_MODELTREENODE
@@ -22,11 +26,44 @@ function CM_MATERIALINFO() {
     this._uMaterialID = 0;
 }
 
+// 包围盒
+function CM_BOX() {
+    this._arrVertex = new Array(); // 包围盒8个顶点坐标，每个坐标有x、y、z属性
+}
+
+// 三维向量(单精)
+function CM_BASEFLOAT3(){
+	this.x = 0.0;				// Float32
+	this.y = 0.0;				// Float32
+	this.z = 0.0;				// Float32
+}
+
+// 摄像机
+function CM_CAMERA() {  
+    this._vEyePos = new CM_BASEFLOAT3();			        // 摄像机位置
+    this._vFocus = new CM_BASEFLOAT3();			            // 摄像机焦点
+    this._vUp = new CM_BASEFLOAT3();			            // 摄像机上方向
+    this._fZNear = 0;				                        // 近平面, Float32
+    this._fZFar = 0;				                        // 远平面, Float32  
+} 
+
+// 场景事件
+function CM_SCENEANIMNODE() {
+    this._uTimeNodeID = -1;					        // 节点对应的时间节点ID, Uint32
+	this._strName = '';					            // 名称
+	this._strNote = '';					            // 注释
+	this._uStart = 0;				                // 起始帧, Uint32
+    this._uEnd = 0;					                // 帧长度, Uint32
+    this._arrSubNode = new Array();			        // 子节点，存储CM_SCENEANIMNODE对象
+}
+
 const CMHOME_TYPE_ALL = 0;
 const CMHOME_TYPE_POSITION = 1;
 const CMHOME_TYPE_COLOR = 2;
 const CMHOME_TYPE_TRANS = 3;
 const CMHOME_TYPE_VISIBLE = 4;
+const CMHOME_TYPE_ANNOT = 5;
+const CMHOME_TYPE_CAMERA = 6;
 
 const CMMEASURE_NONE = 0;
 const CMMEASURE_OBJECT = 1;
@@ -41,6 +78,10 @@ const CMCAPTURE_OBJECT = 1;
 const CMCAPTURE_GEOM_SURFACE = 3;
 const CMCAPTURE_GEOM_CURVE = 4;
 const CMCAPTURE_GEOM_POINT = 5;
+
+const CM_BASE_OPT_MODE_DEFAULT = 0;
+const CM_BASE_OPT_MODE_MOVE = 1;
+const CM_BASE_OPT_MODE_ROTATE = 2;
 
 function CM_CALLBACKS() {
     // 回调函数，刷新界面
@@ -71,13 +112,28 @@ function CM_CALLBACKS() {
     this.CMOnLoadModelEndCallback = function () { }
 }
 
+function CM_SETTINGS() {
+    // 设置CMOnline内置背景图片，Resource目录下，默认blue.jpg
+    this.defaultBgImage = "";
+    // 设置背景图片URL，如果不为空则使用此背景图片
+    this.defaultBgUrl = "";
+    // 设置场景灯光，默认开启
+    this.defaultLightOn = true;
+    // 设置几何数据开关，默认开启
+    this.defaultGeomtryOn = false;
+    // 设置基础操作类型
+    this.defaultBaseOptMode = 0;
+}
+
 //===================================================================================================
 
-function CMOnlineLib(dom, callbacks) {
+function CMOnlineLib(dom, callbacks, settings) {
     g_nEventVersion = 3;
     initComponet(dom);
     initModuleCallbacks(callbacks);
+    initSettings(settings);
 
+    this.CMVersion = CMVersion;
     this.CMInitData = CMInitData;
     this.CMUninitData = CMUninitData;
     this.CMChangeView = CMChangeView;
@@ -88,9 +144,11 @@ function CMOnlineLib(dom, callbacks) {
     this.CMSetSelObjVisible = CMSetSelObjVisible;
     this.CMGetSelObjTransparent = CMGetSelObjTransparent;
     this.CMSetSelObjTransparent = CMSetSelObjTransparent;
-    this.CMSetSelObjTransparent = CMSetSelObjTransparent;
+    this.CMSetObjTransparent = CMSetObjTransparent;
     this.CMSetObjsHighlight = CMSetObjsHighlight;
     this.CMGetObjsCenterPos = CMGetObjsCenterPos;
+    this.CMSetObjsEnhancedDispaly = CMSetObjsEnhancedDispaly;
+    this.CMGetObjBox = CMGetObjBox;
 
     this.CMAnimPlay = CMAnimPlay;
     this.CMAnimPause = CMAnimPause;
@@ -99,21 +157,33 @@ function CMOnlineLib(dom, callbacks) {
     this.CMGetAnimFrames = CMGetAnimFrames;
     this.CMSetAnimCurFrame = CMSetAnimCurFrame;
     this.CMGetAnimCurFrame = CMGetAnimCurFrame;
+    this.CMAnimPlayRange = CMAnimPlayRange;
+    this.CMSetAnimCameraOn = CMSetAnimCameraOn;
 
     this.CMSetBkImage = CMSetBkImage;
+    this.CMSetBkColor = CMSetBkColor;
+    this.CMGetBkColor = CMGetBkColor;
     this.CMSetSelStatusByObjIDs = CMSetSelStatusByObjIDs;
     this.CMSetMultSelFlag = CMSetMultSelFlag;
     this.CMSetMoveObjFlag = CMSetMoveObjFlag;
     this.CMSetMotionCaptureFlag = CMSetMotionCaptureFlag;
+    this.CMSetBaseOperatorMode = CMSetBaseOperatorMode;
+
     this.CMGetModelTreeRootNode = CMGetModelTreeRootNode;
+    this.CMGetModelTreeObjects = CMGetModelTreeObjects;
 
     this.CMGetSceneCount = CMGetSceneCount;
     this.CMGetSceneInfo = CMGetSceneInfo;
     this.CMPlaySceneAnim = CMPlaySceneAnim;
+    this.CMGetAllSceneAnimNodeData = CMGetAllSceneAnimNodeData;
+    this.CMPlaySceneAnimRange = CMPlaySceneAnimRange;
 
     this.CMTwinStart = CMTwinStart;
     this.CMTwinTerminal = CMTwinTerminal;
     this.CMSetObjectOriWorldMatrix = CMSetObjectOriWorldMatrix;
+    this.CMGetObjectOriWorldMatrix = CMGetObjectOriWorldMatrix;
+    this.CMGetObjectCurWorldMatrix = CMGetObjectCurWorldMatrix;
+    this.CMSetCameraCurView = CMSetCameraCurView;
 
     this.CMSetUserCanCommentFlag = CMSetUserCanCommentFlag;
     this.CMSetCommentUsrName = CMSetCommentUsrName;
@@ -139,10 +209,23 @@ function CMOnlineLib(dom, callbacks) {
 
     this.CMGetMetialList = CMGetMetialList;
     this.CMSetObjMaterialID = CMSetObjMaterialID;
+    this.CMSetObjMaterialIDEx = CMSetObjMaterialIDEx;
     this.CMClearObjMaterial = CMClearObjMaterial;
+
+    this.CMSetSceneLightOn = CMSetSceneLightOn;
+    this.CMSetSceneLightPower = CMSetSceneLightPower;
+
+    this.CMGetModelList = CMGetModelList;
+    this.CMUpdateModel = CMUpdateModel;
+    this.CMFinishLoadModel = CMFinishLoadModel;
 }
 
 //===================================================================================================
+
+// 版本信息
+function CMVersion() {
+    return CMONLINE_VERSION;
+}
 
 var g_LoadFileTimeTimeID;
 let g_CLEModule = false; // CLE到SCLE数据转换使能开关
@@ -152,15 +235,15 @@ function RealLoadSCLEFile() {
     var bResult = ParseCleStream();
     if (!bResult) {
         // 清除缓存                        
-        // delete g_arrayCleBuffer;
-        g_arrayCleBuffer = null;
-        g_arrayByteBuffer = null;
+        // delete g_cleParser._arrayCleBuffer;
+        g_cleParser._arrayCleBuffer = null;
+        g_cleParser._arrayByteBuffer = null;
         return;
     }
     // 清除缓存                        
-    // delete g_arrayCleBuffer;
-    g_arrayCleBuffer = null;
-    g_arrayByteBuffer = null;
+    // delete g_cleParser._arrayCleBuffer;
+    g_cleParser._arrayCleBuffer = null;
+    g_cleParser._arrayByteBuffer = null;
 
     // 绘制三维模型
     startRender();
@@ -172,21 +255,28 @@ function StartLoadSCLEFile() {
 }
 
 // 加载数据
-function CMInitData(cledata) {
+function CMInitData(cledata, licdata) {
     CMUninitData();
 
     if (cledata.length < 10) {
         return;
     }
+    if (cledata.licdata < 4) {
+        return;
+    }
+    g_licData = licdata;
 
     // 读取文件头，判断是cle文件，还是scle文件
     var tempDataView = new DataView(cledata, 0, 2);
     var byteHeaer = tempDataView.getUint16(0, true);
     // 无压缩的scle文件
     if (byteHeaer == 2 || byteHeaer == 3) {
-        g_arrayByteBuffer = cledata;
-        g_arrayCleBuffer = new DataView(g_arrayByteBuffer, 0, g_arrayByteBuffer.byteLength);
-        g_nCleBufferlength = g_arrayByteBuffer.byteLength;
+        // 初始化数据
+        InitCleStream();
+
+        g_cleParser._arrayByteBuffer = cledata;
+        g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
+        g_cleParser._nCleBufferlength = g_cleParser._arrayByteBuffer.byteLength;
 
         RealLoadSCLEFile();
         return;
@@ -210,11 +300,14 @@ function CMInitData(cledata) {
             // 从CLE到SCLE的格式转换
             Module._do(name);
 
+            // 初始化数据
+            InitCleStream();
+
             // 从内存文件系统读取转换后的SCLE数据
             var OutData = FS.readFile(path + name + ".scle");
-            g_arrayByteBuffer = OutData.buffer;
-            g_arrayCleBuffer = new DataView(g_arrayByteBuffer, 0, g_arrayByteBuffer.byteLength);
-            g_nCleBufferlength = OutData.length;
+            g_cleParser._arrayByteBuffer = OutData.buffer;
+            g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
+            g_cleParser._nCleBufferlength = OutData.length;
 
             RealLoadSCLEFile();
             return;
@@ -230,11 +323,14 @@ function CMInitData(cledata) {
             }
         }
         zip.files[key()].async('arraybuffer').then(function (data) {
-            g_arrayByteBuffer = data;
-            g_arrayCleBuffer = new DataView(g_arrayByteBuffer, 0, g_arrayByteBuffer.byteLength);
-            g_nCleBufferlength = g_arrayByteBuffer.byteLength;
+            // 初始化数据
+            InitCleStream();
 
-            g_LoadFileTimeTimeID = window.setInterval(StartLoadSCLEFile, 100);
+            g_cleParser._arrayByteBuffer = data;
+            g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
+            g_cleParser._nCleBufferlength = g_cleParser._arrayByteBuffer.byteLength;
+
+            g_LoadFileTimeTimeID = window.setInterval(StartLoadSCLEFile(), 100);
         });
     });
 }
@@ -310,7 +406,16 @@ function CMSetSelObjTransparent(alpha) {
     if (alpha < 0.0 || alpha > 1.0) {
         return;
     }
-    glRunTime.setObjectTransparent(alpha);
+    glRunTime.setObjectTransparent(null, alpha);
+}
+
+// 设置指定物件的透明渲染状态
+// 如果objIDs为null或者元素个数为0，则默认表示操作当前选中模型
+function CMSetObjTransparent(objIDs, alpha) {
+    if (alpha < 0.0 || alpha > 1.0) {
+        return;
+    }
+    glRunTime.setObjectTransparent(objIDs, alpha);
 }
 
 // 设置选中物件的颜色
@@ -337,6 +442,17 @@ function CMGetObjsCenterPos(objIDs) {
         arrCenters.push(glRunTime.getObjectCenterById(objIDs[i]));
     }
     return arrCenters;
+}
+
+// 弱化其余模型的透明度，以增强选择模型的显示效果
+// 输入：treeNodeId模型树节点ID
+function CMSetObjsEnhancedDispaly(treeNodeId) {
+    return glRunTime.setObjectEnhancedDisplayByTreeId(treeNodeId);
+}
+
+// 获取指定物件的包围盒
+function CMGetObjBox(objID) {
+    return getObjectBoxById(objID);
 }
 
 // 播放动画
@@ -393,6 +509,16 @@ function CMGetAnimSpeed() {
     return getAnimSpeed();
 }
 
+// 从指定帧到指定帧播放动画
+function CMAnimPlayRange(nStartPos, nEndPos) {
+    return PlayUsrFrameAnimation(nStartPos, nEndPos);
+}
+
+// 设置是否播放摄像机动画
+function CMSetAnimCameraOn(isOn) {
+    setAnimType(true, isOn, true);
+}
+
 // 设置背景图片
 function CMSetBkImage(imageName) {
     for (let i = 0; i < g_bgImage.length; ++i) {
@@ -403,6 +529,18 @@ function CMSetBkImage(imageName) {
     }
     glRunTime.addUsrBackground(g_resFoder + imageName);
     g_bgImage.push(imageName);
+}
+
+// 设置背景颜色
+function CMSetBkColor(r, g, b) {
+    glRunTime.setBackgroundColor(r, g, b);
+}
+
+// 获取背景颜色
+// 只有在背景是颜色填充时有效，返回颜色数组，成员分别为r,g,b颜色分量
+// 背景是图片时返回null
+function CMGetBkColor() {
+    return glRunTime.getBackgroundColor();
 }
 
 // 设置选中物件时是否高亮成红色以及显示包围盒
@@ -443,9 +581,19 @@ function CMSetMotionCaptureFlag(flag) {
     }
 }
 
+// 设置基础操作类型
+function CMSetBaseOperatorMode(mode) {
+    setBaseOperationMode(mode);
+}
+
 // 获取模型树根节点
 function CMGetModelTreeRootNode() {
     return g_GLData.GLModelTreeNode;
+}
+
+// 获取模型树节点下的所有自物件id
+function CMGetModelTreeObjects(treeId) {
+    return getSubObjectsByTreeId(treeId);
 }
 
 // 获取场景事件数量
@@ -480,6 +628,38 @@ function CMPlaySceneAnim(index) {
     }
 }
 
+
+// 播放场景事件动画
+function CMPlaySceneAnimRange(start, end) {
+    g_nAnimationStart = start;
+    g_nAnimationEnd = end;
+
+    animTerminal();
+    PlaySceneAnimation();
+}
+
+// 获取所有场景事件信息
+function CMGetAllSceneAnimNodeData(data) {
+    if (g_sceneData != null) {
+        for (var i in g_sceneData.stuTimeNodeTreeTop._arrSubNode){
+            data[i] = new CM_SCENEANIMNODE;
+			data[i]._uTimeNodeID = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._uTimeNodeID;
+            data[i]._strName = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._strName;
+            data[i]._strNote = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._strNote;
+            data[i]._uStart = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._uStartFrameID;
+            data[i]._uEnd = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._uStartFrameID+g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._uFrameSize;
+            for (var j in g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode){
+                data[i]._arrSubNode[j] = new CM_SCENEANIMNODE;
+                data[i]._arrSubNode[j]._uTimeNodeID = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._uTimeNodeID;
+                data[i]._arrSubNode[j]._strName = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._strName;
+                data[i]._arrSubNode[j]._strNote = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._strNote;
+                data[i]._arrSubNode[j]._uStart = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._uStartFrameID;
+                data[i]._arrSubNode[j]._uEnd = g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._uStartFrameID+g_sceneData.stuTimeNodeTreeTop._arrSubNode[i]._arrSubNode[j]._uFrameSize;
+            }
+        }
+    }
+}
+
 // 启动数字孪生模式
 function CMTwinStart() {
     if (g_sceneData != null) {
@@ -498,6 +678,27 @@ function CMSetObjectOriWorldMatrix(objID, newMatrix) {
     if (g_sceneData != null) {
         // 进入数字孪生模式
         setObjectOriWorldMatrix(objID, newMatrix);
+    }
+}
+
+// 获取物件的原始世界矩阵
+function CMGetObjectOriWorldMatrix(objID) {
+    if (g_sceneData != null) {
+        return getObjectOriWorldMatrix(objID);
+    }
+}
+
+// 获取物件当前的世界矩阵
+function CMGetObjectCurWorldMatrix(objID) {
+    if (g_sceneData != null) {
+        return getObjectCurWorldMatrix(objID);
+    }
+}
+
+// 设置当前摄像机参数
+function CMSetCameraCurView(cmCamera) {
+    if (g_sceneData != null) {
+        return setCameraCurView(cmCamera);
     }
 }
 
@@ -618,9 +819,40 @@ function CMSetObjMaterialID(objID, objSubsetIndexs, uMtlID) {
     return setObjectMaterialID(objID, objSubsetIndexs, uMtlID);
 }
 
+function CMSetObjMaterialIDEx(objID, objSubsetIndexs, uMtlID, imageUrl) {
+    return setObjectMaterialTexture2D(objID, objSubsetIndexs, uMtlID, imageUrl);
+}
+
 // 取消物件的材质
 function CMClearObjMaterial(objID) {
     glRunTime.clearObjectSurfaceMaterial(objID);
 }
 
+// 设置场景光源开关
+// isOn：true表示开启，false表示关闭，默认开启
+function CMSetSceneLightOn(isOn) {
+    glRunTime.setSceneLightOn(isOn);
+}
 
+// 设置场景光强，光源关闭时无效
+// diffuse: 漫反射光 取值：0.0-1.0
+// ambient: 自然光 取值：0.0-1.0
+// sepcular: 高光 取值：0.0-1.0
+function CMSetSceneLightPower(diffuse, ambient, sepcular) {
+    glRunTime.setSceneLightPower(diffuse, ambient, sepcular);
+}
+
+// 获取模型列表
+function CMGetModelList() {
+    return getModelList();
+}
+
+// 更新模型数据
+function CMUpdateModel(index, dataStream, isLoop) {
+    updateModel(index, dataStream, isLoop);
+}
+
+// 加载模型结束
+function CMFinishLoadModel() {
+    glRunTime.endLoadScleModel();
+}
