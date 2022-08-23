@@ -1,4 +1,4 @@
-;(function () {
+; (function () {
 	var onload = function () {
 		const keyCodeMap = {
 			// 91: true, // command
@@ -77,14 +77,14 @@
 		document.addEventListener('gesturestart', function (event) {
 			event.preventDefault()
 		})
-		
+
 	}
 
 
-	window.addEventListener('load',onload)
+	window.addEventListener('load', onload)
 
-	window.addEventListener('scleViewOnload',function(){
-		if(!window.CM_LIBReady && window.CM_onload){
+	window.addEventListener('scleViewOnload', function () {
+		if (!window.CM_LIBReady && window.CM_onload) {
 			window.CM_onload()
 		}
 	})
@@ -137,7 +137,7 @@
 			window.startRender()
 			this.loadEnd()
 		},
-		loadEnd:function () {
+		loadEnd: function () {
 			scleCustomEvent('scleStreamReady')
 			scleCustomEvent('onScleReady')
 			window.setPickObjectParameters = function () {
@@ -148,14 +148,40 @@
 		loadLocalFile: function (e) {
 			const sclereader = new FileReader()
 			sclereader.readAsArrayBuffer(e.files[0])
+			const fileName = e.files[0].name
+			console.log(fileName);
 			const self = this
 			sclereader.onload = function () {
-				self.startLoadFile(sclereader.result)
+				self.startLoadFile(sclereader.result, fileName)
 			}
 		},
-		startLoadFile: function (res) {
-			// 使用CM_LIB API
-			return Module.onData(res);
+		startLoadFile: function (res, fileName) {
+			console.log(res);
+			const parseUrl = (url) => {
+				if (!url || url == null) return {}
+				let queryArr = decodeURIComponent(url).split('&'),
+					result = {}
+				queryArr.forEach(function (item) {
+					result[item.split('=')[0]] = item.split('=')[1]
+				})
+				return result
+			}
+			const queryString = (url) => {
+				let param = url.split('?'),
+					json = param.length > 0 ? parseUrl(param[1]) : {}
+				return json
+			}
+
+			let { link } = queryString(window.location.href);
+			const path = link || fileName;
+
+			if (path.endsWith('.scle')) {
+				window.CM_LIB.CMInitData(res, "115YyX45Lqs5Zyc5pmW56eR5oqA5pyJ6ZmQ5YWs5Y+4");
+			} else if (path.endsWith('.cle')) {
+				Module.onData(res);
+			}
+
+			return
 			// return window.CM_LIB.CMInitData(res)
 			const self = this
 			const new_zip = new window.JSZip()
@@ -180,11 +206,11 @@
 		}
 	}
 
-	const Scle = function () {}
+	const Scle = function () { }
 	Scle.prototype = scle
 	// window.Scle = new Scle()
 	window.CMOnlineUI = Object.assign(window.CMOnlineUI, scle)
 
 
-	
+
 })()

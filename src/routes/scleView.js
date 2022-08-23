@@ -16,7 +16,8 @@ const API = {};
 function ScleView() {
 	const [isFullScreen, setFullscreen] = useState(false);
 	const [loading, setLoading] = useState(true);
-	const [isHttp] = useState(window.location.origin.startsWith('http'));
+	// const [isHttp] = useState(window.location.origin.startsWith('http'));
+	const [isHttp] = useState(window.location.href.includes('link='));
 	const [percent, setPercent] = useState(0);
 	const obj = useRef({});
 	const [notation, setNotation] = useReducer((state, action) => {
@@ -137,7 +138,7 @@ function ScleView() {
 				options.objID.filter((i) => i).length === 0
 			) {
 				setNotation({
-					payload: { type :null },
+					payload: { type: null },
 				});
 				return;
 			}
@@ -203,7 +204,7 @@ function ScleView() {
 		let files;
 		try {
 			files = await get(API.fileInfo.cle, { pid, lic });
-		} catch (error) {}
+		} catch (error) { }
 
 		if (files.success) {
 			let { cle } = files.data;
@@ -265,20 +266,26 @@ function ScleView() {
 		window.CM_LIBReady = false;
 
 		function asyncLoad() {
-			const cmcallbacks = new window.CM_CALLBACKS();
-			cmcallbacks.CMOnLoadModelEndCallback = function () {
-				scleCustomEvent('CMOnLoadModelEndCallback');
+			console.log(window.CM_CALLBACKS);
+			if (window.CM_CALLBACKS) {
+				const cmcallbacks = new window.CM_CALLBACKS();
+				cmcallbacks.CMOnLoadModelEndCallback = function () {
+					scleCustomEvent('CMOnLoadModelEndCallback');
+					window.CMOnlineUI.loadEnd();
+				}
+				window.CM_LIB = new window.CMOnlineLib(
+					containerRef.current,
+					cmcallbacks
+				);
+				window.CM_LIB.CMSetUserCanCommentFlag(1);
+				window.CM_LIB.CMSetCommentUsrName('test');
+				if (isHttp) openScle();
+				addScleAPi();
+				window.CM_LIBReady = true;
+			} else {
+				console.log('加载CM_CALLBACKS失败');
+				window.location.reload()
 			}
-			window.CM_LIB = new window.CMOnlineLib(
-				containerRef.current,
-				cmcallbacks
-			);
-			window.CM_LIB.CMSetUserCanCommentFlag(1);
-			window.CM_LIB.CMSetCommentUsrName('test');
-			if (isHttp) openScle();
-			addScleAPi();
-			window.CM_LIBReady = true;
-			
 		}
 
 		window.CM_onload = asyncLoad;
@@ -293,9 +300,9 @@ function ScleView() {
 		});
 
 		// window.addEventListener('load', asyncLoad);
-
-		scleCustomEvent('scleViewOnload');
-
+		setTimeout(() => {
+			scleCustomEvent('scleViewOnload');
+		})
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -445,15 +452,13 @@ function ScleView() {
 					placement="top"
 					trigger="click"
 					visible={true}
-					overlayClassName={`scleViewPopver ${
-						notation.type === 'lead' ? 'hideArrow' : ''
-					}`}
+					overlayClassName={`scleViewPopver ${notation.type === 'lead' ? 'hideArrow' : ''
+						}`}
 					onVisibleChange={onVisibleChange}
 				>
 					<div
-						className={`gltext ${
-							notation.type === 'lead' ? 'gltext2' : ''
-						}`}
+						className={`gltext ${notation.type === 'lead' ? 'gltext2' : ''
+							}`}
 						style={{
 							top: coordinates.top,
 							left: coordinates.left,

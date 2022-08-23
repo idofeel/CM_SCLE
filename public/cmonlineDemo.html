@@ -1,0 +1,416 @@
+<html>
+
+<head lang="en">
+    <meta charset="UTF-8">
+    <link href="js/UI/css/app.css" rel="stylesheet" type="text/css" />
+    <style>
+        #fixed_full {
+            position: fixed;
+            bottom: 20px;
+            right: 10px;
+            z-index: 999;
+        }
+    </style>
+</head>
+
+<body>
+    <table border="2">
+        <tr>
+            <td><input name="打开本地文件" value="打开本地文件" type="file" onchange="OpenLocalFile(this)"></td>
+            <td><button name="打开网络文件" onclick="OpenNewFile()">网络文件</button></td>
+            <td><button name="设置背景图" onclick="OnSetbkImage()">设置背景图</button></td>
+            <td><button name="设置自定义材质" onclick="OnSetObjMaterial()">自定义材质</button></td>
+            <td><button name="移动零件" onclick="OnSetMoveObjFlag()">移动零件</button></td>
+            <td><button name="移动零件" onclick="OnCancelMoveObjFlag()">取消移动</button></td>
+            <td><input name="透明度" value="透明度:" type="text" size="8" disabled="disabled"></td>
+            <td>
+                <select name="透明度" onchange="CMSetSelObjTransparent(this.options[this.options.selectedIndex].value)">
+                    <option value="0.0">0.0</option>
+                    <option value="0.5">0.5</option>
+                    <option value="1.0">1.0</option>
+                </select>
+            </td>
+            <td><button name="隐藏" onclick="CMSetSelObjVisible()">隐藏</button></td>
+            <td><input name="视图" value="视图:" type="text" size="6" disabled="disabled"></td>
+            <td>
+                <select name="视图" onchange="CMChangeView(this.options.selectedIndex)">
+                    <option value="正视图">正视图</option>
+                    <option value="后视图">后视图</option>
+                    <option value="左视图">左视图</option>
+                    <option value="右视图">右视图</option>
+                    <option value="俯视图">俯视图</option>
+                    <option value="仰视图">仰视图</option>
+                    <option value="等轴侧">等轴侧</option>
+                </select>
+            </td>
+            <td><button name="选择模型" onclick="TestSelObjs()">选择模型</button></td>
+            <td><button name="复位" onclick="CMHome(CMHOME_TYPE_ALL)">复位</button></td>
+            <td><button name="动画" onclick="StartAnim()">动画</button></td>
+            <td><button name="暂停" onclick="PauseOrResumeAnmi()">暂停</button></td>
+            <td><button name="场景事件1" onclick="PlaySceneAnim1()">场景动画1</button></td>
+            <td><button name="场景事件2" onclick="GetAllSceneAnim()">场景事件</button></td>
+            <td><button name="创建批注" onclick="CMAddComment()">创建批注</button></td>
+            <td><button name="取消批注" onclick="CMDelComment()">删除批注</button></td>
+            <td><button name="上传批注" onclick="TestUploadXmlComment()">上传批注</button></td>
+            <td><button name="下载批注" onclick="TestDownloadXmlComment()">下载批注</button></td>
+            <td><button name="测量曲面" onclick="startMeasureMode()">开始测量</button></td>
+            <td><button name="测量曲面" onclick="cancelMeacureMode()">结束测量</button></td>
+            <td><button name="测量曲面" onclick="setMeasureMode(MEASURE_OBJECT)">零件测量</button></td>
+            <td><button name="测量曲面" onclick="setMeasureMode(MEASURE_SURFACE)">曲面测量</button></td>
+            <td><button name="测量曲线" onclick="setMeasureMode(MEASURE_CURVE)">曲线测量</button></td>
+            <td><button name="测量曲面" onclick="setMeasureMode(MEASURE_TWO_CURVES)">曲线与曲线</button></td>
+            <td><button name="测量曲线" onclick="setMeasureMode(MEASURE_POINT)">点测量</button></td>
+            <td><button name="测量曲线" onclick="setMeasureMode(MEASURE_TWO_POINTS)">点与点</button></td>
+            <td><button name="测量曲线" onclick="cancelMeacureMode()">取消测量</button></td>
+            <td><button name="测量曲线" onclick="setMeasureUnitVisible(-2, false)">隐藏测量</button></td>
+            <td><button name="测量曲线" onclick="setMeasureUnitVisible(-1, true)">显示测量</button></td>
+            <td><button name="测量曲线" onclick="deleteMeasureUnit(-2)">删除测量</button></td>
+            <td><button name="曲面设置" onclick="setSurfaceMaterialMode(1)">曲面设置开启</button></td>
+            <td><button name="曲面设置" onclick="setSurfaceMaterial(0.0, 1.0, 0.0, 1.0)">曲面颜色</button></td> 
+        </tr>
+    </table>
+
+    <!-- <div style="top:100px;left:300px;width: 1300px;height: 800px;margin: 0 auto;position: absolute;background: #e07d1e;">
+        <div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div id="threeDViewer" style="position: absolute;width: 1000px;height: 600px;margin-left:137px;margin-top:100px;">
+            </div>
+        </div>
+    </div> -->
+
+    <button id="fixed_full" onclick="toogleFullScreen()">全屏/退出全屏</button>
+</body>
+
+<script type="text/javascript" src="js/UI/CMvendor.js"></script>
+<script type="text/javascript" src="js/UI/app.js"></script>
+<script type="text/javascript" src="js/JSZip/jszip.js"></script>
+<script type="text/javascript" src="js/base64/base64.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFBaseDef.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFGeomDef.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFSceneDef.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFCleParser.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFMath.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFGlobal.js"></script>
+<script type="text/javascript" src="js/SCLELoader/ADFUSDK.js"></script>
+<script type="text/javascript" src="js/SCLERender/glmatrix.js"></script>
+<script type="text/javascript" src="js/SCLERender/GLSL.js"></script>
+<script type="text/javascript" src="js/SCLERender/Global.js"></script>
+<script type="text/javascript" src="js/SCLERender/MaterialDefine.js"></script>
+<script type="text/javascript" src="js/SCLERender/SceneToGLData.js"></script>
+<script type="text/javascript" src="js/SCLERender/Camera.js"></script>
+<script type="text/javascript" src="js/SCLERender/WebGL3D.js"></script>
+<script type="text/javascript" src="js/SCLERender/Canvas2D.js"></script>
+<script type="text/javascript" src="js/SCLERender/GLProgram.js"></script>
+<script type="text/javascript" src="js/SCLERender/GLRunTime.js"></script>
+<script type="text/javascript" src="js/SCLERender/EventAction.js"></script>
+<script type="text/javascript" src="js/SCLERender/XmlTool.js"></script>
+<script type="text/javascript" src="js/CMOnline.js"></script>
+
+<script type="text/javascript" language="javascript">
+    document.addEventListener('wheel', function() { }, { passive: false });
+
+    var Module = {
+        installed: false,
+        sleep: function sleep(ms) {
+            return new Promise(function(resolve){ setTimeout(resolve, ms) });
+        },
+        onData: async function (data) {
+            while (g_CLEModule && !this.installed) {
+                await this.sleep(1000);
+            }
+            // 加载CLE文件
+            cmlib.CMInitData(data, "115YyX45Lqs5Zyc5pmW5YaF6YOo5byA5Y+R5LiT55So");
+        }
+    };
+    if (g_CLEModule) {
+        Module.onRuntimeInitialized = function () {
+            Module._init();
+            this.installed = true;
+        }
+    }
+
+    // 初始化CMOnlineLib
+    var container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.width = '100%';
+    container.style.height = '100%';
+
+    document.body.appendChild(container);
+    // document.getElementById('threeDViewer').appendChild(container);
+
+    var cmcallbacks = new CM_CALLBACKS();
+    cmcallbacks.CMOnLoadModelEndCallback = function () {	
+		// 设置场景光源开关
+		// cmlib.CMSetSceneLightOn(true);
+        // cmlib.CMSetSceneLightPower(0.3, 0.1, 0.5);
+        // let bgColor = cmlib.CMGetBkColor();
+        console.log("模型加载完毕！");
+    }
+
+    var cmsettings = new CM_SETTINGS();
+    // cmsettings.defaultCanvasTransparency = true; // 开启canvas背景透明
+    // cmsettings.defaultBgUrl = "./Resource/Background/transparency.png" // 测试canvas背景透明的png图片
+
+    // cmsettings.defaultBgImage = "grey.jpg";
+    // cmsettings.defaultBgUrl = "./Resource/Background/test.jpeg";
+    // cmsettings.defaultGeomtryOn = false;
+    // cmsettings.defaultBaseOptMode = 2;
+    var cmlib = new CMOnlineLib(container, cmcallbacks, cmsettings);
+
+    // 创建内部UI对象
+    var UI_Container = document.createElement('c-m-online-view');
+    UI_Container.id = 'CMOnlineUI_container'
+    container.appendChild(UI_Container)
+
+    CMOnlineView.default.install(Vue)
+    new Vue({ el: "#CMOnlineUI_container" })
+
+    // 设置允许用户创建批注
+    cmlib.CMSetUserCanCommentFlag(1);
+    cmlib.CMSetCommentUsrName("test");
+  
+    // 打开本地文件
+    function OpenLocalFile(e) {
+        // 按字节读取文件内容，结果用ArrayBuffer对象表示
+        var sclereader = new FileReader();
+        sclereader.readAsArrayBuffer(e.files[0]);
+
+        sclereader.onload = function () {
+            // 加载SCLE文件
+           // cmlib.CMInitData(this.result, "115YyX45Lqs5Zyc5pmW5YaF6YOo5byA5Y+R5LiT55So");
+
+            // 加载CLE文件
+			 Module.onData(this.result);
+        }
+    }
+
+    // 打开网络文件
+    let g_sclehttp = null;
+    function OpenNewFile() {
+        // http://39.98.156.22/CMOnlineToolkit/cmonlineDemo.html
+
+        // var scleurl = "http://39.98.156.22/CMOnlineToolkit/IETM.scle";
+        var scleurl = "http://127.0.0.1:5500/Branch%202.1/CMOnlineToolkit/Test//1.scle";
+        g_sclehttp = new XMLHttpRequest();
+
+        // 显示下载进度
+        // g_sclehttp.addEventListener("progress", updateProgress, false);
+        // g_sclehttp.addEventListener("load", transferComplete, false);
+        // g_sclehttp.addEventListener("error", transferFailed, false);
+        // g_sclehttp.addEventListener("abort", transferCanceled, false);
+
+        g_sclehttp.open("GET", scleurl, true);
+        g_sclehttp.responseType = "arraybuffer";
+        g_sclehttp.overrideMimeType("text/plain; charset=x-user-defined");
+
+        // 下载成功打开文件
+        g_sclehttp.onreadystatechange = function (e) {
+            if (g_sclehttp.readyState === 4 && g_sclehttp.status === 200) { // 4 = "loaded" // 200 = OK
+                // 加载SCLE文件
+                cmlib.CMInitData(g_sclehttp.response, "115YyX45Lqs5Zyc5pmW5YaF6YOo5byA5Y+R5LiT55So");
+                // 加载CLE文件
+			    // Module.onData(g_sclehttp.response);
+            }
+        }
+        g_sclehttp.send();
+    }
+
+    // 设置背景图
+    function OnSetbkImage() {
+        cmlib.CMSetBkImage("user.jpg");
+    }
+
+    // 设置自定义材质
+    function OnSetObjMaterial() {
+        cmlib.CMSetObjMaterialIDEx(103138, [], 100052, "http://127.0.0.1:5500/Branch%202.1/CMOnlineToolkit/Test/userMetial.png");
+        // cmlib.CMSetObjMaterialID(114868, [], 100135);
+    }
+
+    // 移动模型标记
+    function OnSetMoveObjFlag() {
+        cmlib.CMSetMoveObjFlag(1);
+    }
+
+    // 取消模型标记
+    function OnCancelMoveObjFlag() {
+        cmlib.CMSetMoveObjFlag(0);
+    }
+
+    function TestSelObjs() {
+        let objIDs = [100094, 100032];
+        cmlib.CMSetSelStatusByObjIDs(objIDs);
+        // CMSetSelObjVisible(false);
+        // CMSetSelObjColor(0.5, 0.5, 0.5, 1);
+    }
+
+    var g_bPause = true;
+
+    function StartAnim() {
+        g_bPause = true;
+        CMAnimPlay();
+    }
+
+    function PauseOrResumeAnmi() {
+        if (g_bPause) {
+            CMAnimPause();
+        } else {
+            CMAnimResume();
+        }
+        g_bPause = !g_bPause;
+    }
+
+    // 场景事件1
+    function PlaySceneAnim1() {
+        var nCount = cmlib.CMGetSceneCount();
+        if (nCount >= 1) {
+            // 场景事件节点数据
+          /*var data = new CM_SCENEANIMNODE;;
+            cmlib.CMGetSceneInfo(0, data);*/
+            g_bPause = true;
+            cmlib.CMPlaySceneAnim(0);
+        }
+    }
+
+    // 获取所有的场景事件
+    function GetAllSceneAnim() {
+        var data = new Array();
+        cmlib.CMGetAllSceneAnimNodeData(data);
+    }
+
+    var g_xmlDoc = null;
+    var g_xmlHttp = null;
+    function getXMLDOM() {
+        var xmlDoc = null
+        if (window.ActiveXObject) {
+            // Internet Explorer
+            xmlDoc = new window.ActiveXObject('Microsoft.XMLDOM')
+        } else if (
+            document.implementation &&
+            document.implementation.createDocument) {
+            // Firefox, Mozilla, Opera
+            xmlDoc = document.implementation.createDocument('', '', null)
+        }
+        return xmlDoc
+    }
+
+    function getXMLHTTP() {
+        var xmlhttp = null;
+        if (window.XMLHttpRequest) {
+            xmlhttp = new XMLHttpRequest();
+        } else {
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        return xmlhttp;
+    }
+
+    // 异步处理函数，当服务成功返回时        
+    function UploadCallBack() {
+        if (g_xmlHttp.readyState == 4) {
+            if (g_xmlHttp.status == 200) {
+                alert(g_xmlHttp.responseText);
+            } else {
+                alert("上传失败");
+            }
+        }
+    }
+
+    // 上传批注
+    var test_upload_xml = "http://39.98.156.22/lab/index.php";
+    function TestUploadXmlComment() {
+        g_xmlDoc = getXMLDOM();
+        if (g_xmlDoc != null) {
+            g_xmlDoc = cmlib.CMExportComment(g_xmlDoc);
+        }
+        if (g_xmlDoc == null) {
+            alert("上传失败");
+            return false;
+        }
+
+        var xml = new XMLSerializer().serializeToString(g_xmlDoc)
+        // 将xml 转 blob
+        var blob = new Blob([xml], { type: "text/xml" });
+        // blob 转 File
+        var file = new File([blob], "fileName.xml");
+        // 使用formData将File包装，进行上传
+        var formData = new FormData();
+
+        formData.append("file", file);
+        formData.append("filesize", file.size);
+        formData.append("contentid", '202105172230wjl');
+
+        g_xmlHttp = getXMLHTTP();
+        if (g_xmlHttp != null) {
+            g_xmlHttp.open("post", test_upload_xml, true);
+            g_xmlHttp.send(formData);
+            g_xmlHttp.onreadystatechange = UploadCallBack;
+
+        }
+    }
+
+    // 下载批注
+    var test_download_xml = "http://39.98.156.22/lab/data/202105172230wjl.xml";
+    function TestDownloadXmlComment() {
+        g_xmlDoc = getXMLDOM();
+        try {
+            g_xmlDoc.async = "false";
+            g_xmlDoc.load(test_download_xml);
+        } catch (e) {
+            // Chrome
+            g_xmlHttp = new window.XMLHttpRequest();
+            g_xmlHttp.open("GET", test_download_xml, false);
+            g_xmlHttp.send(null);
+            g_xmlDoc = g_xmlHttp.responseXML.documentElement;
+        }
+
+        if (g_xmlDoc != null) {
+            cmlib.CMImportComment(g_xmlDoc);
+        }
+    }
+
+    function fullScreen() {
+        var element = document.documentElement;
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        }
+
+        // 初始化位置
+        container.style.top = 0;
+        container.style.left = 0;
+    }
+
+    //退出全屏 
+    function exitFullscreen() {
+
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
+        // 初始化位置
+        container.style.top = 'auto';
+        container.style.left = 'auto';
+    }
+
+    let isFullScreen = false
+    function toogleFullScreen() {
+        isFullScreen ? exitFullscreen() : fullScreen()
+        isFullScreen = !isFullScreen
+
+    }
+</script>
+
+<script type="text/javascript" src="js/CLEBindings.js"></script>
+
+</html>

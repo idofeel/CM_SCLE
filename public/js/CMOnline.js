@@ -1,7 +1,7 @@
 //===================================================================================================
 
 // 版本号
-const CMONLINE_VERSION = "2.1.0.1011";
+const CMONLINE_VERSION = "2.1.0.1014";
 
 // 模型树
 function CM_MODELTREENODE() {
@@ -120,9 +120,11 @@ function CM_SETTINGS() {
     // 设置场景灯光，默认开启
     this.defaultLightOn = true;
     // 设置几何数据开关，默认开启
-    this.defaultGeomtryOn = false;
+    this.defaultGeomtryOn = true;
     // 设置基础操作类型
     this.defaultBaseOptMode = 0;
+    // 设置canvas是否透明，默认不透明 （true为透明效果， false为不透明效果）
+    this.defaultCanvasTransparency = false;
 }
 
 //===================================================================================================
@@ -163,6 +165,8 @@ function CMOnlineLib(dom, callbacks, settings) {
     this.CMSetBkImage = CMSetBkImage;
     this.CMSetBkColor = CMSetBkColor;
     this.CMGetBkColor = CMGetBkColor;
+
+    this.CMSetSelShowFlag = CMSetSelShowFlag;
     this.CMSetSelStatusByObjIDs = CMSetSelStatusByObjIDs;
     this.CMSetMultSelFlag = CMSetMultSelFlag;
     this.CMSetMoveObjFlag = CMSetMoveObjFlag;
@@ -228,7 +232,7 @@ function CMVersion() {
 }
 
 var g_LoadFileTimeTimeID;
-let g_CLEModule = false; // CLE到SCLE数据转换使能开关
+let g_CLEModule = true; // CLE到SCLE数据转换使能开关
 
 function RealLoadSCLEFile() {
     // 解析cle文件

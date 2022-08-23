@@ -76,6 +76,7 @@ export default class scleTools extends PureComponent {
 			type: 'icon-a-ziyuan10',
 			isFont: true,
 			onClick: () => {
+				window.startMeasureMode();
 				this.setState({
 					tools: [...this.#measurement]
 				})
@@ -109,6 +110,7 @@ export default class scleTools extends PureComponent {
 			title: '曲面测量',
 			isFont: true,
 			onClick: () => {
+				console.log(window.setMeasureMode);
 				// eslint-disable-next-line
 				window.setMeasureMode(MEASURE_SURFACE)
 			}
