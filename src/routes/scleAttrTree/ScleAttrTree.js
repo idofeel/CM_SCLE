@@ -29,6 +29,7 @@ export default class ScleAttrTree extends PureComponent {
     treeNodeCheckedKeys: [], // 显示隐藏复选框
     treeNodeSelectKeys: [], // 选中的key
     expandedKeys: [], //展开的key
+    PMITreeData: [],
   };
   render() {
     const {
@@ -37,60 +38,122 @@ export default class ScleAttrTree extends PureComponent {
       treeNodeSelectKeys,
       expandedKeys,
       paramsData,
+      PMITreeData,
     } = this.state;
     return (
-      <Tabs
-        defaultActiveKey="1"
-        className="scleAttrTree"
-        renderTabBar={this.renderTabBar}
-      >
-        <TabPane tab="模型树" key="1">
-          <Tree
-            checkable
-            checkStrictly
-            checkedKeys={treeNodeCheckedKeys}
-            selectedKeys={treeNodeSelectKeys}
-            expandedKeys={expandedKeys}
-            onClick={(e) => {
-              return false;
-            }}
-            onExpand={(e) => {
-              this.hideSelect = true;
-              this.setState({
-                expandedKeys: e,
-              });
-            }}
-            onCheck={(treeNodeCheckedKeys, e) => {
-              this.setState({
-                treeNodeCheckedKeys,
-              });
-              window.setModelVisible(
-                this.findleafIndexs(e.node.props.dataRef),
-                e.checked
-              );
-               // 模型树隐藏时 dofeel
-              const ms = this.state.treeNodeSelectKeys;
-              if (ms * 1 === e.node.props.dataRef.key) {
-                window.pickObjectVisible = e.checked;
-                window.setPickObjectParameters();
-              }
-            //   
+      // <Tabs
+      //   defaultActiveKey="1"
+      //   className="scleAttrTree"
+      //   renderTabBar={this.renderTabBar}
+      // >
+      //   <TabPane tab="模型树" key="1">
+      //     <Tree
+      //       checkable
+      //       checkStrictly
+      //       checkedKeys={treeNodeCheckedKeys}
+      //       selectedKeys={treeNodeSelectKeys}
+      //       expandedKeys={expandedKeys}
+      //       onClick={(e) => {
+      //         return false;
+      //       }}
+      //       onExpand={(e) => {
+      //         this.hideSelect = true;
+      //         this.setState({
+      //           expandedKeys: e,
+      //         });
+      //       }}
+      //       onCheck={(treeNodeCheckedKeys, e) => {
+      //         this.setState({
+      //           treeNodeCheckedKeys,
+      //         });
+      //         window.setModelVisible(
+      //           this.findleafIndexs(e.node.props.dataRef),
+      //           e.checked
+      //         );
+      //          // 模型树隐藏时 dofeel
+      //         const ms = this.state.treeNodeSelectKeys;
+      //         if (ms * 1 === e.node.props.dataRef.key) {
+      //           window.pickObjectVisible = e.checked;
+      //           window.setPickObjectParameters();
+      //         }
+      //       //
 
-            }}
-          >
-            {this.renderTreeNodes(treeData)}
-          </Tree>
-        </TabPane>
-        <TabPane tab="参数" key="2">
-          <Table
-            className="attrTable"
-            columns={columns}
-            dataSource={paramsData}
-            locale={{ emptyText: "无数据" }}
-            size="middle"
-          />
-        </TabPane>
-      </Tabs>
+      //       }}
+      //     >
+      //       {this.renderTreeNodes(treeData)}
+      //     </Tree>
+      //   </TabPane>
+      //   <TabPane tab="参数" key="2">
+      //     <Table
+      //       className="attrTable"
+      //       columns={columns}
+      //       dataSource={paramsData}
+      //       locale={{ emptyText: "无数据" }}
+      //       size="middle"
+      //     />
+      //   </TabPane>
+      // </Tabs>
+
+      <>
+        {!this.props.showParams ? (
+          <div className="attr_tree">
+            <div>
+              <h4 className="title">模型树</h4>
+              <Tree
+                checkable
+                checkStrictly
+                checkedKeys={treeNodeCheckedKeys}
+                selectedKeys={treeNodeSelectKeys}
+                expandedKeys={expandedKeys}
+                onClick={(e) => {
+                  return false;
+                }}
+                onExpand={(e) => {
+                  this.hideSelect = true;
+                  this.setState({
+                    expandedKeys: e,
+                  });
+                }}
+                onCheck={(treeNodeCheckedKeys, e) => {
+                  this.setState({
+                    treeNodeCheckedKeys,
+                  });
+                  window.setModelVisible(
+                    this.findleafIndexs(e.node.props.dataRef),
+                    e.checked
+                  );
+                  // 模型树隐藏时 dofeel
+                  const ms = this.state.treeNodeSelectKeys;
+                  if (ms * 1 === e.node.props.dataRef.key) {
+                    window.pickObjectVisible = e.checked;
+                    window.setPickObjectParameters();
+                  }
+                  //
+                }}
+              >
+                {this.renderTreeNodes(treeData)}
+              </Tree>
+            </div>
+            <div>
+              <h4 className="title">标注</h4>
+              <Tree onSelect={(e) => this.handleCMSetAnnotVisibleInView(e)}>
+                {this.renderPMITree(PMITreeData)}
+              </Tree>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h4 className="title">参数</h4>
+            <Table
+              className="attrTable"
+              columns={columns}
+              dataSource={paramsData}
+              locale={{ emptyText: "无数据" }}
+              size="middle"
+            />
+          </>
+        )}
+      </>
     );
   }
 
@@ -129,9 +192,11 @@ export default class ScleAttrTree extends PureComponent {
     const key = item.key + "";
     return (
       <span
-        className={this.state.treeNodeSelectKeys.indexOf(key) > -1?'tree_selected': ''}
+        className={
+          this.state.treeNodeSelectKeys.indexOf(key) > -1 ? "tree_selected" : ""
+        }
         onClick={() => {
-           // 选择模型名称时 dofeel
+          // 选择模型名称时 dofeel
           if (this.keyCode) return;
           this.hideSelect = true;
           this.tempMutilpSelect = this.findleafIndexs(item);
@@ -195,7 +260,7 @@ export default class ScleAttrTree extends PureComponent {
 
   setVisible(visible) {
     let { treeNodeCheckedKeys } = this.state;
-    treeNodeCheckedKeys = treeNodeCheckedKeys.checked || treeNodeCheckedKeys
+    treeNodeCheckedKeys = treeNodeCheckedKeys.checked || treeNodeCheckedKeys;
     if (window.pickObjectIndexs === null) {
       return;
     }
@@ -266,10 +331,10 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   pickObjectParameters = () => {
-    if (
-      !window.pickObjectIndexs ||
-      (window.pickObjectIndexs && !window.pickObjectIndexs.length)
-    ) {
+    const notPickModel = !window.pickObjectIndexs || (window.pickObjectIndexs && !window.pickObjectIndexs.length)
+    this.handleInitPMI(!notPickModel)
+
+    if (notPickModel) {
       this.setState({
         treeNodeSelectKeys: [],
         // isVisible: !!window.pickObjectVisible,
@@ -277,14 +342,14 @@ export default class ScleAttrTree extends PureComponent {
       });
       return;
     }
-    const {
-      expandedKeys,
-      treeNodeSelectKeys,
-      item,
-    } = this.getExpandedAndSelctKeys(
-      this.state.treeData,
-      window.pickObjectIndexs
-    );
+    const { expandedKeys, treeNodeSelectKeys, item } =
+      this.getExpandedAndSelctKeys(
+        this.state.treeData,
+        window.pickObjectIndexs
+      );
+
+    this.SetTreeNodePmiView(item[0].nodeid);
+
     this.setState({
       expandedKeys,
       treeNodeSelectKeys,
@@ -293,6 +358,76 @@ export default class ScleAttrTree extends PureComponent {
       // alphaRange: pickObjectTransparent
     });
   };
+
+  renderPMITree(treeData) {
+    if (!treeData.length) return null;
+    return treeData.map((item) => {
+      if (item.child) {
+        return (
+          <TreeNode title={item.name} key={item.key} dataRef={item}>
+            {this.renderPMITree(item.child)}
+          </TreeNode>
+        );
+      }
+      return (
+        <TreeNode key={item.key} title={item.name} {...item} dataRef={item} />
+      );
+    });
+  }
+
+  SetTreeNodePmiView(nodeid) {
+    let cmlib = window.CM_LIB;
+    let arrViewId = cmlib.CMGetAnnotViewIDByTreeID(nodeid);
+    const notPickModel = arrViewId === null || arrViewId.length <= 0;
+
+    if (notPickModel) return;
+
+    const pmiTree = arrViewId.map((id) => {
+      const name = cmlib.CMGetAnnotViewName(id);
+      const arrAnnotId = cmlib.CMGetAnnotIDInView(id);
+
+      return {
+        name,
+        key: "view" + id,
+        child: arrAnnotId.map((i) => {
+          return {
+            name: cmlib.CMGetAnnotName(i),
+            key: "annotid" + i,
+          };
+        }),
+      };
+    });
+    this.setState({
+      PMITreeData: pmiTree,
+    });
+
+    console.log(pmiTree);
+    // let viewName = cmlib.CMGetAnnotViewName(arrViewId[0]);
+
+    // let arrAnnotId = cmlib.CMGetAnnotIDInView(arrViewId[0]);
+    // let annotViewId = cmlib.CMGetViewIDByAnnotID(arrAnnotId[0]);
+    // let annotName = cmlib.CMGetAnnotName(arrAnnotId[0]);
+    // let annotType = cmlib.CMGetAnnotType(arrAnnotId[0]);
+    // let annotVisible = cmlib.CMIsAnnotVisible(arrAnnotId[0]);
+    cmlib.CMSetAnnotVisibleInView(arrViewId, true);
+  }
+
+  handleCMSetAnnotVisibleInView(treeNodeIds) {
+    let cmlib = window.CM_LIB;
+    cmlib.CMSetAnnotVisibleInView(treeNodeIds, true);
+  }
+
+
+  handleInitPMI(bl) {
+    let cmlib = window.CM_LIB;
+
+    if (bl) {
+      cmlib.CMInitPmi();
+    } else {
+      cmlib.CMResetPmiDispColor();
+      cmlib.CMUnInitPmi();
+    }
+  }
 
   getTreeNodeData(item, parentKeys = []) {
     this.key += 1;
@@ -370,7 +505,7 @@ export default class ScleAttrTree extends PureComponent {
         passive: false,
       });
     }
-    window.setVisibleTree = this.setVisible.bind(this)
+    window.setVisibleTree = this.setVisible.bind(this);
     window.addEventListener("pickParams", this.pickObjectParameters, {
       passive: false,
     });

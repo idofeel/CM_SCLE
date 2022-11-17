@@ -4,10 +4,11 @@ import { get, queryString } from '../utils';
 import ScleToolsBar from './scleTools/scleToolsBar';
 // import ScleTools from './scleTools'
 import { IsPhone } from '../utils/Browser';
-import scleControl from './scleControl';
+import SC from './scleControl';
 import { scleCustomEvent } from '../utils';
-
 import './scle.less';
+
+let scleControl = SC;
 // .default
 const logo = require('../assets/images/downloadAppIcon.png').default;
 
@@ -250,20 +251,34 @@ function ScleView() {
 		// 	cmcallbacks
 		// );
 		//
+
 		window.addEventListener('updateProgress', onProgress);
 		window.addEventListener('transferFailed', () => setMsgCode(2));
-		window.CMOnlineView.default.install(window.Vue);
-		new window.Vue({
-			el: '#CMOnlineUI_container',
-		});
-		// 创建内部UI对象
-		// var UI_Container = document.createElement('div');
-		// UI_Container.id ='CMOnlineUI_container';
-		// containerRef.current.appendChild(UI_Container);
 
-		// scleCustomEvent('scleViewOnReady')
+		// eslint-disable-next-line
+		loadCMOnlineLib(function(isErr, errJSFileUrl) {
+			// 错误处理
+			if (isErr) {
+				console.error('加载模型库依赖失败！');
+				console.error('失败的 JS 文件地址：', errJSFileUrl);
+				return;
+			}
+		
+			window.CMOnlineView.default.install(window.Vue);
+			new window.Vue({
+				el: '#CMOnlineUI_container',
+			});
+			window.CM_LIBReady = false;
+			// 重新赋值指针
+			scleControl = window.CMOnlineUI;
 
-		window.CM_LIBReady = false;
+			// 创建内部UI对象
+			// var UI_Container = document.createElement('div');
+			// UI_Container.id ='CMOnlineUI_container';
+			// containerRef.current.appendChild(UI_Container);
+			scleCustomEvent('scleViewOnload');
+			asyncLoad()
+		})
 
 		function asyncLoad() {
 			console.log(window.CM_CALLBACKS);
@@ -271,12 +286,15 @@ function ScleView() {
 				const cmcallbacks = new window.CM_CALLBACKS();
 				cmcallbacks.CMOnLoadModelEndCallback = function () {
 					scleCustomEvent('CMOnLoadModelEndCallback');
-					window.CMOnlineUI.loadEnd();
+					scleControl.loadEnd();
 				}
+				const cmsettings = new window.CM_SETTINGS();
 				window.CM_LIB = new window.CMOnlineLib(
 					containerRef.current,
-					cmcallbacks
+					cmcallbacks,
+					cmsettings
 				);
+
 				window.CM_LIB.CMSetUserCanCommentFlag(1);
 				window.CM_LIB.CMSetCommentUsrName('test');
 				if (isHttp) openScle();
@@ -286,9 +304,9 @@ function ScleView() {
 				console.log('加载CM_CALLBACKS失败');
 				window.location.reload()
 			}
+			
 		}
 
-		window.CM_onload = asyncLoad;
 
 		window.addEventListener('scleStreamReady', () => {
 			loadingChange(false);
@@ -299,11 +317,7 @@ function ScleView() {
 			scleControl.refreshNotation();
 		});
 
-		// window.addEventListener('load', asyncLoad);
-		setTimeout(() => {
-			scleCustomEvent('scleViewOnload');
-		})
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		
 	}, []);
 
 	const onVisibleChange = () => {

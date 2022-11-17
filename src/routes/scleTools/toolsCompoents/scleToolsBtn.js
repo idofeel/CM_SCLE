@@ -18,7 +18,7 @@ import {
 import ToolsBarContext from "../ToolsBarContext";
 
 const IconFont = Icon.createFromIconfontCN({
-  scriptUrl: "./js/localiconfont/iconfont.js",
+  scriptUrl: "./CMOnlineToolkit/iconfont.js",
 });
 const renderTitle = (title) => (IsPhone() ? null : title);
 

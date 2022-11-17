@@ -11,11 +11,6 @@
 	<link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
 	<link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 	<link rel="stylesheet" href="default.css" />
-	<link href="js/UI/css/app.css" rel="stylesheet" type="text/css"/>
-	<link rel="stylesheet" href="js/UI/css/CMOnlineUI.css" type="text/css">
-	<!-- CMOnline UI   -->
-	<script type="text/javascript" src="js/UI/CMvendor.js"></script>
-	<script type="text/javascript" src="js/UI/app.js"></script>
 	<title>Scle Model</title>
 </head>
 
@@ -122,52 +117,10 @@
 			e.preventDefault()
 		})
 </script> -->
-<script type="text/javascript" src="js/base64/base64.js"></script>
-<script type="text/javascript" src="./index.js"></script>
-<!-- SCLE 解析脚本  -->
-<script type="text/javascript" src="js/SCLELoader/ADFBaseDef.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFGeomDef.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFSceneDef.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFCleParser.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFMath.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFGlobal.js"></script>
-<script type="text/javascript" src="js/SCLELoader/ADFUSDK.js"></script>
-<script type="text/javascript" src="js/SCLERender/glmatrix.js"></script>
-<script type="text/javascript" src="js/SCLERender/GLSL.js"></script>
-<script type="text/javascript" src="js/SCLERender/Global.js"></script>
-<script type="text/javascript" src="js/SCLERender/MaterialDefine.js"></script>
-<script type="text/javascript" src="js/SCLERender/SceneToGLData.js"></script>
-<script type="text/javascript" src="js/SCLERender/Camera.js"></script>
-<script type="text/javascript" src="js/SCLERender/WebGL3D.js"></script>
-<script type="text/javascript" src="js/SCLERender/Canvas2D.js"></script>
-<script type="text/javascript" src="js/SCLERender/GLProgram.js"></script>
-<script type="text/javascript" src="js/SCLERender/GLRunTime.js"></script>
-<script type="text/javascript" src="js/SCLERender/EventAction.js"></script>
-<script type="text/javascript" src="js/SCLERender/XmlTool.js"></script>
-<script type="text/javascript" src="js/CMOnline.js"></script>
-<script type="text/javascript" src="./local.js"></script>
+<script type="text/javascript" src="CMOnlineToolkit/CMOnline.js"></script>
 
-<script type="text/javascript" language="javascript">
-	var Module = {
-		installed: false,
-		sleep: function sleep(ms) {
-			return new Promise((resolve) => setTimeout(resolve, ms));
-		},
-		onData: async function (data) {
-			while (g_CLEModule && !this.installed) {
-				await this.sleep(1000);
-			}
-			// 加载CLE文件
-			window.CM_LIB.CMInitData(data,  "115YyX45Lqs5Zyc5pmW56eR5oqA5pyJ6ZmQ5YWs5Y+4");
-		}
-	};
-	if (g_CLEModule) {
-		Module.onRuntimeInitialized = function () {
-			Module._init();
-			this.installed = true;
-		}
-	}
-</script>
-<!-- <script type="text/javascript" src="js/CLEBindings.js"></script> -->
+<script type="text/javascript" src="./local.js"></script>
+<script type="text/javascript" src="./index.js"></script>
+
 
 </html>

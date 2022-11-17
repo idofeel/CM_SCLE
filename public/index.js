@@ -83,11 +83,7 @@
 
 	window.addEventListener('load', onload)
 
-	window.addEventListener('scleViewOnload', function () {
-		if (!window.CM_LIBReady && window.CM_onload) {
-			window.CM_onload()
-		}
-	})
+	
 
 	function scleCustomEvent(name, detail) {
 		const event = document.createEvent('CustomEvent')
@@ -176,7 +172,7 @@
 			const path = link || fileName;
 
 			if (path.endsWith('.scle')) {
-				window.CM_LIB.CMInitData(res, "115YyX45Lqs5Zyc5pmW56eR5oqA5pyJ6ZmQ5YWs5Y+4");
+				window.CM_LIB.CMInitData(res, "12y5YaFy4y6YOo5rWL6K+V");
 			} else if (path.endsWith('.cle')) {
 				Module.onData(res);
 			}
@@ -209,8 +205,14 @@
 	const Scle = function () { }
 	Scle.prototype = scle
 	// window.Scle = new Scle()
-	window.CMOnlineUI = Object.assign(window.CMOnlineUI, scle)
 
+
+
+	window.addEventListener('scleViewOnload', function () {
+		Object.keys(scle).forEach(function(key){
+			window.CMOnlineUI[key] = scle[key];
+		})
+	})
 
 
 })()

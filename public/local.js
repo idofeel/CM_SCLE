@@ -1,6 +1,11 @@
 ;(function () {
 	var ScleView = window.CMOnlineUI;
 
+	window.addEventListener('scleViewOnload', function () {
+		ScleView = window.CMOnlineUI;
+	})
+
+
 	var $el = function (id) {
 		return document.getElementById(id);
 	};
@@ -15,7 +20,8 @@
 		document.getElementsByClassName('ant-btn')[0].blur();
 		if (!e.target.files[0]) return;
 		// 打开本地scle文件
-		ScleView.loadLocalFile(e.target);
+		console.log('window.CMOnlineUI',window.CMOnlineUI, ScleView);
+		window.CMOnlineUI.loadLocalFile(e.target);
 		this.value = '';
 	};
 

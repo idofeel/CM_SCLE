@@ -7,7 +7,10 @@ import {
 	Radio,
 	Slider,
 	Tabs,
-	Tooltip
+	Checkbox,
+	Switch,
+	Tooltip,
+	Button
 } from 'antd'
 import { PureComponent } from 'react'
 import { ChromePicker } from 'react-color'
@@ -18,12 +21,16 @@ import {
 	IsPhone
 } from '../../utils/Browser'
 import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
+
 import './scleTools.less'
 import { scleCustomEvent } from '../../utils'
+import { DoubleRightOutlined, DoubleLeftOutlined,SwitcherOutlined } from '@ant-design/icons';
+
+
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_u6ht57qahg.js'
-	scriptUrl: './js/localiconfont/iconfont.js'
+	scriptUrl: './CMOnlineToolkit/localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
 
@@ -31,11 +38,6 @@ message.config({
 	maxCount: 1
 })
 export default class scleTools extends PureComponent {
-	#toolsKeyIndex = {
-		visibleIndex: 3,
-		alphaIndex: 5,
-		fullScreen: 9
-	}
 	#tools = [
 		{ type: 'home', title: '复位', onClick: () => window.setHome() },
 		{
@@ -48,17 +50,18 @@ export default class scleTools extends PureComponent {
 		// 	title: '批注',
 		// 	popover: () => this.renderAnnotation()
 		// },
-		{
-			type: 'apartment',
-			title: '模型树',
-			onClick: () => this.drawerToggle()
-		},
-		{ type: 'eye-invisible', title: '隐藏' },
+		// {
+		// 	type: 'apartment',
+		// 	title: '模型树',
+		// 	onClick: () => this.drawerToggle()
+		// },
+		{ type: 'eye-invisible', title: '隐藏', key: "show" },
 		{ type: 'bg-colors', resetTheme: true, title: '颜色', popover: () => this.renderColor() },
 		{
 			type: 'icon-toumingdu',
 			title: '透明度',
 			isFont: true,
+			key: "toumingdu",
 			popover: () => this.renderSlider()
 		},
 		{
@@ -73,6 +76,11 @@ export default class scleTools extends PureComponent {
 			popover: () => this.renderViewDire()
 		},
 		{
+			type: 'icon-shitupouqiehe',
+			isFont: true,
+			onClick: () => this.handleOpenSectionNotification()
+		},
+		{
 			type: 'icon-a-ziyuan10',
 			isFont: true,
 			onClick: () => {
@@ -82,6 +90,7 @@ export default class scleTools extends PureComponent {
 				})
 			}
 		},
+		
 		{
 			type: 'play-circle',
 			title: '播放',
@@ -91,7 +100,8 @@ export default class scleTools extends PureComponent {
 				})
 			}
 		},
-		{ type: 'fullscreen', title: '全屏' }
+			
+			{ type: 'fullscreen', title: '全屏',key: "fullscreen", }
 	]
 
 
@@ -226,7 +236,10 @@ export default class scleTools extends PureComponent {
 		},
 		playPercent: 0,
 		alpha: 1,
-		drawerVisible: false
+		drawerVisible: false,
+		showParams: false,
+		showSectioning:false
+
 	}
 	isMove = false
 	totalFrames = 0
@@ -323,18 +336,74 @@ export default class scleTools extends PureComponent {
 					closable={false}
 					mask={false}
 					maskClosable={false}
-					placement="left"
+					placement="right"
 					width="auto"
 					visible={this.state.drawerVisible}
 					getContainer={false}
 					bodyStyle={{ padding: 0 }}
 					onClose={() => this.hideDrawer()}
 					className="cleTreeDrawer"
+					id="cleTreeDrawer"
 				>
 					<ScleAttrTree
 						ref={(el) => (this.sclAttrTree = el)}
+						showParams={this.state.showParams}
 					></ScleAttrTree>
+					<div className="expand_box" onClick={()=>this.drawerToggle()}>
+						{
+							this.state.drawerVisible ? <DoubleRightOutlined />: <DoubleLeftOutlined/>
+						}
+					</div>
 				</Drawer>
+					{/* <ScleSectioningDrawer visible={this.state.showSectioning}/> */}
+				<Drawer
+					title="剖切"
+					placement="right"
+					closable={true}
+					mask={false}
+					onClose={()=>this.handleOpenSectionNotification(false)}
+					maskClosable={false}
+					visible={this.state.showSectioning}
+					getContainer={false}
+					style={{ position: 'absolute',height:360 }}
+					bodyStyle={{height:'auto'}}
+					className="cleTreeDrawer"
+					>
+						<div>
+							<h4>选择切割面</h4>
+							<div className="checkbox_item">
+								<Checkbox onChange={(e)=>this.checkedChange(e, 0)}>沿X轴切割</Checkbox>
+								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(0)}/>
+							</div>
+							<div className="checkbox_item">
+								<Checkbox onChange={(e)=>this.checkedChange(e, 1)} >沿Y轴切割</Checkbox>
+								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(1)}/>
+							</div>
+							<div className="checkbox_item">
+								<Checkbox onChange={(e)=>this.checkedChange(e, 2)}>沿Z轴切割</Checkbox>
+
+								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(2)}/>
+							</div>
+
+							<div className="checkbox_item">
+								切面隐藏
+								<Switch onChange={(e)=> this.switchChange(e)}/>
+							</div>
+
+							<Button block style={{marginTop:40}} onClick={()=>this.handleReset()}>全部重置</Button>
+						</div>
+				</Drawer>
+
+				<div className='fixed_left_tools'>
+					<div className={`left_tools_btn ${this.state.drawerVisible && !this.state.showParams ? 'active':''}`} onClick={() => this.handleShowTree()}>
+						<Icon type="apartment"/>
+					</div>
+
+					<div className={`left_tools_btn ${this.state.drawerVisible && this.state.showParams ? 'active':''}`} onClick={() => this.handleShowParams()}>
+						<SwitcherOutlined />
+					</div>
+
+				</div>
 				<div className="scleToolsBar">
 					<Tabs
 						activeKey={this.state.activeTab}
@@ -349,18 +418,82 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
+
+	checkedChange(e, index){
+		let cmlib = window.CM_LIB;
+		setTimeout(() => {
+			try {
+				cmlib.CMSetClipEnable(index, e.target.checked);
+			} catch (error) {
+				console.log(error);
+			}
+		});
+	}
+
+	switchChange(e){
+		console.log(e);
+		let cmlib = window.CM_LIB;
+		cmlib.CMSelectClip(0);
+
+		cmlib.CMSelectClip(1);
+
+		cmlib.CMSelectClip(2);
+
+
+	}
+
+	CMSetClipRevert(index){
+		let cmlib = window.CM_LIB;
+		// cmlib.CMSelectClip(index);
+
+		cmlib.CMSetClipRevert(index);
+	}
+
+	handleReset(){
+		let cmlib = window.CM_LIB;
+
+		// cmlib.CMResetClip(0);
+		// cmlib.CMResetClip(1);
+		// cmlib.CMResetClip(2);
+
+		// cmlib.CMSelectClip(-1);
+	}
+
+
+	
 	drawerToggle() {
 		this.setState({
 			drawerVisible: !this.state.drawerVisible,
-			activeTab: !this.state.drawerVisible ? this.state.activeTab : null
+			// showParams:  false
+			// activeTab: !this.state.drawerVisible ? this.state.activeTab : null,
 		})
 	}
+
+	
+	handleShowTree(){
+		const {showParams,drawerVisible} = this.state;
+		this.setState({
+			drawerVisible: !(drawerVisible && !showParams),
+			showParams:  false
+		})
+	}
+
+	handleShowParams (){
+		const {showParams,drawerVisible} = this.state;
+		
+		this.setState({
+			drawerVisible: !(drawerVisible && showParams),
+			showParams:  true
+		})
+	}
+
 	hideDrawer() {
 		this.setState({
 			drawerVisible: false,
 			activeTab: null
 		})
 	}
+
 	renderTools() {
 		const { tools } = this.state
 		return tools.map((item, index) => (
@@ -707,26 +840,53 @@ export default class scleTools extends PureComponent {
 	fullScreenHandle(fullScreen) {
 		const icon = fullScreen ? 'fullscreen-exit' : 'fullscreen'
 		const newTools = this.state.tools
-		const fullScreenIndex = this.#toolsKeyIndex.fullScreen
+		const [fullScreenIndex] = this.findToolsIndex(['fullscreen']);
 		newTools[fullScreenIndex].type = icon
 		this.setState({ tools: [...newTools], activeTab: null })
 	}
 
 	pickObjectParameters() {
-		console.log('this.activeTab',this.activeTab);
-		if(this.activeTab){
-			const icon = window.pickObjectVisible ? 'eye-invisible' : 'eye'
-			const newTools = this.state.tools
-			const { visibleIndex, alphaIndex } = this.#toolsKeyIndex
-			newTools[visibleIndex].type = icon
-			newTools[visibleIndex].title = icon === 'eye' ? '显示' : '隐藏'
-			newTools[alphaIndex].visible = false
-			this.setState({
-				tools: [...newTools],
-				// activeTab: null,
-				alpha: window.pickObjectTransparent || 0
-			})
-		}
+
+		if(window.pickObjectVisible === null) return;
+
+		const [visibleIndex, alphaIndex] = this.findToolsIndex(['show', 'toumingdu']);
+		const newTools = this.state.tools
+		// 
+		const icon = window.pickObjectVisible ? 'eye-invisible' : 'eye'
+		newTools[visibleIndex].type = icon
+		newTools[visibleIndex].title = icon === 'eye' ? '显示' : '隐藏'
+
+		// 
+		newTools[alphaIndex].visible = false
+
+		this.setState({
+			tools: [...newTools],
+			alpha: window.pickObjectTransparent || 0
+		})
+
+	}
+
+	handleOpenSectionNotification(show){
+		const showSectioning = show !== undefined ? !!show : !this.state.showSectioning
+		this.setState({
+			showSectioning, 
+			activeTab: showSectioning? 'icon-shitupouqiehe': null
+		})
+
+		const cmlib = window.CM_LIB;
+		setTimeout(()=>{
+			try {
+				console.log('loadStart', Date.now());
+				showSectioning ? cmlib.CMInitSection() : cmlib.CMUnInitSection();  
+				console.log('loadend', Date.now());
+			} catch (error) {
+			}
+		})
+		
+	}
+
+	findToolsIndex(keys){
+		return keys.map(key => this.#tools.findIndex(i=>i.key === key))
 	}
 
 	//   停止播放
