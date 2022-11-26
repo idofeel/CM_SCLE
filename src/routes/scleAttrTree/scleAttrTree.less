@@ -7,35 +7,36 @@
 		text-align: left;
 	}
 
-	.ant-tree {
-		overflow-x: auto;
-		width: 99%;
-		.ant-tree-node-content-wrapper {
-			line-height: 1;
-			height: auto;
-			line-height: normal;
-			padding: 0;
-			&:hover {
-				background: transparent;
-			}
-			&.ant-tree-node-selected {
-				padding: 0;
-			}
-		}
-		.ant-tree-title > span {
-			padding: 2px 4px;
-			border-radius: 4px;
-			&:hover {
-				background: #e6f7ff;
-			}
-		}
-		.tree_selected {
-			background: #bae7ff;
-		}
-	}
 
-	.ant-tabs-nav-wrap {
+}
+.ant-tree {
+	overflow-x: auto;
+	width: 99%;
+	.ant-tree-node-content-wrapper {
+		line-height: 1;
+		height: auto;
+		line-height: normal;
+		padding: 0;
+		&:hover {
+			background: transparent;
+		}
+		&.ant-tree-node-selected {
+			padding: 0;
+		}
 	}
+	.ant-tree-title > span {
+		padding: 2px 4px;
+		border-radius: 4px;
+		&:hover {
+			background: #e6f7ff;
+		}
+	}
+	.tree_selected {
+		background: #bae7ff;
+	}
+}
+
+.ant-tabs-nav-wrap {
 }
 .attrTable {
 	.ant-table-thead > tr > th {
@@ -67,5 +68,26 @@
 			overflow: auto;
 		}
 	}
+
+	&>.anoot{
+		height: 35%;
+		flex: none;
+	}
 	
+}
+
+
+.down{
+	transform: rotate(90deg) !important;
+	float: right;
+	cursor: pointer;
+
+	&.hideAnoot{
+		transform: rotate(-90deg) !important;
+	}
+}
+
+.hideAnootbox{
+	height: 52px !important;
+	flex: none !important;
 }

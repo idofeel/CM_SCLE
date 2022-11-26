@@ -1,7 +1,7 @@
 //===================================================================================================
 
 // 版本号
-const CMONLINE_VERSION = "2.2.0.2010";
+const CMONLINE_VERSION = "2.2.0.2012";
 
 // 模型树
 function CM_MODELTREENODE() {
@@ -63,6 +63,12 @@ function CM_SCENEANIMNODE() {
     this._arrSubNode = new Array();			        // 子节点，存储CM_SCENEANIMNODE对象
 }
 
+// 拾取三维物体
+function CM_PICK_ELEMENT() {
+    this._uPickType = CM_PICK_TYPE_NONE;            // 拾取的元素类型，见CM_PICK_TYPE枚举值
+    this._arrPickElements = new Array();            // 拾取元素的ID数组，单选时只有一个元素
+}
+
 const CMHOME_TYPE_ALL = 0;
 const CMHOME_TYPE_POSITION = 1;
 const CMHOME_TYPE_COLOR = 2;
@@ -102,6 +108,15 @@ const CM_RUNTIME_MODE_ANNOTATION = 0;
 const CM_RUNTIME_MODE_MEASURE = 1;
 const CM_RUNTIME_MODE_SECTION = 2;
 const CM_RUNTIME_MODE_PMI = 3;
+
+const CM_PICK_TYPE_NONE = 0;
+const CM_PICK_TYPE_PART = 1;
+const CM_PICK_TYPE_SURFACE = 2;
+const CM_PICK_TYPE_CURVE = 3;
+const CM_PICK_TYPE_POINT = 4;
+const CM_PICK_TYPE_OPT_COORD = 10;
+const CM_PICK_TYPE_OPT_PLANE = 11;
+const CM_PICK_TYPE_PMI_ITEM = 20;
 
 function CM_CALLBACKS() {
     // 回调函数，刷新界面
@@ -153,6 +168,7 @@ function CM_SETTINGS() {
 let isLoadedLib = false;
 let g_CLEModule = true; // CLE到SCLE数据转换使能开关
 var g_BasisModule = false;
+let isCleModuleReady = false;
 
 // 动态加载 CMOnline 依赖库，解决不同 vue 版本兼容的问题
 function loadCMOnlineLib (cb) {
@@ -247,6 +263,8 @@ var Module = {
                 _this.onRuntimeInitialized();
             }, 1000);
             return;
+        }else{
+            isCleModuleReady = true;
         }
 
         Module._init();
@@ -264,15 +282,25 @@ function CMOnlineLib(dom, callbacks, settings) {
     this.CMVersion = CMVersion;
     this.CMInitData = CMInitData;
     this.CMUninitData = CMUninitData;
+    this.CMHome = CMHome;
+    this.CMGetPickElements = CMGetPickElements;
+
     this.CMChangeView = CMChangeView;
     this.CMSetViewOnSelObjs = CMSetViewOnSelObjs;
-    this.CMHome = CMHome;
+    this.CMViewRotate = CMViewRotate;
+    this.CMViewScale = CMViewScale;
+
     this.CMGetSelObjIDs = CMGetSelObjIDs;
     this.CMSetClearSelStatus = CMSetClearSelStatus;
     this.CMSetSelObjVisible = CMSetSelObjVisible;
     this.CMGetSelObjTransparent = CMGetSelObjTransparent;
     this.CMSetSelObjTransparent = CMSetSelObjTransparent;
+    this.CMGetObjVisible = CMGetObjVisible
+    this.CMSetObjVisible = CMSetObjVisible
+    this.CMGetObjTransparent = CMGetObjTransparent;
     this.CMSetObjTransparent = CMSetObjTransparent;
+    this.CMGetObjName = CMGetObjName
+    this.CMGetObjParams = CMGetObjParams
     this.CMSetObjsHighlight = CMSetObjsHighlight;
     this.CMGetObjsCenterPos = CMGetObjsCenterPos;
     this.CMSetObjsEnhancedDisplay = CMSetObjsEnhancedDisplay;
@@ -350,9 +378,6 @@ function CMOnlineLib(dom, callbacks, settings) {
 
     this.CMSetSceneLightOn = CMSetSceneLightOn;
     this.CMSetSceneLightPower = CMSetSceneLightPower;
-
-    this.CMGetObjectInfoByClickMouse = CMGetObjectInfoByClickMouse;
-    this.CMGetCanvasPosByModelPos = CMGetCanvasPosByModelPos;
 
     this.CMGetModelList = CMGetModelList;
     this.CMUpdateModel = CMUpdateModel;
@@ -434,7 +459,40 @@ function RealLoadSCLEFile() {
 }
 
 function StartLoadSCLEFile() {
-    window.clearTimeout(g_LoadFileTimeTimeID);
+    window.clearInterval(g_LoadFileTimeTimeID);
+    RealLoadSCLEFile();
+}
+
+function StartLoadCLEFile(cledata) {
+    if (!isCleModuleReady) {
+        return;
+    }
+
+    window.clearInterval(g_LoadFileTimeTimeID);
+    // 以当前时间作为随机文件名
+    var name = Date.now().toString();
+    // 与WebAssembly约定的数据交换目录
+    var path = "/tmp/";
+    // 将CLE数据保存至约定的内存文件系统目录
+    var fs = FS.open(path + name + ".cle", "w+");
+    var inputData = new Uint8Array(cledata);
+    FS.write(fs, inputData, 0, inputData.length, 0);
+    FS.close(fs);
+    FS.syncfs(true, function (err) {
+    });
+
+    // 从CLE到SCLE的格式转换
+    Module._do(name);
+
+    // 初始化数据
+    InitCleStream();
+
+    // 从内存文件系统读取转换后的SCLE数据
+    var OutData = FS.readFile(path + name + ".scle");
+    g_cleParser._arrayByteBuffer = OutData.buffer;
+    g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
+    g_cleParser._nCleBufferlength = OutData.length;
+
     RealLoadSCLEFile();
 }
 
@@ -471,31 +529,7 @@ function CMInitData(cledata, licdata) {
     // 判断是否为CLE文件
     if (g_CLEModule) {
         if (byteHeaer == 67) {
-            // 以当前时间作为随机文件名
-            var name = Date.now().toString();
-            // 与WebAssembly约定的数据交换目录
-            var path = "/tmp/";
-            // 将CLE数据保存至约定的内存文件系统目录
-            var fs = FS.open(path + name + ".cle", "w+");
-            var inputData = new Uint8Array(cledata);
-            FS.write(fs, inputData, 0, inputData.length, 0);
-            FS.close(fs);
-            FS.syncfs(true, function (err) {
-            });
-
-            // 从CLE到SCLE的格式转换
-            Module._do(name);
-
-            // 初始化数据
-            InitCleStream();
-
-            // 从内存文件系统读取转换后的SCLE数据
-            var OutData = FS.readFile(path + name + ".scle");
-            g_cleParser._arrayByteBuffer = OutData.buffer;
-            g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
-            g_cleParser._nCleBufferlength = OutData.length;
-
-            RealLoadSCLEFile();
+            g_LoadFileTimeTimeID = window.setInterval(function(){ StartLoadCLEFile(cledata) }, 100);
             return;
         }
     }
@@ -562,6 +596,13 @@ function CMHome(type) {
     glRunTime.home(type);
 }
 
+// 获取当前拾取的元素
+function CMGetPickElements() {
+    var cmPickElem = new CM_PICK_ELEMENT();
+    transCMOnlinePickElem(cmPickElem, glRunTime.curPickUnit);
+    return cmPickElem;
+}
+
 // 获取选择的物件Id，返回值为array类型
 function CMGetSelObjIDs() {
     return glRunTime.getPickObjectIds();
@@ -579,7 +620,7 @@ function CMSetClearSelStatus() {
 
 // 设置选中物件的显示/隐藏状态
 function CMSetSelObjVisible(isVisible) {
-    glRunTime.setObjectVisible(isVisible);
+    glRunTime.setObjectVisible(-1, isVisible);
 }
 
 // 获取选择的物件的透明度值，仅单选有效
@@ -593,6 +634,29 @@ function CMSetSelObjTransparent(alpha) {
         return;
     }
     glRunTime.setObjectTransparent(null, alpha);
+}
+
+function CMGetObjVisible(objID) {
+    let objectIndex = glRunTime.getObjectIndexById(objID);
+    return glRunTime.getObjectVisible(objectIndex);
+}
+
+function CMSetObjVisible(objID, isVisible) {
+    let objectIndex = glRunTime.getObjectIndexById(objID);
+    return glRunTime.setObjectVisible(objectIndex, isVisible);
+}
+
+function CMGetObjTransparent(objID) {
+    let objectIndex = glRunTime.getObjectIndexById(objID);
+    return glRunTime.getObjectTransparent(objectIndex);
+}
+
+function CMGetObjName(objID) {
+    return glRunTime.getObjectNameByID(objID, g_GLData.GLModelTreeNode);
+}
+
+function CMGetObjParams(objID) {
+    return glRunTime.getObjectParamsByID(objID, g_GLData.GLModelTreeNode);
 }
 
 // 设置指定物件的透明渲染状态
@@ -1059,30 +1123,6 @@ function CMSetSceneLightPower(diffuse, ambient, sepcular) {
     glRunTime.setSceneLightPower(diffuse, ambient, sepcular);
 }
 
-/**
- * @description 在监听到鼠标左\右键抬起后去运行此函数,
- *   获取到当前左\右键点击到的物件信息,但不需要使物体变为选中状态
- * @param {*} event 
- * @returns 物件信息
- */
-// 
-function CMGetObjectInfoByClickMouse(event) {
-    var btnList = [0, 2] // 左右 鼠标键
-    var isClickMouse = event && btnList.includes(event.button) 
-    if (isClickMouse) {
-        return getPickedObjectInfo()
-    }
-}
-
-/**
- * @description 将物件坐标转换为画布中的位置
- * @param {*} modelPos 物件坐标, {x: number, y: number, z: number}
- * @returns canvasPos 在绘制区内的位置, 左上角为 (0, 0), 右下角为 (1, 1) {x: 0 ~ 1 , y: 0 ~ 1} 
- */
-function CMGetCanvasPosByModelPos (modelPos, objIdx) {
-  return glRunTime.getCanvasPosByModelPos(modelPos, objIdx)
-}
-
 // 获取模型列表
 function CMGetModelList() {
     return getModelList();
@@ -1138,7 +1178,7 @@ function ImportSecTools() {
                     g_cleParser._arrayCleBuffer = new DataView(g_cleParser._arrayByteBuffer, 0, g_cleParser._arrayByteBuffer.byteLength);
                     g_cleParser._nCleBufferlength = g_cleParser._arrayByteBuffer.byteLength;
     
-                    g_LoadFileTimeTimeID = window.setInterval(RealLoadSCLEFile(), 100);
+                    g_LoadFileTimeTimeID = window.setInterval(StartLoadSCLEFile(), 100);
                 });
             });
         }
@@ -1171,7 +1211,7 @@ function CMGetAnnotViewName(uAnnotViewID) {
 
 // 切换显示标注视图
 function CMShiftAnnotView(uAnnotViewID) {
-    return g_scenePmiManager.shiftPmiViewVisible(uAnnotViewID);
+    return g_scenePmiManager.shiftPmiView(uAnnotViewID);
 }
 
 // 设置标注视图内标注的显示/隐藏状态

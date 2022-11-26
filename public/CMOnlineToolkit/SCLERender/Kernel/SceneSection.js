@@ -720,7 +720,7 @@ function SceneSection() {
     }
 
     this.pickSecTools = function(RayPoint1, RayPoint2) {
-        if (!this.isPlanePicked) {
+        if (!this.isPlanePicked || !this.m_operatorTool.m_bInit) {
             return null;
         }
         let curPickUnit = this.pickSecToolsCal(RayPoint1, RayPoint2, this.pickUnit);
@@ -734,6 +734,13 @@ function SceneSection() {
     }
 
     this.pickSecToolsCal = function(RayPoint1, RayPoint2, pickUnitOut) {
+        if (!this.m_operatorTool.m_bInit) {
+            return null;
+        }
+        if (this.pickedCilpPlaneIndex < 0 || this.pickedCilpPlaneIndex >= this.arrClipPlanes.length) {
+            return null;
+        }
+
         this.m_intersectTool.init(g_secToolObjectSet._arrObjectSet, g_secToolPartSet._arrPartSet, null, null);
         this.arrObjectIndex.splice(0, this.arrObjectIndex.length);
         this.arrObjSurIntersect.splice(0, this.arrObjSurIntersect.length);
@@ -770,6 +777,9 @@ function SceneSection() {
     }
 
     this.operateSectionStart = function(index) {
+        if (!this.m_operatorTool.m_bInit) {
+            return;
+        }
         if (index < 0 || index >= this.m_operatorTool.m_arrOpeObjects.length) {
             return;
         }
@@ -796,6 +806,9 @@ function SceneSection() {
     }
 
     this.operateSectionUpdate = function(index, stepX, stepY) {
+        if (!this.m_operatorTool.m_bInit) {
+            return;
+        }
         if (index < 0 || index >= this.m_operatorTool.m_arrOpeObjects.length) {
             return;
         }
@@ -823,6 +836,9 @@ function SceneSection() {
     }
 
     this.operateSectionFinish = function(index) {
+        if (!this.m_operatorTool.m_bInit) {
+            return;
+        }
         if (index < 0 || index >= this.m_operatorTool.m_arrOpeObjects.length) {
             return;
         }

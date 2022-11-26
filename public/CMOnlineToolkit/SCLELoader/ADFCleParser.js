@@ -1441,6 +1441,27 @@ function ADFCleParser() {
         } 
     }
 
+    // 当前日期(如:090612)
+    this.getCurentDay = function () {
+        var now = new Date();
+        
+        var year = now.getFullYear();       //年
+        var month = now.getMonth() + 1;     //月
+        var day = now.getDate();            //日
+        
+        var clock = year.toString().slice(2, 4);
+        
+        if (month < 10)
+            clock += "0";       
+        clock += month.toString();
+        
+        if(day < 10)
+            clock += "0";
+            
+        clock += day.toString();
+        return(clock); 
+    } 
+
     // 解析lic数据
     this.parseLicData = function () {
         if (g_licData.length == 0) {
@@ -1452,33 +1473,38 @@ function ADFCleParser() {
         g_CLEMeasure =  "n";
         g_CLESection =  "n";
 
-        var head = g_licData.slice(0, 2);
-        if (head == "11") {
-            var userLeft = g_licData.slice(2, 6);
-            var userRight = g_licData.slice(7, g_licData.length);
-            g_product = g_licData.slice(6, 7);
-            if (g_product != "4") {
+        var header = g_licData.slice(0, 2);   
+        if (header != "13") {
+            return;
+        }
+
+        var decodeText = Base64.decode(g_licData.slice(2, g_licData.length));
+
+        g_product = decodeText.slice(0, 1);
+
+        var g_CLEPMI = decodeText.slice(1, 2);
+        var g_CLEMeasure = decodeText.slice(2, 3);
+        var g_CLESection = decodeText.slice(3, 4);
+
+        var timeControl = decodeText.slice(4, 5);
+        var startTime = decodeText.slice(5, 11);
+        var endTime = decodeText.slice(11, 17);                 
+          
+        if (g_product != "4") {
+            return;
+        } 
+
+        // 时间控制
+        if (timeControl == "1") {
+            var nCurTime = parseInt(this.getCurentDay()); 
+            var nStartTime = parseInt(startTime); 
+            var nEndTime = parseInt(endTime); 
+            if (nCurTime > nEndTime || nCurTime < nStartTime) {
                 return;
             }
-    
-            var decodeName = userLeft + userRight;
-            g_strCopy = Base64.decode(decodeName);
-        }
-        else if (head == "12") { 
-            g_CLEPMI = g_licData.slice(2, 3);
-            var userLeft = g_licData.slice(3, 7);
-            g_CLEMeasure = g_licData.slice(7, 8);
-            g_product = g_licData.slice(8, 9);
-            g_CLESection = g_licData.slice(8, 10);
-            var userRight = g_licData.slice(10, g_licData.length);
+        } 
             
-            if (g_product != "4") {
-                return;
-            }
-    
-            var decodeName = userLeft + userRight;
-            g_strCopy = Base64.decode(decodeName);
-        }
+        g_strCopy = decodeText.slice(17, decodeText.length);
     }
 
     // 主入口函数

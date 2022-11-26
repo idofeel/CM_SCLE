@@ -409,6 +409,7 @@ function GL_PMI_VIEW() {
 	this.strName = '';					                // 名称
     this.annoPlane = new ADF_AnnotationPlane();	        // 标注平面
     this.arrItemIndex = new Array();                 // 标注item索引
+    this.viewBox = null;
 
     this.Clear = function () {
         this.arrItemIndex.splice(0, this.arrItemIndex.length);
@@ -428,6 +429,30 @@ function GL_PMI_VIEW() {
                 }
             }
         }
+    }
+
+    this.CalPublicBox = function(arrPmiItem) {
+        this.viewBox = new GL_Box();
+        let min_x = Infinity, min_y = Infinity, min_z = Infinity;
+        let max_x = -Infinity, max_y = -Infinity, max_z = -Infinity;
+        let itemBox = null;
+
+        for (let i in this.arrItemIndex) {
+            itemBox = arrPmiItem[this.arrItemIndex[i]].itemBox;
+            if (itemBox == null) {
+                continue;
+            }
+            min_x = Math.min(min_x, itemBox._Vertex[0].x);
+            min_y = Math.min(min_y, itemBox._Vertex[0].y);
+            min_z = Math.min(min_z, itemBox._Vertex[0].z);
+            max_x = Math.max(max_x, itemBox._Vertex[7].x);
+            max_y = Math.max(max_y, itemBox._Vertex[7].y);
+            max_z = Math.max(max_z, itemBox._Vertex[7].z);
+        }
+
+        minPt.set(min_x, min_y, min_z);
+        maxPt.set(max_x, max_y, max_z);
+        TranGLBox(minPt, maxPt, this.viewBox);
     }
 }
 
@@ -540,6 +565,7 @@ function GL_PMI() {
         for (let i in adfAnno.arrAnnotationView){
             pmiView = new GL_PMI_VIEW();
             pmiView.Copy(adfAnno.arrAnnotationView[i], adfAnno.arrAnnotationItem);
+            pmiView.CalPublicBox(this.arrPmiItem);
             this.arrPmiView[i] = pmiView;
         }
     }

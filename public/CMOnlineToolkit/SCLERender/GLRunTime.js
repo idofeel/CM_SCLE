@@ -47,6 +47,16 @@ const RUNTIME_MODE_MEASURE = 1;
 const RUNTIME_MODE_SECTION = 2;
 const RUNTIME_MODE_PMI = 3;
 
+function RuntimePickUnit () {
+    this._uPickType = -2;     // 运行时拾取类型
+    this._oPickUnit = null;   // 拾取的物体
+
+    this.Clear = function() {
+        this._uPickType = -2;
+        this._oPickUnit = null;
+    }
+}
+
 function GLRunTime() {
     // 参数
     this.WIDTH = 0;
@@ -98,6 +108,8 @@ function GLRunTime() {
     this.isOnceLoad = false;
     // 测量模式
     this.curRuntimeMode = -1;
+    // 拾取物体
+    this.curPickUnit = new RuntimePickUnit();
 
     /**
      * 渲染引擎数据初始化
@@ -462,33 +474,49 @@ function GLRunTime() {
     this.pick = function(screenX, screenY, isMult, isDoPick) {
         // 优先判断是否选择了测量控件
         if (this.curRuntimeMode == RUNTIME_MODE_MEASURE) {
+            this.curPickUnit._uPickType = RUNTIME_MODE_MEASURE;
             if (g_sceneMeasure.doGetPickMeasureIndex(screenX, screenY) > -1) {
                 g_glprogram.pickNone();
+                this.curPickUnit._oPickUnit = null;
                 return null;
             }
         }
 
         // 优先判断是否选择了PMI信息
         if (this.curRuntimeMode == RUNTIME_MODE_PMI) {
-            if (g_scenePmiManager.pickPmi(screenX, screenY, isMult, isDoPick)) {
+            this.curPickUnit._uPickType = RUNTIME_MODE_PMI;
+            this.curPickUnit._oPickUnit = g_scenePmiManager.pickPmi(screenX, screenY, isMult, isDoPick);
+            if (this.curPickUnit._oPickUnit != null) {
                 g_glprogram.pickNone();
-                return null;
+                return this.curPickUnit;
             }
         }
 
         // 根据射线，计算与Object的相交
         this.cvtScreenToWorld(screenX, screenY, this.RayPoint1, this.RayPoint2);
 
+        // 处于剖切状态
         if (this.curRuntimeMode == RUNTIME_MODE_SECTION) {
+            this.curPickUnit._uPickType = RUNTIME_MODE_SECTION;
+            this.curPickUnit._oPickUnit = g_sceneSection.pickSecTools(this.RayPoint1, this.RayPoint2);
             g_glprogram.pickNone();
-            return g_sceneSection.pickSecTools(this.RayPoint1, this.RayPoint2);
+            return this.curPickUnit;
         }
 
-        let curPickUnit = g_glprogram.pickByRay(this.RayPoint1, this.RayPoint2, isMult, isDoPick);
-        if (curPickUnit.objectIndex > -1 && g_sceneMeasure.pickMeasureMode == true && g_webglControl.isContainsGeom == true) {
-            g_sceneMeasure.doMeasureAction(curPickUnit);
+        this.curPickUnit._oPickUnit = g_glprogram.pickByRay(this.RayPoint1, this.RayPoint2, isMult, isDoPick);
+        if (this.curPickUnit._oPickUnit.objectIndex > -1) {
+            this.curPickUnit._uPickType = RUNTIME_MODE_NORMAL;
+
+            // 处于测量状态
+            if (g_sceneMeasure.pickMeasureMode == true && g_webglControl.isContainsGeom == true) {
+                this.curPickUnit._uPickType = RUNTIME_MODE_MEASURE;
+                g_sceneMeasure.doMeasureAction(this.curPickUnit._oPickUnit);
+            }
+        } else {
+            this.curPickUnit.Clear();
         }
-        return curPickUnit;
+        
+        return this.curPickUnit;
     }
 
     /**
@@ -496,7 +524,11 @@ function GLRunTime() {
      */
     this.pickObjectIndex = function(screenX, screenY, isMult, isDoPick) {
         var curPickUnit = this.pick(screenX, screenY, isMult, isDoPick);
-        return curPickUnit == null ? -1 : curPickUnit.objectIndex;
+        if (curPickUnit == null || curPickUnit._oPickUnit == null) {
+            return -1;
+        }
+
+        return curPickUnit._oPickUnit.objectIndex;
     }
 
     this.pickModelByIndexs = function(indexs) {
@@ -887,8 +919,8 @@ function GLRunTime() {
     /**
      * 设置模型消隐
      */
-    this.setObjectVisible = function(visible) {
-        g_glprogram.setObjectVisible(-1, visible);
+    this.setObjectVisible = function(nObjectIndex, visible) {
+        g_glprogram.setObjectVisible(nObjectIndex, visible);
     }
     this.getObjectVisible = function(nObjectIndex) {
         return g_glprogram.getObjectVisible(nObjectIndex);

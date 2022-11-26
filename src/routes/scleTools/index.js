@@ -117,7 +117,7 @@ function ScleTools() {
                   nextEl: ".next_icon",
                   prevEl: ".prev_icon",
                 }}
-                onSlideChange={() => console.log("slide change")}
+                onSlideChange={() => {}}
                 // onSwiper={(swiper) => console.log(swiper)}
               >
                 <SwiperSlide>

@@ -199,7 +199,7 @@ function ScleOpacity(props) {
       visible={isSelected}
       trigger="focus"
       onVisibleChange={(v) => {
-        console.log(v);
+        // console.log(v);
       }}
     >
       <Tooltip title={renderTitle("透明度")}>

@@ -52,7 +52,7 @@
 		 * 事件监听
 		 */
 		window.addEventListener('scleStreamReady', function () {
-			console.log('SCLE 准备就绪')
+			// console.log('SCLE 准备就绪')
 		})
 
 		document.addEventListener('touchstart', function (event) {
@@ -145,15 +145,14 @@
 			const sclereader = new FileReader()
 			sclereader.readAsArrayBuffer(e.files[0])
 			const fileName = e.files[0].name
-			console.log(fileName);
+			// console.log(fileName);
 			const self = this
 			sclereader.onload = function () {
 				self.startLoadFile(sclereader.result, fileName)
 			}
 		},
 		startLoadFile: function (res, fileName) {
-			console.log(res);
-			const parseUrl = (url) => {
+			const parseUrl = function (url){
 				if (!url || url == null) return {}
 				let queryArr = decodeURIComponent(url).split('&'),
 					result = {}
@@ -162,43 +161,22 @@
 				})
 				return result
 			}
-			const queryString = (url) => {
+			const queryString = function (url) {
 				let param = url.split('?'),
 					json = param.length > 0 ? parseUrl(param[1]) : {}
 				return json
 			}
 
-			let { link } = queryString(window.location.href);
+			let link = queryString(window.location.href).link;
+
 			const path = link || fileName;
 
-			if (path.endsWith('.scle')) {
-				window.CM_LIB.CMInitData(res, "12y5YaFy4y6YOo5rWL6K+V");
-			} else if (path.endsWith('.cle')) {
-				Module.onData(res);
-			}
-
+			// if (path.endsWith('.scle')) {
+				window.CM_LIB.CMInitData(res, "13NHl5eTEyMjExMTUyMzEyMTXlhoXpg6jmtYvor5U=");
+			// } else if (path.endsWith('.cle')) {
+			// 	Module.onData(res);
+			// }
 			return
-			// return window.CM_LIB.CMInitData(res)
-			const self = this
-			const new_zip = new window.JSZip()
-			new_zip.loadAsync(res).then(function (zip) {
-				const key = function () {
-					for (let i in zip.files) {
-						return i
-					}
-				}
-				zip.files[key()]
-					.async('arraybuffer')
-					.then(function (arrBuffer) {
-						window.g_arrayByteBuffer = arrBuffer
-						window.g_arrayCleBuffer = new DataView(
-							arrBuffer,
-							0,
-							arrBuffer.byteLength
-						)
-						self.starLoadNetCLEFile()
-					})
-			})
 		}
 	}
 
@@ -215,4 +193,13 @@
 	})
 
 
+	window.loadCMOnlineLib(function(isErr, errJSFileUrl){
+		// 错误处理
+		if (isErr) {
+			console.error('加载模型库依赖失败！');
+			console.error('失败的 JS 文件地址：', errJSFileUrl);
+			return;
+		}
+		scleCustomEvent('loadCMOnlineLibEnd')
+	})
 })()

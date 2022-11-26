@@ -10,7 +10,9 @@ import {
 	Checkbox,
 	Switch,
 	Tooltip,
-	Button
+	Card,
+	Button,
+	Spin
 } from 'antd'
 import { PureComponent } from 'react'
 import { ChromePicker } from 'react-color'
@@ -26,11 +28,12 @@ import './scleTools.less'
 import { scleCustomEvent } from '../../utils'
 import { DoubleRightOutlined, DoubleLeftOutlined,SwitcherOutlined } from '@ant-design/icons';
 
+import Draggable from 'react-draggable'; 
 
 
 const IconFont = Icon.createFromIconfontCN({
 	// scriptUrl: '//at.alicdn.com/t/font_1616415_u6ht57qahg.js'
-	scriptUrl: './CMOnlineToolkit/localiconfont/iconfont.js'
+	scriptUrl: './localiconfont/iconfont.js'
 })
 const { TabPane } = Tabs
 
@@ -120,7 +123,7 @@ export default class scleTools extends PureComponent {
 			title: '曲面测量',
 			isFont: true,
 			onClick: () => {
-				console.log(window.setMeasureMode);
+				// console.log(window.setMeasureMode);
 				// eslint-disable-next-line
 				window.setMeasureMode(MEASURE_SURFACE)
 			}
@@ -238,8 +241,11 @@ export default class scleTools extends PureComponent {
 		alpha: 1,
 		drawerVisible: false,
 		showParams: false,
-		showSectioning:false
-
+		showSectioning:false,
+		axis: null,
+		checkedAxis: [],
+		switched:false,
+		loading:true
 	}
 	isMove = false
 	totalFrames = 0
@@ -336,7 +342,7 @@ export default class scleTools extends PureComponent {
 					closable={false}
 					mask={false}
 					maskClosable={false}
-					placement="right"
+					placement="left"
 					width="auto"
 					visible={this.state.drawerVisible}
 					getContainer={false}
@@ -347,54 +353,41 @@ export default class scleTools extends PureComponent {
 				>
 					<ScleAttrTree
 						ref={(el) => (this.sclAttrTree = el)}
-						showParams={this.state.showParams}
+						showParams={false}
 					></ScleAttrTree>
-					<div className="expand_box" onClick={()=>this.drawerToggle()}>
-						{
-							this.state.drawerVisible ? <DoubleRightOutlined />: <DoubleLeftOutlined/>
-						}
+					<div className={`expand_box ${this.state.drawerVisible?'active':''}`}  onClick={()=>this.drawerToggle()}>
+						<Icon type="apartment"/>
 					</div>
 				</Drawer>
-					{/* <ScleSectioningDrawer visible={this.state.showSectioning}/> */}
+
 				<Drawer
-					title="剖切"
-					placement="right"
-					closable={true}
+					title={null}
+					closable={false}
 					mask={false}
-					onClose={()=>this.handleOpenSectionNotification(false)}
 					maskClosable={false}
-					visible={this.state.showSectioning}
+					placement="right"
+					width="auto"
+					visible={this.state.showParams}
 					getContainer={false}
-					style={{ position: 'absolute',height:360 }}
-					bodyStyle={{height:'auto'}}
+					bodyStyle={{ padding: 0 }}
+					onClose={() => this.hideDrawer()}
 					className="cleTreeDrawer"
-					>
-						<div>
-							<h4>选择切割面</h4>
-							<div className="checkbox_item">
-								<Checkbox onChange={(e)=>this.checkedChange(e, 0)}>沿X轴切割</Checkbox>
-								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(0)}/>
-							</div>
-							<div className="checkbox_item">
-								<Checkbox onChange={(e)=>this.checkedChange(e, 1)} >沿Y轴切割</Checkbox>
-								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(1)}/>
-							</div>
-							<div className="checkbox_item">
-								<Checkbox onChange={(e)=>this.checkedChange(e, 2)}>沿Z轴切割</Checkbox>
-
-								<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(2)}/>
-							</div>
-
-							<div className="checkbox_item">
-								切面隐藏
-								<Switch onChange={(e)=> this.switchChange(e)}/>
-							</div>
-
-							<Button block style={{marginTop:40}} onClick={()=>this.handleReset()}>全部重置</Button>
-						</div>
+					id="cleTreeDrawer"
+				>
+					<ScleAttrTree
+						ref={(el) => (this.sclAttrTree = el)}
+						showParams={true}
+					></ScleAttrTree>
+					<div className={`expand_box expand_box2 ${this.state.showParams?'active':''}`} onClick={()=>{
+						this.setState({
+							showParams: !this.state.showParams
+						})
+					}}>
+						<SwitcherOutlined />
+					</div>
 				</Drawer>
 
-				<div className='fixed_left_tools'>
+				{/* <div className='fixed_left_tools'>
 					<div className={`left_tools_btn ${this.state.drawerVisible && !this.state.showParams ? 'active':''}`} onClick={() => this.handleShowTree()}>
 						<Icon type="apartment"/>
 					</div>
@@ -403,7 +396,62 @@ export default class scleTools extends PureComponent {
 						<SwitcherOutlined />
 					</div>
 
-				</div>
+				</div> */}
+				{
+					this.state.showSectioning? 
+				<Draggable handle='.ant-card-head-title' >
+
+					<Card className='pq_card'  style={{ width: 300 }} size="small">
+						<Spin spinning={this.state.loading}>
+							<div className='pq_card_title'>
+							<Card.Meta title="选择切割面"></Card.Meta>
+							<Icon type="close" className='close_icon' onClick={()=> this.handleOpenSectionNotification(false)}/>
+							</div>
+						<div>
+							<Checkbox.Group style={{ width: '100%' }} value={this.state.checkedAxis} onChange={e=>this.onCheckedChange(e)}>
+								<div className="checkbox_item">
+									<div>
+									<Checkbox value={0} checked={this.state.checkedAxis.includes(0)} onChange={e=>this.checkedChange(e)}></Checkbox>
+									<span className={this.state.axis === 0?'activeAxis':''} onClick={e=> {e.stopPropagation();
+										;this.slectAxis(0)}}>沿X轴切割</span>
+									</div>
+									
+									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(0)}/>
+								</div>
+								<div className="checkbox_item">
+									<div>
+									<Checkbox  value={1} checked={this.state.checkedAxis.includes(1)} onChange={e=>this.checkedChange(e)}></Checkbox>
+									<span className={this.state.axis === 1?'activeAxis':''} onClick={e=> {e.stopPropagation();
+										;this.slectAxis(1)}}>沿Y轴切割</span>
+
+									</div>
+									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(1)}/>
+								</div>
+								<div className="checkbox_item">
+									
+									<div>
+									<Checkbox value={2} checked={this.state.checkedAxis.includes(2)} onChange={e=>this.checkedChange(e)}>
+									</Checkbox>
+									<span className={this.state.axis === 2?'activeAxis':''} onClick={e=> {e.stopPropagation();
+										;this.slectAxis( 2)}}>沿Z轴切割</span>
+									</div>
+									
+									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.CMSetClipRevert(2)}/>
+								</div>
+							</Checkbox.Group>
+							<div className="checkbox_item">
+								切面隐藏
+								<Switch checked={this.state.switched} onChange={(e)=> this.switchChange(e)}/>
+							</div>
+
+							<Button block style={{marginTop:40}} onClick={()=>this.handleReset()}>全部重置</Button>
+						</div>
+						</Spin>
+					</Card>
+
+     			</Draggable>
+				: null
+			}
 				<div className="scleToolsBar">
 					<Tabs
 						activeKey={this.state.activeTab}
@@ -418,28 +466,112 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
+	// 选中轴
+	slectAxis(currentAxis){
+		if(this.state.axis === currentAxis) return;
 
-	checkedChange(e, index){
 		let cmlib = window.CM_LIB;
+
+		const {checkedAxis} = this.state;
+
+		const isCheck = checkedAxis.includes(currentAxis)
+
+		if(!isCheck) {
+			this.onCheckedChange(checkedAxis.concat(currentAxis));
+
+		}else{
+			
+			this.setState({ axis: currentAxis ,switched:false});
+			// 选中当前起切面
+			this.setSection(currentAxis, true);
+			
+			this.setClipVisible(currentAxis);
+		}
+
+	}
+
+	setClipVisible(index, bl = true){
+		let cmlib = window.CM_LIB;
+		const axis = [0,1,2];
+		// axis.forEach(i=> cmlib.CMSetClipVisible(i, false));
+		axis.includes(index) && cmlib.CMSetClipVisible(index,  bl);
+	}
+
+	// 复选框选中
+	onCheckedChange(e){
+		if(e.length === 0)return;
+		let cmlib = window.CM_LIB;
+		let {axis,checkedAxis } = this.state;
+		const checkAxis = e.find(i=> !checkedAxis.includes(i));
+		const prevAxis = checkedAxis[checkedAxis.length-1];
+		// console.log(checkAxis, e);
+		if(checkAxis !== undefined){
+			axis = checkAxis;
+			// 选中时，清除上一个切面；
+			// 选中当前起切面
+			this.setSection(axis, true);
+
+		}else{
+			const prev = checkedAxis.find(i=> !e.includes(i));
+			this.setSection(prev, false);
+			
+			axis = e[0];
+			// // 设置当前剖切
+			this.setSection(axis, true);
+
+		}
+		// // 新增
+	
+
+		this.setState({
+			checkedAxis: e,
+			axis,
+		})
+
+
+		this.setClipVisible(axis);
+
+	
+
+	}
+
+	checkedChange(e){
+	// 	const {value, checked}= e.target;
+	// 	if(!checked && this.state.checkedAxis.length === 1)return;
+	// 	this.setSection(value, checked);
+
+		
+	}
+
+	setSection(axis, checked){
+		let cmlib = window.CM_LIB;
+
 		setTimeout(() => {
+			const arr= ['x','y','z']
 			try {
-				cmlib.CMSetClipEnable(index, e.target.checked);
+				
+				// console.log(`显示${arr[axis]}剖切`, checked);
+				cmlib.CMSetClipEnable(axis, checked);
+
+				if(checked) {
+					// console.log(`选中${arr[axis]}轴`);
+					cmlib.CMSelectClip(axis);
+				}
+				
 			} catch (error) {
-				console.log(error);
+				// console.log(error);
 			}
 		});
 	}
 
 	switchChange(e){
-		console.log(e);
+		// console.log(e);
+		
 		let cmlib = window.CM_LIB;
-		cmlib.CMSelectClip(0);
+		[0,1,2].forEach(i=> cmlib.CMSetClipVisible(i, !e))
+		
 
-		cmlib.CMSelectClip(1);
-
-		cmlib.CMSelectClip(2);
-
-
+		this.setState({switched: e})
 	}
 
 	CMSetClipRevert(index){
@@ -450,13 +582,15 @@ export default class scleTools extends PureComponent {
 	}
 
 	handleReset(){
-		let cmlib = window.CM_LIB;
+		this.setState({
+			checkedAxis:[0],
+			axis:0,
+		})
 
-		// cmlib.CMResetClip(0);
-		// cmlib.CMResetClip(1);
-		// cmlib.CMResetClip(2);
-
-		// cmlib.CMSelectClip(-1);
+		this.setClipVisible(0);
+		this.setSection(0, true);
+		this.setSection(1, false);
+		this.setSection(2, false);
 	}
 
 
@@ -744,7 +878,7 @@ export default class scleTools extends PureComponent {
 
 	// 工具栏 触发事件统一处理
 	toolsClickHandle(item, index) {
-		console.log(item);
+		// console.log(item);
 		const newTools = this.state.tools
 
 		if (item.type === 'eye') {
@@ -784,6 +918,11 @@ export default class scleTools extends PureComponent {
 			newTools[index] = { type: 'fullscreen', title: '全屏' }
 			//   this.props.onFullScreen(false);
 			exitFullscreen()
+		}
+
+		// console.log(item, 'icon-shitupouqiehe', this.state.activeTab);
+		if(this.state.activeTab === 'icon-shitupouqiehe' && item.type !== 'icon-shitupouqiehe'){
+			this.handleOpenSectionNotification(false)
 		}
 
 
@@ -870,16 +1009,21 @@ export default class scleTools extends PureComponent {
 		const showSectioning = show !== undefined ? !!show : !this.state.showSectioning
 		this.setState({
 			showSectioning, 
-			activeTab: showSectioning? 'icon-shitupouqiehe': null
+			activeTab: showSectioning? 'icon-shitupouqiehe': null,
+			loading: !show 
 		})
 
 		const cmlib = window.CM_LIB;
 		setTimeout(()=>{
 			try {
-				console.log('loadStart', Date.now());
+				// console.log('showSectioning',showSectioning?'开始剖切':'结束剖切');
 				showSectioning ? cmlib.CMInitSection() : cmlib.CMUnInitSection();  
-				console.log('loadend', Date.now());
+				this.handleReset()
 			} catch (error) {
+				// error
+			}finally{
+				// console.log('loadingend');
+				this.setState({loading:false});
 			}
 		})
 		

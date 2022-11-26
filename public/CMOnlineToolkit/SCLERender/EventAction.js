@@ -105,7 +105,6 @@ var pickObjectID = null;            // 选中的零件的ID
 var pickObjectName = null;          // 选中的零件的名称
 var pickObjectParams = null;        // 选中的零件的参数数据
 
-var curMousePickedUnit = null;         // 鼠标左右键选中的物件信息
 // 零件移动
 var isMove = false;
 var moveObjectIndex = -1;
@@ -562,10 +561,6 @@ function phoneKeyUp(event) {
             g_sceneAnnotation.createCommentUpdate(lastX1, lastY1);
             return;
         }
-
-        // 回调上层界面
-        pickObjectIndexs = glRunTime.getPickObjectIndexs();
-        setPickObjectParameters();
     }
 
     pickedCommentIndex = -1;
@@ -647,9 +642,7 @@ function webKeyUp(event, textCanvas) {
                     g_sceneAnnotation.createCommentUpdate(lastX, lastY);
                     break;
                 }
-                curMousePickedUnit = glRunTime.pick(lastX, lastY, isMultPick, true);
-                // objectIndex = glRunTime.pickObjectIndex(lastX, lastY, isMultPick, true);
-                objectIndex = curMousePickedUnit == null ? -1 : curMousePickedUnit.objectIndex;
+                objectIndex = glRunTime.pickObjectIndex(lastX, lastY, isMultPick, true);
 
                 if (isMove) {
                     moveObjectIndex = objectIndex;
@@ -666,7 +659,6 @@ function webKeyUp(event, textCanvas) {
                 }
                 lastTime = curTime;
                 lastObjectIndex = objectIndex;
-                getPickObjectUnit(objectIndex);
             }
             break;
         case 1:
@@ -687,10 +679,6 @@ function webKeyUp(event, textCanvas) {
                 g_sceneMeasure.createMeasureCancel();
                 break;
             }
-
-            curMousePickedUnit = glRunTime.pick(lastX, lastY, isMultPick, false);
-            objectIndex = glRunTime.pickObjectIndex(lastX, lastY, isMultPick, true)
-
             break;
     }
     pickedCommentIndex = -1;
@@ -856,38 +844,6 @@ function getPickObjectUnit(objectIndex) {
         pickObjectName = glRunTime.getObjectNameByID(pickObjectID, g_GLData.GLModelTreeNode);
         pickObjectParams = glRunTime.getObjectParamsByID(pickObjectID, g_GLData.GLModelTreeNode);
     }
-    setPickObjectParameters();
-}
-
-/**
- * 点击右键时, 获取选中的物件信息
- */
-function getPickedObjectInfo() {
-
-    if (!curMousePickedUnit) return null;
-
-    var objectIndex = curMousePickedUnit.objectIndex;
-    var objectInfo = {};
-
-    if (objectIndex < 0) {
-        objectInfo.pickObjectID = null;
-        objectInfo.pickObjectName = null;
-        objectInfo.pickObjectTreeID = null;
-        objectInfo.pickObjectVisible = null;
-        objectInfo.pickObjectTransparent = null;
-        objectInfo.objectIndex = null;
-        objectInfo.objectPos = null;
-    } else {
-        var objPos = curMousePickedUnit.intersectPt
-        objectInfo.pickObjectID = glRunTime.getObjectIdByIndex(objectIndex);
-        objectInfo.pickObjectName = glRunTime.getObjectNameByID(objectInfo.pickObjectID, g_GLData.GLModelTreeNode);
-        objectInfo.pickObjectTreeID = glRunTime.getObjectTreeIDByID(objectInfo.pickObjectID, g_GLData.GLModelTreeNode);
-        objectInfo.pickObjectVisible = glRunTime.getObjectVisible(objectIndex);
-        objectInfo.pickObjectTransparent = glRunTime.getObjectTransparent(objectIndex);
-        objectInfo.objectIndex = objectIndex;
-        objectInfo.objectPos = {x: objPos.x, y: objPos.y, z: objPos.z}
-    }
-    return objectInfo
 }
 
 /**
@@ -931,7 +887,7 @@ function setTransparent(alpha) {
 
 // 模型隐藏
 function setVisible(isVisible) {
-    glRunTime.setObjectVisible(isVisible);
+    glRunTime.setObjectVisible(-1, isVisible);
 }
 
 // 视图切换
@@ -1139,7 +1095,6 @@ function pickModelByIndex(indexs) {
         pickObjectVisible = glRunTime.getObjectVisible(indexs[0]);
         pickObjectTransparent = glRunTime.getObjectTransparent(indexs[0]);
     }
-    // setPickObjectParameters();
     if (isPhone) {
         setFocusOnModel();
     }
@@ -1176,13 +1131,6 @@ function canvasOnResize() {
 function getPickStatus() {
     return glRunTime.getPickStatus();
 }
-
-// 获取选中的零件的数据，包括：所选零件索引、显隐性、透明度等
-// 更新界面
-function setPickObjectParameters() {
-    // console.log(pickObjectIndexs.length + ", " + pickObjectVisible + ", " + pickObjectTransparent);
-}
-
 
 // 开启数字孪生模式
 function digitalTwinStart() {
@@ -1744,6 +1692,29 @@ function setBaseOperationMode(mode) {
         return;
     }
     g_operationMode = mode;
+}
+
+// =========================================================================
+// CMOnline数据转换
+
+function transCMOnlinePickElem(cmPickElement, runtimePickUnit) {
+    cmPickElement._uPickType = CM_PICK_TYPE_NONE;
+    cmPickElement._arrPickElements.splice(0, cmPickElement._arrPickElements.length);
+    let elementId = 0;
+
+    if (runtimePickUnit._uPickType == RUNTIME_MODE_NORMAL)
+    {
+        cmPickElement._uPickType = CM_PICK_TYPE_PART;
+        elementId = glRunTime.getObjectIdByIndex(runtimePickUnit._oPickUnit.objectIndex);
+        cmPickElement._arrPickElements.push(elementId);
+    }
+    else if (runtimePickUnit._uPickType == RUNTIME_MODE_PMI)
+    {
+        cmPickElement._uPickType = CM_PICK_TYPE_PMI_ITEM;
+        elementId = g_scenePmiManager.getItemIdByIndex(
+            runtimePickUnit._oPickUnit.pmiIndex, runtimePickUnit._oPickUnit.itemIndex);
+        cmPickElement._arrPickElements.push(elementId);
+    }
 }
 
 // =========================================================================

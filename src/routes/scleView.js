@@ -241,7 +241,7 @@ function ScleView() {
 
 	const loadingChange = (b) => {
 		setLoading(b);
-		window.canvasOnResize && window.canvasOnResize();
+		window.g_CLEModule && window.canvasOnResize && window.canvasOnResize();
 	};
 
 	useEffect(() => {
@@ -252,42 +252,39 @@ function ScleView() {
 		// );
 		//
 
-		window.addEventListener('updateProgress', onProgress);
-		window.addEventListener('transferFailed', () => setMsgCode(2));
-
-		// eslint-disable-next-line
-		loadCMOnlineLib(function(isErr, errJSFileUrl) {
-			// 错误处理
-			if (isErr) {
-				console.error('加载模型库依赖失败！');
-				console.error('失败的 JS 文件地址：', errJSFileUrl);
-				return;
-			}
-		
+		window.addEventListener('loadCMOnlineLibEnd', ()=>{
+			// console.log('loadCMOnlineLib end');
 			window.CMOnlineView.default.install(window.Vue);
 			new window.Vue({
 				el: '#CMOnlineUI_container',
 			});
+
 			window.CM_LIBReady = false;
 			// 重新赋值指针
 			scleControl = window.CMOnlineUI;
-
-			// 创建内部UI对象
-			// var UI_Container = document.createElement('div');
-			// UI_Container.id ='CMOnlineUI_container';
-			// containerRef.current.appendChild(UI_Container);
 			scleCustomEvent('scleViewOnload');
 			asyncLoad()
 		})
 
+		window.addEventListener('updateProgress', onProgress);
+		window.addEventListener('transferFailed', () => setMsgCode(2));
+		
+
+		// eslint-disable-next-line
+
 		function asyncLoad() {
-			console.log(window.CM_CALLBACKS);
+			// console.log(window.CM_CALLBACKS);
 			if (window.CM_CALLBACKS) {
 				const cmcallbacks = new window.CM_CALLBACKS();
 				cmcallbacks.CMOnLoadModelEndCallback = function () {
 					scleCustomEvent('CMOnLoadModelEndCallback');
 					scleControl.loadEnd();
 				}
+
+				cmcallbacks.CMOnMouseUpCallBack = function (e) {
+					scleCustomEvent('CMOnMouseUpCallBack');
+				}
+
 				const cmsettings = new window.CM_SETTINGS();
 				window.CM_LIB = new window.CMOnlineLib(
 					containerRef.current,
@@ -297,9 +294,9 @@ function ScleView() {
 
 				window.CM_LIB.CMSetUserCanCommentFlag(1);
 				window.CM_LIB.CMSetCommentUsrName('test');
-				if (isHttp) openScle();
 				addScleAPi();
-				window.CM_LIBReady = true;
+				if (isHttp) openScle();
+				// window.CM_LIBReady = true;
 			} else {
 				console.log('加载CM_CALLBACKS失败');
 				window.location.reload()
@@ -307,6 +304,10 @@ function ScleView() {
 			
 		}
 
+		// window.addEventListener('CLEReady', ()=>{
+		// 	console.log('open Cle');
+		// 	if (isHttp) openScle();
+		// })
 
 		window.addEventListener('scleStreamReady', () => {
 			loadingChange(false);

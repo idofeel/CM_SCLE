@@ -128,6 +128,9 @@ function ScenePmiManager() {
     }
 
     this.clearPickItem = function() {
+        if (!this.m_isInit) {
+            return;
+        }
         for (let i = 0; i < this.m_arrPmiItemPicked.length; i++) {
             for (let j = 0; j < this.m_arrPmiItemPicked[i].length; ++j) {
                 this.m_arrPmiItemPicked[i][j] = false;
@@ -136,6 +139,9 @@ function ScenePmiManager() {
     }
 
     this.pickItemByIndex = function(i, j, isMult) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (!isMult) {
             this.clearPickItem();
         }
@@ -143,6 +149,9 @@ function ScenePmiManager() {
     }
 
     this.pickItemById = function(pmiItemId, isMult) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (!isMult) {
             this.clearPickItem();
         }
@@ -156,6 +165,9 @@ function ScenePmiManager() {
     }
     
     this.pickPmi = function(screenX, screenY, isMult, isDoPick) {
+        if (!this.m_isInit) {
+            return null;
+        }
         this.screenPoint.set(screenX, screenY);
         glRunTime.cvtScreenPtToWebGL(this.screenPoint, this.pickPoint);
         glRunTime.cvtScreenToWorld(screenX, screenY, this.RayPoint1, this.RayPoint2);
@@ -201,14 +213,17 @@ function ScenePmiManager() {
 
         if (this.intersectUnit.pmiIndex < 0) {
             this.clearPickItem();
-            return false;
+            return null;
         } else {
             this.pickItemByIndex(this.intersectUnit.pmiIndex, this.intersectUnit.itemIndex, isMult);
-            return true;
+            return this.intersectUnit;
         }
     }
 
     this.getPickedItemId = function() {
+        if (!this.m_isInit) {
+            return null;
+        }
         let arrItemId = new Array();
         for (let i in this.m_arrPmiItemPicked) {
             for (let j in this.m_arrPmiItemPicked[i]) {
@@ -220,7 +235,20 @@ function ScenePmiManager() {
         return arrItemId;
     }
 
+    this.getItemIdByIndex = function(pmiIndex, itemIndex) {
+        if (pmiIndex < 0 || pmiIndex >= g_GLPmiSet.arrPmi.length) {
+            return -1;
+        }
+        if (itemIndex < 0 || itemIndex >= g_GLPmiSet.arrPmi[pmiIndex].arrPmiItem.length) {
+            return -1;
+        }
+        return g_GLPmiSet.arrPmi[pmiIndex].arrPmiItem[itemIndex].uID;
+    }
+
     this.getPmiViewIdByTreeId = function(treeId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         let pmiId = this.getPmiIdByTreeId(treeId);
         if (pmiId < 0) {
             return null;
@@ -239,6 +267,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiIdByTreeId = function(treeId) {
+        if (!this.m_isInit) {
+            return -1;
+        }
         let treeNode = glRunTime.getTreeNodeById(treeId, g_GLData.GLModelTreeNode);
         if (treeNode == null) {
             return -1;
@@ -248,6 +279,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiIndexByTreeId = function(treeId) {
+        if (!this.m_isInit) {
+            return -1;
+        }
         let pmiId = this.getPmiIdByTreeId(treeId);
         if (pmiId < 0) {
             return null;
@@ -262,6 +296,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiViewName = function(pmiViewId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         for (let i in g_GLPmiSet.arrPmi) {
             for (let j in g_GLPmiSet.arrPmi[i].arrPmiView) {
                 if (g_GLPmiSet.arrPmi[i].arrPmiView[j].uID == pmiViewId) {
@@ -273,6 +310,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiItemName = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         for (let i in g_GLPmiSet.arrPmi) {
             for (let j in g_GLPmiSet.arrPmi[i].arrPmiItem) {
                 if (g_GLPmiSet.arrPmi[i].arrPmiItem[j].uID == pmiItemId) {
@@ -284,6 +324,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiItemType = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         for (let i in g_GLPmiSet.arrPmi) {
             for (let j in g_GLPmiSet.arrPmi[i].arrPmiItem) {
                 if (g_GLPmiSet.arrPmi[i].arrPmiItem[j].uID == pmiItemId) {
@@ -295,6 +338,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiItemIdByViewId = function(pmiViewId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         let arrItemId = new Array();
 
         let arrItemIndex = null;
@@ -312,6 +358,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiViewIndexByItemIndex = function(pmiIndex, itemIndex) {
+        if (!this.m_isInit) {
+            return -1;
+        }
         if (pmiIndex < 0 || pmiIndex >= g_GLPmiSet.arrPmi.length) {
             return -1;
         }
@@ -332,6 +381,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiViewIndexByItemId = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         let pmiIndex = -1;
         let viewIndex = -1;
         let itemIndex = -1;
@@ -353,6 +405,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiViewIdByItemId = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return -1;
+        }
         let obj = this.getPmiViewIndexByItemId(pmiItemId);
         if (obj != null) {
             return g_GLPmiSet.arrPmi[obj.pmi].arrPmiView[obj.view].uID;
@@ -362,6 +417,9 @@ function ScenePmiManager() {
     }
 
     this.hideAllPmiItem = function() {
+        if (!this.m_isInit) {
+            return;
+        }
         for (let i in this.m_arrPmiItemVisible) {
             for (let j in this.m_arrPmiItemVisible[i]) {
                 this.m_arrPmiItemVisible[i][j] = false;
@@ -370,6 +428,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiItemVisible = function(pmiIndex, itemIndex) {
+        if (!this.m_isInit) {
+            return null;
+        }
         if (pmiIndex < 0 || pmiIndex >= g_GLPmiSet.arrPmi.length) {
             return null;
         }
@@ -380,6 +441,9 @@ function ScenePmiManager() {
     }
 
     this.getPmiItemVisibleById = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return null;
+        }
         for (let i in g_GLPmiSet.arrPmi) {
             for (let j in g_GLPmiSet.arrPmi[i].arrPmiItem) {
                 if (g_GLPmiSet.arrPmi[i].arrPmiItem[j].uID == pmiItemId) {
@@ -391,6 +455,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiItemVisible = function(pmiIndex, itemIndex, bVisible) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (pmiIndex < 0 || pmiIndex >= g_GLPmiSet.arrPmi.length) {
             return;
         }
@@ -401,6 +468,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiItemVisibleById = function(pmiItemId, bVisible) {
+        if (!this.m_isInit) {
+            return;
+        }
         for (let i in g_GLPmiSet.arrPmi) {
             for (let j in g_GLPmiSet.arrPmi[i].arrPmiItem) {
                 if (g_GLPmiSet.arrPmi[i].arrPmiItem[j].uID == pmiItemId) {
@@ -412,6 +482,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiViewVisibleByIndex = function(pmiIndex, viewIndex, bVisible) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (pmiIndex < 0 || pmiIndex >= g_GLPmiSet.arrPmi.length) {
             return;
         }
@@ -426,6 +499,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiViewVisible = function(arrViewIDs, bVisible) {
+        if (!this.m_isInit) {
+            return;
+        }
         for (let v in arrViewIDs) {
             if (arrViewIDs[v] < 0) {
                 continue;
@@ -441,15 +517,55 @@ function ScenePmiManager() {
         }
     }
 
-    this.shiftPmiViewVisible = function(pmiViewId) {
-        this.hideAllPmiItem();
-        
-        let arrViewId = new Array();
-        arrViewId.push(pmiViewId);
-        this.setPmiViewVisible(arrViewId, true);
+    this.shiftPmiView = function(pmiViewId) {
+        if (!this.m_isInit) {
+            return;
+        }
+
+        let pmi = null;
+        let pmiView = null;
+        for (let i in g_GLPmiSet.arrPmi) {
+            for (let j in g_GLPmiSet.arrPmi[i].arrPmiView) {
+                if (g_GLPmiSet.arrPmi[i].arrPmiView[j].uID == pmiViewId) {
+                    pmi = g_GLPmiSet.arrPmi[i];
+                    pmiView = g_GLPmiSet.arrPmi[i].arrPmiView[j];
+                    break;
+                }
+            }
+        }
+
+        if (pmiView == null || pmi == null) {
+            return;
+        }
+
+        let annoPlane = pmiView.annoPlane;
+        mat4.multiply(this.MMatrix, g_webglControl.m_modelMatrix, pmi.matWorld);
+
+        getModelBoxCenter(pmiView.viewBox, this.viewOrigin);
+        CalTranslatePoint(this.viewOrigin.x, this.viewOrigin.y, this.viewOrigin.z, this.MMatrix, this.viewOrigin);
+        CalTranslateAxis(annoPlane.origin, annoPlane.z, this.MMatrix, this.viewDir);
+        CalTranslateAxis(annoPlane.origin, annoPlane.y, this.MMatrix, this.viewUp);
+        this.viewDir.normalize();
+        this.viewUp.normalize();
+
+        let dist = getModelBoxLength(pmiView.viewBox) * 2;
+        let distEye = new Point3(
+            this.viewOrigin.x + this.viewDir.x * dist,
+            this.viewOrigin.y + this.viewDir.y * dist,
+            this.viewOrigin.z + this.viewDir.z * dist
+        );
+
+        g_camera.shiftView(
+            distEye.x, distEye.y, distEye.z,
+            this.viewOrigin.x, this.viewOrigin.y, this.viewOrigin.z,
+            this.viewUp.x, this.viewUp.y, this.viewUp.z
+        );
     }
 
     this.setFaceToPmiItem = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return false;
+        }
         let obj = this.getPmiViewIndexByItemId(pmiItemId);
         if (obj == null) {
             return false;
@@ -469,6 +585,9 @@ function ScenePmiManager() {
     }
 
     this.setFocusOnPmiItem = function(pmiItemId) {
+        if (!this.m_isInit) {
+            return false;
+        }
         let obj = this.getPmiViewIndexByItemId(pmiItemId);
         if (obj == null) {
             return false;
@@ -501,6 +620,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiDisplayColor = function(r, g, b) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (r < 0) { r = 0.0; }
         if (r > 1) { r = 1.0; }
         if (g < 0) { g = 0.0; }
@@ -513,6 +635,9 @@ function ScenePmiManager() {
     }
 
     this.setPmiSelectColor = function(r, g, b) {
+        if (!this.m_isInit) {
+            return;
+        }
         if (r < 0) { r = 0.0; }
         if (r > 1) { r = 1.0; }
         if (g < 0) { g = 0.0; }
@@ -525,6 +650,9 @@ function ScenePmiManager() {
     }
 
     this.resetPmiColor = function() {
+        if (!this.m_isInit) {
+            return;
+        }
         this.defaultMaterial = g_lineMtlData.DarkYellow;
         this.pickedMaterial = g_lineMtlData.Red;
     }

@@ -1285,7 +1285,7 @@ function WebGL2() {
     }
 
     this.updateSecOpeToolData = function(data) {
-        let baseBuffer = this.setBaseIndexVAO(data._arrVertex, data._arrIndex, DEFAULT_NOUV_DATA_COUNT);
+        let baseBuffer = this.setBaseIndexVAO(data._arrVertexPosition, data._arrIndex, NUM_VERTEX);
         g_webglControl.m_arrBaseScene_VAOs.push(baseBuffer.VAO);
         g_webglControl.m_arrBaseScene_VBOs.push(baseBuffer.VBO);
         g_webglControl.m_arrBaseScene_IBOs.push(baseBuffer.IBO);
@@ -1397,7 +1397,9 @@ function WebGL2() {
         gl.useProgram(BASEPROGRAMINFO.program);
         if (g_webglControl.isSectionOn) {
             this.drawClipPlane();
-            this.drawClipOpeTool();
+            if (g_sceneSection.isSecToolsInit) {
+                this.drawClipOpeTool();
+            }
         }
 
         // 绘制pmi文字信息
@@ -1936,7 +1938,7 @@ function WebGL2() {
         // 存值
         return {
             VAO: VAOArray,
-            POS_VBO: vertexPosition,
+            POS_VBO: posBuffer,
             NOR_VBO: normalBuffer,
             UV_VBO: uvBuffer,
             IBO: ibo,
@@ -2162,17 +2164,15 @@ function WebGL2() {
     }
 
     this.setBaseIndexVAO = function(arrVertex, arrIndex, dataCount) {
-        let partVertexNum = arrVertex.length / dataCount;
         // 创建一个VAO
         let VAOArray = gl.createVertexArray();
         gl.bindVertexArray(VAOArray);
         // 创建一个VBO
         let buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, partVertexNum*dataCount*4, gl.STATIC_DRAW);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, arrVertex, 0, partVertexNum*dataCount);
+        gl.bufferData(gl.ARRAY_BUFFER, arrVertex, gl.STATIC_DRAW);
         // 绑定缓存区数据
-        gl.vertexAttribPointer(BASEPROGRAMINFO.attribLocations.vertexPosition, NUM_VERTEX, gl.FLOAT, false, dataCount*4, 0);
+        gl.vertexAttribPointer(BASEPROGRAMINFO.attribLocations.vertexPosition, dataCount, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(BASEPROGRAMINFO.attribLocations.vertexPosition);
         // 创建一个IBO
         let ibo = gl.createBuffer();
