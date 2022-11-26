@@ -485,6 +485,7 @@ export default class ScleAttrTree extends PureComponent {
         // console.log('CMShiftAnnotView', item);
         cmlib.CMShiftAnnotView(item.pmiId)
       } else {
+        cmlib.CMClearAnnotSelected();
         cmlib.CMSelectAnnot([item.pmiId])
       }
       this.setState({
@@ -494,6 +495,7 @@ export default class ScleAttrTree extends PureComponent {
     
     onDoubleClick={()=>{
       if(item.type !== 'view'){
+        cmlib.CMClearAnnotSelected();
         cmlib.CMSelectAnnot([item.pmiId])
         // console.log('CMChangeCameraFocusToAnnot', item);
         cmlib.CMChangeCameraFocusToAnnot(item.pmiId)
