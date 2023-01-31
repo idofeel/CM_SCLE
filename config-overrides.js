@@ -1,7 +1,17 @@
-const { override, fixBabelImports, addLessLoader } = require('customize-cra')
+const { override, fixBabelImports, addLessLoader, addWebpackPlugin } = require('customize-cra')
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+
 const path = require('path')
 
 module.exports = override(
+	process.env.NODE_ENV === 'production' && addWebpackPlugin(new UglifyJsPlugin({
+		uglifyOptions: {
+		  compress: {
+			drop_debugger: true,
+			drop_console: true
+		  }
+		}
+	  })),
 	fixBabelImports('import', {
 		libraryName: 'antd',
 		libraryDirectory: 'es',

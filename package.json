@@ -50,5 +50,8 @@
       "last 1 safari version",
       "ie 11"
     ]
+  },
+  "devDependencies": {
+    "uglifyjs-webpack-plugin": "^2.2.0"
   }
 }

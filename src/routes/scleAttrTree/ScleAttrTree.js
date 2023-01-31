@@ -419,7 +419,7 @@ export default class ScleAttrTree extends PureComponent {
 
   pickObjectParameters = (objIds, nodeid) => {
 
-    // console.log(objIds, nodeid);
+    console.log(objIds, nodeid);
     // scrollIntoView
     const cmlib = window.CM_LIB;
 
