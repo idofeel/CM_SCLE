@@ -6,10 +6,10 @@
 # /public/Resource
 /public/*.scle
 /public/*.xml
-
+*.cle
+*.scle
 /.pnp
 .pnp.js
-
 # testing
 /coverage
 

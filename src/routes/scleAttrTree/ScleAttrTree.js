@@ -108,7 +108,6 @@ export default class ScleAttrTree extends PureComponent {
               <h4 className="title">模型树</h4>
               <Tree
                 checkable
-                checkStrictly
                 checkedKeys={treeNodeCheckedKeys}
                 selectedKeys={treeNodeSelectKeys}
                 expandedKeys={expandedKeys}
@@ -122,12 +121,16 @@ export default class ScleAttrTree extends PureComponent {
                   });
                 }}
                 onCheck={(treeNodeCheckedKeys, e) => {
-                  // console.log(treeNodeCheckedKeys);
+                  // console.log(treeNodeCheckedKeys, e);
                   this.setState({
                     treeNodeCheckedKeys,
                   });
+                const objIds = this.findleafIndexs(e.node.props.dataRef)
+
+                cmlib.CMSetSelStatusByObjIDs(objIds);
+
                   cmlib.CMSetObjVisible(
-                    this.findleafIndexs(e.node.props.dataRef),
+                    objIds,
                     e.checked
                   );
 
@@ -255,6 +258,7 @@ export default class ScleAttrTree extends PureComponent {
     const key = item.key;
     return (
       <span
+      id={`tree${key}`}
         className={
           this.state.treeNodeSelectKeys.indexOf(key) > -1 ? "tree_selected" : ""
         }
@@ -415,7 +419,8 @@ export default class ScleAttrTree extends PureComponent {
 
   pickObjectParameters = (objIds, nodeid) => {
 
-    
+    // console.log(objIds, nodeid);
+    // scrollIntoView
     const cmlib = window.CM_LIB;
 
     let pickElem = cmlib.CMGetPickElements();
@@ -448,6 +453,7 @@ export default class ScleAttrTree extends PureComponent {
       
       if(NodeId || NodeId === 0) this.SetTreeNodePmiView(NodeId);
 
+      // console.log(expandedKeys,treeNodeSelectKeys);
 
     // console.log('treeNodeSelectKeys', item.length === 1 ? item[0].params : []);
     this.setState({
@@ -456,6 +462,15 @@ export default class ScleAttrTree extends PureComponent {
       paramsData: item.length === 1 ? item[0].params : [],
       // isVisible: !!pickObjectVisible,
       // alphaRange: pickObjectTransparent
+    },()=>{
+      try {
+        var treeItem = document.getElementById('tree'+treeNodeSelectKeys[0]);
+        setTimeout(() => {
+          treeItem && treeItem.scrollIntoView();
+        }, 500);
+      } catch (error) {
+        
+      }
     });
   };
 
