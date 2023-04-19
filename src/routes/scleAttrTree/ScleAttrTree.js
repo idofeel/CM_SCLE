@@ -22,7 +22,10 @@ const columns = [
 export default class ScleAttrTree extends PureComponent {
   keys = []; //显示的的keys
   tempMutilpSelect = []; // 临时多选
+  tempMutilpPMI = []; // 临时多选
+  nodeIds = { // { objId : 模型树ID}
 
+  }
   state = {
     treeData: {
       child: [],
@@ -36,9 +39,11 @@ export default class ScleAttrTree extends PureComponent {
     PMISelectKeys:[],
     PMIExpandedKeys:[],
     hideAnoot:false,
+    show: false
   };
+
   render() {
-    const cmlib = window.CM_LIB;
+    const cmlib = window.P3D_LIB;
     const {
       treeData,
       treeNodeCheckedKeys,
@@ -103,7 +108,7 @@ export default class ScleAttrTree extends PureComponent {
 
       <>
         {!this.props.showParams ? (
-          <div className="attr_tree">
+          <div ref={el => this.modelTree = el} className={`tree_box attr_tree ${this.state.show?'':'hideTree'}`}>
             <div>
               <h4 className="title">模型树</h4>
               <Tree
@@ -111,6 +116,7 @@ export default class ScleAttrTree extends PureComponent {
                 checkedKeys={treeNodeCheckedKeys}
                 selectedKeys={treeNodeSelectKeys}
                 expandedKeys={expandedKeys}
+                className={'reeeee'}
                 onClick={(e) => {
                   return false;
                 }}
@@ -127,9 +133,9 @@ export default class ScleAttrTree extends PureComponent {
                   });
                 const objIds = this.findleafIndexs(e.node.props.dataRef)
 
-                cmlib.CMSetSelStatusByObjIDs(objIds);
+                cmlib.P3D_SetSelStatusByObjIDs(objIds);
 
-                  cmlib.CMSetObjVisible(
+                  cmlib.P3D_SetObjVisible(
                     objIds,
                     e.checked
                   );
@@ -158,6 +164,7 @@ export default class ScleAttrTree extends PureComponent {
                 checkedKeys={this.state.PMINodeCheckedKeys}
                 selectedKeys={this.state.PMISelectKeys}
                 expandedKeys={this.state.PMIExpandedKeys}
+                className={'pmi_tree'}
                 onClick={(e) => {
                   return false;
                 }}
@@ -191,12 +198,12 @@ export default class ScleAttrTree extends PureComponent {
 
 
                 if(item.type ==='view'){
-                  // let arrViewId = cmlib.CMGetAnnotViewIDByTreeID(item.pmiId);
+                  // let arrViewId = cmlib.P3D_GetAnnotViewIDByTreeID(item.pmiId);
                   // console.log(`设置${item.pmiId}视图是否显示,${e.checked}`);
-                  cmlib.CMSetAnnotVisibleInView([item.pmiId], e.checked)
+                  cmlib.P3D_SetAnnotVisibleInView([item.pmiId], e.checked)
                 }else{
                   // console.log(`设置${item.pmiId}批注是否显示,${e.checked}`);
-                  cmlib.CMSetAnnotVisible([item.pmiId], e.checked)
+                  cmlib.P3D_SetAnnotVisible([item.pmiId], e.checked)
                 }
 
 
@@ -207,7 +214,7 @@ export default class ScleAttrTree extends PureComponent {
             </div>
           </div>
         ) : (
-          <>
+          <div ref={el => this.paramsTree = el}  className={`tree_box ${this.state.show?'':'hideTree'}`}>
             <h4 className="title">参数</h4>
             <Table
               className="attrTable"
@@ -216,7 +223,7 @@ export default class ScleAttrTree extends PureComponent {
               locale={{ emptyText: "无数据" }}
               size="middle"
             />
-          </>
+          </div>
         )}
       </>
     );
@@ -253,36 +260,63 @@ export default class ScleAttrTree extends PureComponent {
     });
   }
 
+  toggle(){
+    const show = !this.state.show
+    this.setState({ show })
+    return show
+  }
+
+
+  findAllKeys(item, keys = []){
+    keys.push(item.key);
+    if(item.child && item.child.length) item.child.forEach((i)=>this.findAllKeys(i, keys))
+    return keys
+  }
+
   renderTitle(item) {
-    const cmlib = window.CM_LIB;
+    const cmlib = window.P3D_LIB;
     const key = item.key;
+    const isChecked = this.state.treeNodeSelectKeys.indexOf(key) > -1
+
     return (
       <span
       id={`tree${key}`}
         className={
-          this.state.treeNodeSelectKeys.indexOf(key) > -1 ? "tree_selected" : ""
+          isChecked ? "tree_selected" : ""
         }
         onClick={() => {
           // 选择模型名称时 dofeel
           if (this.keyCode) return;
           this.hideSelect = true;
+          // isChecked
+        console.log(item);
 
-          this.tempMutilpSelect = this.findleafIndexs(item, 'key');
-          // this.setState({
-          //   treeNodeSelectKeys: this.tempMutilpSelect,
-          //   paramsData: item.params,
-          // });
+          this.tempMutilpSelect = this.findleafIndexs(item);
+          this.setState({
+            treeNodeSelectKeys: this.findAllKeys(item),
+            paramsData: item.params,
+          });
 
-          const objIds = this.findleafIndexs(item)
+          // const objIds = this.findleafIndexs(item)
 
 
-          cmlib.CMSetSelStatusByObjIDs(objIds);
+          cmlib.P3D_SetSelStatusByObjIDs(this.tempMutilpSelect);
 
           scleCustomEvent('updateParams', item.params);
+          if(item.objId !== -1){
+            scleCustomEvent('treeNodeSelect', {
+              ...item,
+              visible: isChecked
+            });
+          }
+         
+          this.handleInitPMI(true)
+
+          this.SetTreeNodePmiView(item.nodeid);
 
           // window.setPickObjectParameters();
 
-          this.pickObjectParameters(objIds, item.nodeid)
+          // this.pickObjectParameters(objIds, item.nodeid)
           // window.pickModelByIndex(this.tempMutilpSelect, IsPhone());
         }}
         onMouseDown={() => {
@@ -292,28 +326,44 @@ export default class ScleAttrTree extends PureComponent {
             const leafKeys = this.findleafIndexs(item);
 
             if (treeNodeSelectKeys.indexOf(key) > -1) {
-              // 已选择，取消选择
+              const keys =  this.findAllKeys(item)
+              // // 已选择，取消选择
               treeNodeSelectKeys = treeNodeSelectKeys.filter(
-                (item) => item !== key
+                (item) => !keys.includes(item)
               );
               // 临时多选
               this.tempMutilpSelect = this.tempMutilpSelect.filter(
                 (item) => leafKeys.indexOf(item) === -1
               );
             } else {
-              treeNodeSelectKeys.push(key);
-              this.tempMutilpSelect = this.tempMutilpSelect.concat(leafKeys);
+              treeNodeSelectKeys.push(...this.findAllKeys(item));
+              this.tempMutilpSelect = Array.from(new Set(this.tempMutilpSelect.concat(leafKeys)));
             }
 
             this.hideSelect = true;
             this.setState({
-              treeNodeSelectKeys,
+              treeNodeSelectKeys:Array.from(new Set(treeNodeSelectKeys)),
               paramsData: [],
             });
+            cmlib.P3D_SetSelStatusByObjIDs(this.tempMutilpSelect);
+            console.log(this.state.treeNodeSelectKeys.length);
 
-            window.pickModelByIndex(this.tempMutilpSelect, IsPhone());
+
+            const isSigle = this.state.treeNodeSelectKeys.length === 1;
+            this.handleInitPMI(isSigle)
+
+            if(isSigle){
+              scleCustomEvent('updateParams', item.params);
+            }
+            this.SetTreeNodePmiView(isSigle?item.nodeid:null);
+
+
+         
+
+
+            // window.pickModelByIndex(this.tempMutilpSelect, IsPhone());
             // 多选 dofeel
-            window.setPickObjectParameters();
+            // window.setPickObjectParameters();
           }
         }}
       >
@@ -347,28 +397,26 @@ export default class ScleAttrTree extends PureComponent {
 
   setVisible(visible) {
 
-    let { treeNodeCheckedKeys } = this.state;
-    treeNodeCheckedKeys = treeNodeCheckedKeys.checked || treeNodeCheckedKeys;
-    if (window.pickObjectIndexs === null) {
-      return;
+    const objIds = window.P3D_GetSelObjIDs()
+    
+    const pickTreeNodeIds = objIds.map(i=> String(this.getTreeNodeIdByObjId(i)));
+    
+    let {treeNodeCheckedKeys} = this.state;
+    if(visible){
+      treeNodeCheckedKeys = treeNodeCheckedKeys.concat(pickTreeNodeIds)
+    }else{
+      treeNodeCheckedKeys = treeNodeCheckedKeys.filter((nodeid) => !pickTreeNodeIds.includes(nodeid));
     }
-    const visibleKeys = this.setTreeVisible(
-      this.state.treeData,
-      window.pickObjectIndexs,
-      visible
-    );
-    treeNodeCheckedKeys = visible
-      ? treeNodeCheckedKeys.concat(visibleKeys)
-      : treeNodeCheckedKeys.filter((item) => visibleKeys.indexOf(item) < 0);
+
     this.setState({
-      treeNodeCheckedKeys,
+      treeNodeCheckedKeys
     });
   }
 
   setTreeVisible(data, keys, visible, visibleKeys = []) {
     for (let i = 0; i < data.length; i++) {
-      if (keys.indexOf(data[i].objIndex) > -1) {
-        visibleKeys.push(data[i].key);
+      if (keys.indexOf(data[i].nodeid) > -1) {
+        visibleKeys.push(data[i].nodeid);
       }
       if (data[i].child.length) {
         this.setTreeVisible(data[i].child, keys, visible, visibleKeys);
@@ -392,7 +440,7 @@ export default class ScleAttrTree extends PureComponent {
     });
 
     // 去重展开的key
-    expandedKeys = new Set(expandedKeys);
+    expandedKeys = new Set(expandedKeys.concat(this.state.expandedKeys));
     expandedKeys = Array.from(expandedKeys);
 
     return {
@@ -418,21 +466,23 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   pickObjectParameters = (objIds, nodeid) => {
-
-    console.log(objIds, nodeid);
+    console.log('pickObjectParameters');
     // scrollIntoView
-    const cmlib = window.CM_LIB;
+    const cmlib = window.P3D_LIB;
 
-    let pickElem = cmlib.CMGetPickElements();
+    // let pickElem = cmlib.P3D_GetPickElements();
+
+    let pickObjIds = cmlib.P3D_GetSelObjIDs();
 
     
-    // console.log(pickElem, this.state.treeData);
+    // console.log(pickObjIds,pickElem);
 
     
-    const pickObjectIndexs = objIds || pickElem._arrPickElements
+    const pickObjectIndexs = objIds || pickObjIds
+
+    this.tempMutilpSelect = pickObjectIndexs
     // const notPickModel = !window.pickObjectIndexs || (window.pickObjectIndexs && !window.pickObjectIndexs.length)
     const notPickModel = !pickObjectIndexs || (pickObjectIndexs && !pickObjectIndexs.length)
-
     if (notPickModel) {
       // this.setState({
       //   treeNodeSelectKeys: [],
@@ -441,6 +491,7 @@ export default class ScleAttrTree extends PureComponent {
       // });
       return;
     }
+
     this.handleInitPMI(!notPickModel)
 
     const { expandedKeys,treeNodeSelectKeys,  item } =
@@ -453,25 +504,34 @@ export default class ScleAttrTree extends PureComponent {
       
       if(NodeId || NodeId === 0) this.SetTreeNodePmiView(NodeId);
 
-      // console.log(expandedKeys,treeNodeSelectKeys);
+      
+        if(pickObjectIndexs.length === 1){
+          this.setState({
+            expandedKeys,
+            treeNodeSelectKeys,
+            paramsData: item.length === 1 ? item[0].params : [],
+            // isVisible: !!pickObjectVisible,
+            // alphaRange: pickObjectTransparent
+          },()=>{
+            try {
+              var treeItem = document.getElementById('tree'+treeNodeSelectKeys[0]);
+              setTimeout(() => {
+                // treeItem && treeItem.scrollIntoView({block:'start'});
+                document.getElementsByClassName('reeeee')[0].scroll(0, treeItem.offsetTop - 100)
+              }, 500);
+            } catch (error) {
+              
+            }
+          });
+        }else{
+          this.setState({
+            treeNodeSelectKeys,
+            paramsData: item.length === 1 ? item[0].params : [],
+          });
+        }
 
     // console.log('treeNodeSelectKeys', item.length === 1 ? item[0].params : []);
-    this.setState({
-      expandedKeys,
-      treeNodeSelectKeys,
-      paramsData: item.length === 1 ? item[0].params : [],
-      // isVisible: !!pickObjectVisible,
-      // alphaRange: pickObjectTransparent
-    },()=>{
-      try {
-        var treeItem = document.getElementById('tree'+treeNodeSelectKeys[0]);
-        setTimeout(() => {
-          treeItem && treeItem.scrollIntoView();
-        }, 500);
-      } catch (error) {
-        
-      }
-    });
+   
   };
 
   renderPMITree(treeData) {
@@ -491,29 +551,50 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   renderPMITitle(item){
-    const cmlib = window.CM_LIB;
-    return <span className={
+    const cmlib = window.P3D_LIB;
+    return <span   id={`pmi${item.key}`} className={
       this.state.PMISelectKeys.indexOf(item.key) > -1 ? "tree_selected" : ""
     } 
     onClick={()=>{
       if(item.type ==='view'){
-        // console.log('CMShiftAnnotView', item);
-        cmlib.CMShiftAnnotView(item.pmiId)
+        // console.log('P3D_ShiftAnnotView', item);
+        cmlib.P3D_ShiftAnnotView(item.pmiId)
       } else {
-        cmlib.CMClearAnnotSelected();
-        cmlib.CMSelectAnnot([item.pmiId])
+        cmlib.P3D_ClearAnnotSelected();
+        this.tempMutilpPMI = [item.pmiId]
+        cmlib.P3D_SelectAnnot(this.tempMutilpPMI)
       }
       this.setState({
         PMISelectKeys:[item.key]
       })
     }}
-    
+    onMouseDown={() => {
+      if (this.keyCode === 17) {
+        let {PMISelectKeys} = this.state;
+        if(item.type ==='view'){
+          cmlib.P3D_ShiftAnnotView(item.pmiId)
+        } else {
+          cmlib.P3D_ClearAnnotSelected();
+          if(this.tempMutilpPMI.includes(item.pmiId)){
+            PMISelectKeys = PMISelectKeys.filter(i => i !== item.key)
+            this.tempMutilpPMI = this.tempMutilpPMI.filter(i => i !== item.pmiId)
+          }else{
+            this.tempMutilpPMI.push(item.pmiId)
+            PMISelectKeys = PMISelectKeys.concat(item.key)
+          }
+          cmlib.P3D_SelectAnnot(this.tempMutilpPMI)
+        }
+        this.setState({
+          PMISelectKeys
+        })
+      }
+    }}
     onDoubleClick={()=>{
       if(item.type !== 'view'){
-        cmlib.CMClearAnnotSelected();
-        cmlib.CMSelectAnnot([item.pmiId])
-        // console.log('CMChangeCameraFocusToAnnot', item);
-        cmlib.CMChangeCameraFocusToAnnot(item.pmiId)
+        cmlib.P3D_ClearAnnotSelected();
+        cmlib.P3D_SelectAnnot([item.pmiId])
+        // console.log('P3D_ChangeCameraFocusToAnnot', item);
+        cmlib.P3D_ChangeCameraFocusToAnnot(item.pmiId)
       }
     }}>
       {item.name}
@@ -521,8 +602,8 @@ export default class ScleAttrTree extends PureComponent {
   }
 
   SetTreeNodePmiView(nodeid) {
-    let cmlib = window.CM_LIB;
-    let arrViewId = cmlib.CMGetAnnotViewIDByTreeID(nodeid);
+    let cmlib = window.P3D_LIB;
+    let arrViewId = cmlib.P3D_GetAnnotViewIDByTreeID(nodeid);
     const notPickModel = arrViewId === null || arrViewId.length <= 0;
 
     if (notPickModel) return this.setState({
@@ -530,9 +611,9 @@ export default class ScleAttrTree extends PureComponent {
     });;
 
     const pmiTree = arrViewId.map((id) => {
-      const name = cmlib.CMGetAnnotViewName(id);
+      const name = cmlib.P3D_GetAnnotViewName(id);
       
-      const arrAnnotId = cmlib.CMGetAnnotIDInView(id);
+      const arrAnnotId = cmlib.P3D_GetAnnotIDInView(id);
 
       return {
         name,
@@ -541,7 +622,7 @@ export default class ScleAttrTree extends PureComponent {
         type:'view',
         child: arrAnnotId.map((i) => {
           return {
-            name: cmlib.CMGetAnnotName(i),
+            name: cmlib.P3D_GetAnnotName(i),
             key: "annotid" + i,
             type:'annot',
             pmiId: i,
@@ -550,43 +631,55 @@ export default class ScleAttrTree extends PureComponent {
         }),
       };
     });
+    console.log('pmiTree',pmiTree);
     this.setState({
       PMITreeData: pmiTree,
     });
 
     // console.log(pmiTree);
-    // let viewName = cmlib.CMGetAnnotViewName(arrViewId[0]);
+    // let viewName = cmlib.P3D_GetAnnotViewName(arrViewId[0]);
 
-    // let arrAnnotId = cmlib.CMGetAnnotIDInView(arrViewId[0]);
-    // let annotViewId = cmlib.CMGetViewIDByAnnotID(arrAnnotId[0]);
-    // let annotName = cmlib.CMGetAnnotName(arrAnnotId[0]);
-    // let annotType = cmlib.CMGetAnnotType(arrAnnotId[0]);
-    // let annotVisible = cmlib.CMIsAnnotVisible(arrAnnotId[0]);
-    // cmlib.CMSetAnnotVisibleInView(arrViewId, true);
+    // let arrAnnotId = cmlib.P3D_GetAnnotIDInView(arrViewId[0]);
+    // let annotViewId = cmlib.P3D_GetViewIDByAnnotID(arrAnnotId[0]);
+    // let annotName = cmlib.P3D_GetAnnotName(arrAnnotId[0]);
+    // let annotType = cmlib.P3D_GetAnnotType(arrAnnotId[0]);
+    // let annotVisible = cmlib.P3D_IsAnnotVisible(arrAnnotId[0]);
+    // cmlib.P3D_SetAnnotVisibleInView(arrViewId, true);
   }
 
-  handleCMSetAnnotVisibleInView(treeNodeIds) {
-    let cmlib = window.CM_LIB;
-    cmlib.CMSetAnnotVisibleInView(treeNodeIds, true);
+  handleP3D_SetAnnotVisibleInView(treeNodeIds) {
+    let cmlib = window.P3D_LIB;
+    cmlib.P3D_SetAnnotVisibleInView(treeNodeIds, true);
   }
 
 
   handleInitPMI(bl) {
-    let cmlib = window.CM_LIB;
+    let cmlib = window.P3D_LIB;
 
     if (bl) {
-      cmlib.CMInitPmi();
+      cmlib.P3D_InitPmi();
     } else {
-      cmlib.CMResetPmiDispColor();
-      cmlib.CMUnInitPmi();
+      cmlib.P3D_ResetPmiDispColor();
+      cmlib.P3D_UnInitPmi();
     }
   }
 
-  getTreeNodeData(item, parentKeys = []) {
+  getTreeNodeIdByObjId(objId){
+    return this.nodeIds[objId];
+  }
+
+  getTreeNodeData(item, parentKeys = [], parent) {
     const key = `${item._uTreeNodeID}`
     parentKeys = parentKeys.concat(key);
-    if (item._bVisible) this.keys.push(key);
-    return {
+   
+    
+    // 设置obj ID 与 tree node id 对应关系
+    if(item._uObjectID !== -1 ) {
+      this.nodeIds[item._uObjectID] = item._uTreeNodeID
+      if (item._bVisible) this.keys.push(key);
+    }
+
+    const data = {
       key,
       parentKeys,
       nodeid: item._uTreeNodeID,
@@ -597,15 +690,21 @@ export default class ScleAttrTree extends PureComponent {
       originVisible: item._bVisibleOriginal,
       visible: item._bVisible,
       TriangleCount: item._uObjectTriangleCount,
-      child: this.processTreeData(item._arrSubNode, parentKeys),
-      objId: item._uObjectID
+      objId: item._uObjectID,
+      parent
     };
+
+    data.child = this.processTreeData(item._arrSubNode, parentKeys, data)
+
+
+    return data
   }
 
-  processTreeData(treeData, parentKeys) {
+  processTreeData(treeData, parentKeys, parent) {
+    // console.log(parent);
     // console.log(treeData);
     if (!treeData || !treeData.length) return [];
-    return treeData.map((item) => this.getTreeNodeData(item, parentKeys));
+    return treeData.map((item) => this.getTreeNodeData(item, parentKeys, parent));
   }
 
   getTreeNodeParams(arrParmas) {
@@ -651,9 +750,8 @@ export default class ScleAttrTree extends PureComponent {
     }
   };
   pickAnnot(){
-    const cmlib = window.CM_LIB;
-    let pickElem = cmlib.CMGetPickElements();
-    const ids = pickElem._arrPickElements[0]
+    const cmlib = window.P3D_LIB;
+    const ids = cmlib.P3D_GetSelAnnotID();
     // console.log('pickElem._arrPickElements', ids, this.state.PMITreeData);
 
     // let item;
@@ -666,7 +764,8 @@ export default class ScleAttrTree extends PureComponent {
     //     return isFind
     //   })
     // })
-    const PMISelectKeys = ['annotid'+ids]
+    const PMISelectKeys = ids.map(i=>('annotid'+i))
+
     // function findItem(items, key, keys){
     //   if(!items || !items.length) return keys
     //   items.forEach(item=>{
@@ -679,25 +778,46 @@ export default class ScleAttrTree extends PureComponent {
 
     //   return keys
     // }
-
     // const selectItem = findItem(this.state.PMITreeData, PMISelectKeys[0])
+    let pmiIds = []
     let selectItem;
     this.state.PMITreeData.forEach(item=>{
       item.child.forEach(i=>{
         if(i.key === PMISelectKeys[0]) selectItem = i;
+        PMISelectKeys.includes(i.key) &&  pmiIds.push(i.pmiId)
       })
     })
    
     // console.log('selectItem',selectItem);
 
 
+    this.tempMutilpPMI = pmiIds
+
+
+    let {PMIExpandedKeys}  = this.state;
+    if(PMISelectKeys.length === 1){
+      PMIExpandedKeys = selectItem?[selectItem.parentPmiId]:[]
+    }
 
     this.setState({
       PMISelectKeys,
-      PMIExpandedKeys: selectItem?[selectItem.parentPmiId] :[]
+      PMIExpandedKeys
     })
+
+    try {
+      var treeItem = document.getElementById('pmi'+PMISelectKeys[0]);
+      setTimeout(() => {
+        const tree = document.getElementsByClassName('pmi_tree')[0]
+        tree.scroll(0, treeItem.offsetTop - (tree.offsetTop + tree.offsetHeight / 2)  )
+      }, 500);
+    } catch (error) {
+      
+    }
+   
     
   }
+  modelTree= null;
+  paramsTree= null;
   //   ---------------------
   componentDidMount() {
     if (window.g_GLData) {
@@ -706,15 +826,32 @@ export default class ScleAttrTree extends PureComponent {
     window.addEventListener("scleStreamReady", () => this.loadTree(), {
       passive: false,
     });
+    console.log(this.modelTree);
+    if(this.modelTree){
+      this.modelTree.addEventListener('transitionend', function () {
+        window.onCanvasResize && window.onCanvasResize()
+      })
+    }
+
+    if(this.paramsTree){
+      this.paramsTree.addEventListener('transitionend', function () {
+        window.onCanvasResize && window.onCanvasResize()
+      })
+    }
+   
+
+    
 
     window.addEventListener("CMOnMouseUpCallBack", (e) => {
-      const cmlib = window.CM_LIB;
-      let pickElem = cmlib.CMGetPickElements();
+      const cmlib = window.P3D_LIB;
+      let pickElem = cmlib.P3D_GetPickElements();
       const hasPick = pickElem && pickElem._arrPickElements && pickElem._arrPickElements.length;
       // console.log('hasPick', hasPick, pickElem);
 
 
       if(!hasPick){
+        console.log('nopick');
+        this.tempMutilpSelect = [];
         this.setState({
           paramsData:[],
           treeNodeSelectKeys:[],
@@ -723,24 +860,25 @@ export default class ScleAttrTree extends PureComponent {
       }
 
       // eslint-disable-next-line
-      if (pickElem._uPickType == CM_PICK_TYPE_PART) {
+      if (pickElem._uPickType == P3D_PICK_TYPE_PART) {
           // console.log("type: 零件" +
           //             "; elems: " , pickElem._arrPickElements[0] ,
-          //             "; 名称: " , cmlib.CMGetObjName(pickElem._arrPickElements[0]) ,
-          //             "; 参数: ", cmlib.CMGetObjParams(pickElem._arrPickElements[0]));
+          //             "; 名称: " , cmlib.P3D_GetObjName(pickElem._arrPickElements[0]) ,
+          //             "; 参数: ", cmlib.P3D_GetObjParams(pickElem._arrPickElements[0]));
         this.pickObjectParameters();
       // eslint-disable-next-line
-      } else if (pickElem._uPickType == CM_PICK_TYPE_PMI_ITEM) {
+      } else if (pickElem._uPickType == P3D_PICK_TYPE_PMI_ITEM) {
           // console.log("type: PMI" +
           //             "; elems: " + pickElem._arrPickElements[0] +
-          //             "; 名称: " + cmlib.CMGetAnnotName(pickElem._arrPickElements[0]));
+          //             "; 名称: " + cmlib.P3D_GetAnnotName(pickElem._arrPickElements[0]));
         this.pickAnnot();
       }
 
     }, { passive: false,});
 
     
-    window.setVisibleTree = this.setVisible.bind(this);
+
+    window.addEventListener('setVisible', this.setVisible)
   
     window.addEventListener("keydown", this.keydown);
     window.addEventListener("keyup", this.keyup);
@@ -760,6 +898,7 @@ export default class ScleAttrTree extends PureComponent {
     // window.removeEventListener("pickParams", this.pickObjectParameters, {
     //   passive: false,
     // });
+
     document.removeEventListener("contextmenu", this.disableContextmenu);
     window.removeEventListener("keyup", this.keyup);
     window.removeEventListener("keydown", this.keydown);

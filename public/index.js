@@ -172,7 +172,7 @@
 			const path = link || fileName;
 
 			// if (path.endsWith('.scle')) {
-				window.CM_LIB.CMInitData(res, "13NHl5eTEyMjExMTUyMzEyMTXlhoXpg6jmtYvor5U=");
+				window.P3D_LIB.P3D_InitData(res, "13NHl5eTEyMjExMTUyMzEyMTXlhoXpg6jmtYvor5U=");
 			// } else if (path.endsWith('.cle')) {
 			// 	Module.onData(res);
 			// }
@@ -188,12 +188,12 @@
 
 	window.addEventListener('scleViewOnload', function () {
 		Object.keys(scle).forEach(function(key){
-			window.CMOnlineUI[key] = scle[key];
+			window.P3DUIAPI[key] = scle[key];
 		})
 	})
 
 
-	window.loadCMOnlineLib(function(isErr, errJSFileUrl){
+	window.loadP3DToolkitLib(function(isErr, errJSFileUrl){
 		// 错误处理
 		if (isErr) {
 			console.error('加载模型库依赖失败！');

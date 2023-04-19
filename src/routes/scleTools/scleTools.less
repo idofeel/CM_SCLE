@@ -102,25 +102,35 @@
 
 
     
-    // .fixed_left_tools{
-    //     position: absolute;
-    //     right: 0;
-    //     top: 20px;
-    //     .left_tools_btn{
-    //         margin-top: 20px;
-    //         background: rgb(255, 255, 255, .6);
-    //         padding: 6px 16px;
-    //         box-shadow: 2px 0 8px rgba(0 ,0, 0,.15);
-    //         font-size: 18px;
-    //         cursor: pointer;
-    //         border-top-left-radius: 6px;
-    //         border-bottom-left-radius: 6px;
-    //         &.active{
-    //             color: #1890ff;
-    //         }
-    //     }
-       
-    // }
+      
+        .left_tools_btn, .right_tools_btn{
+            position: absolute;
+            left: 0;
+            top: 20px;
+            z-index: 2;
+            margin-top: 20px;
+            background: rgb(255, 255, 255, .6);
+            padding: 6px 16px;
+            box-shadow: 2px 0 8px rgba(0 ,0, 0,.15);
+            font-size: 18px;
+            cursor: pointer;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            &.active{
+                color: #1890ff;
+            }
+        }
+       .right_tools_btn{
+         top: 150px;
+            left: auto;
+            right: 0;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-top-left-radius: 6px;
+            border-bottom-left-radius: 6px;
+       }
 
 
 

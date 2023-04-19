@@ -6,6 +6,9 @@ import ScleToolsBar from './scleTools/scleToolsBar';
 import { IsPhone } from '../utils/Browser';
 import SC from './scleControl';
 import { scleCustomEvent } from '../utils';
+import ScleAttrTree from './scleAttrTree/ScleAttrTree'
+
+import {SwitcherOutlined } from '@ant-design/icons';
 import './scle.less';
 
 let scleControl = SC;
@@ -14,7 +17,7 @@ const logo = require('../assets/images/downloadAppIcon.png').default;
 
 const API = {};
 
-function ScleView() {
+function ScleView () {
 	const [isFullScreen, setFullscreen] = useState(false);
 	const [loading, setLoading] = useState(true);
 	// const [isHttp] = useState(window.location.origin.startsWith('http'));
@@ -44,6 +47,7 @@ function ScleView() {
 	};
 
 	const [visible, setVisible] = useState(false);
+
 	const downloadMsg = [
 		'模型下载中...',
 		'模型打开中,请稍等...',
@@ -105,8 +109,15 @@ function ScleView() {
 
 	const containerRef = useRef();
 
+	const modelTree = useRef();
+	const [showModelTree, setModalTree] = useState(false);
+	const paramsTree = useRef();
+	const [showParamsTree, setParamsTree] = useState(false);
+
+
 	const addScleEvent = () => {
 		window.isPhone = IsPhone();
+		console.log(containerRef.current);
 		// containerRef.current.addEventListener('transitionend', function () {
 		// 	window.canvasOnResize && window.canvasOnResize()
 		// })
@@ -117,15 +128,17 @@ function ScleView() {
 			'MSFullscreenChange',
 		].forEach((item, index) => {
 			window.addEventListener(item, () => {
+				console.log('fullscreenchange');
 				const isfull =
 					document.fullScreen ||
 					document.mozFullScreen ||
 					document.webkitIsFullScreen ||
 					!!document.msFullscreenElement;
 				setFullscreen(isfull);
-				window.canvasOnResize();
+				// window.canvasOnResize();
 			});
 		});
+
 	};
 
 	const addScleAPi = () => {
@@ -194,7 +207,7 @@ function ScleView() {
 		}
 		if (link) {
 			window.g_strResbaseUrl = link.replace(/(.scle|.zip|.cle)$/, '/');
-			window.CMOnlineUI.getByRequest(link);
+			window.P3DUIAPI.getByRequest(link);
 			return;
 		} else {
 			message.warning('请输入正确的链接');
@@ -213,7 +226,7 @@ function ScleView() {
 			// // getByRequest(cle.replace(/(.cle)$/, '.scle'))
 			// getByRequest('../../src/assets/68b0.scle')
 			// canvasOnResize()
-			window.CMOnlineUI.getByRequest(cle.replace(/(.cle)$/, '.scle'));
+			window.P3DUIAPI.getByRequest(cle.replace(/(.cle)$/, '.scle'));
 			//
 			// window.Scle.getByRequest('../../src/assets/68b0.scle')
 		} else {
@@ -241,67 +254,64 @@ function ScleView() {
 
 	const loadingChange = (b) => {
 		setLoading(b);
-		window.g_CLEModule && window.canvasOnResize && window.canvasOnResize();
+		// window.g_CLEModule && window.onCanvasResize && window.onCanvasResize();
 	};
 
 	useEffect(() => {
-		// const cmcallbacks = new window.CM_CALLBACKS();
-		// window.CM_LIB = new window.CMOnlineLib(
-		// 	containerRef.current,
-		// 	cmcallbacks
-		// );
-		//
+		window.addEventListener('loadCMOnlineLibEnd', () => {
+			
 
-		window.addEventListener('loadCMOnlineLibEnd', ()=>{
-			// console.log('loadCMOnlineLib end');
-			window.CMOnlineView.default.install(window.Vue);
-			new window.Vue({
-				el: '#CMOnlineUI_container',
-			});
-
-			window.CM_LIBReady = false;
+			window.P3D_LIBReady = false;
 			// 重新赋值指针
-			scleControl = window.CMOnlineUI;
+			scleControl = window.P3DUIAPI;
 			scleCustomEvent('scleViewOnload');
 			asyncLoad()
 		})
 
 		window.addEventListener('updateProgress', onProgress);
 		window.addEventListener('transferFailed', () => setMsgCode(2));
-		
+
 
 		// eslint-disable-next-line
 
-		function asyncLoad() {
-			// console.log(window.CM_CALLBACKS);
-			if (window.CM_CALLBACKS) {
-				const cmcallbacks = new window.CM_CALLBACKS();
-				cmcallbacks.CMOnLoadModelEndCallback = function () {
+		function asyncLoad () {
+			// console.log(window.P3D_CALLBACKS);
+			if (window.P3D_CALLBACKS) {
+				const cmcallbacks = new window.P3D_CALLBACKS();
+				cmcallbacks.P3D_OnLoadModelEndCallback = function () {
 					scleCustomEvent('CMOnLoadModelEndCallback');
 					scleControl.loadEnd();
+					window.CMOnlineView.default.install(window.Vue);
+					new window.Vue({
+						el: '#ui_container',
+					});
 				}
 
-				cmcallbacks.CMOnMouseUpCallBack = function (e) {
+				cmcallbacks.P3D_OnMouseUpCallBack = function (e) {
 					scleCustomEvent('CMOnMouseUpCallBack');
 				}
 
-				const cmsettings = new window.CM_SETTINGS();
-				window.CM_LIB = new window.CMOnlineLib(
+				cmcallbacks.P3D_OnAnimRefreshCallBack = function (e) {
+					scleCustomEvent('P3D_OnAnimRefreshCallBack', e);
+				}
+
+				const cmsettings = new window.P3D_SETTINGS();
+				window.P3D_LIB = new window.P3DToolkitLib(
 					containerRef.current,
 					cmcallbacks,
 					cmsettings
 				);
 
-				window.CM_LIB.CMSetUserCanCommentFlag(1);
-				window.CM_LIB.CMSetCommentUsrName('test');
+				window.P3D_LIB.P3D_SetUserCanCommentFlag(1);
+				window.P3D_LIB.P3D_SetCommentUsrName('test');
 				addScleAPi();
 				if (isHttp) openScle();
-				// window.CM_LIBReady = true;
+				// window.P3D_LIBReady = true;
 			} else {
-				console.log('加载CM_CALLBACKS失败');
-				window.location.reload()
+				console.log('加载P3D_CALLBACKS失败');
+				// window.location.reload()
 			}
-			
+
 		}
 
 		// window.addEventListener('CLEReady', ()=>{
@@ -318,7 +328,7 @@ function ScleView() {
 			scleControl.refreshNotation();
 		});
 
-		
+
 	}, []);
 
 	const onVisibleChange = () => {
@@ -344,7 +354,7 @@ function ScleView() {
 		setInputText(null);
 	};
 
-	function renderCommentItem(item, index) {
+	function renderCommentItem (item, index) {
 		return (
 			<div
 				key={index}
@@ -376,7 +386,7 @@ function ScleView() {
 		);
 	}
 
-	function renderComment(item, index) {
+	function renderComment (item, index) {
 		if (item.show === false) return null;
 		if (
 			item.disabled === true &&
@@ -399,96 +409,124 @@ function ScleView() {
 			return renderCommentItem(item, index);
 		}
 	}
+
 	return (
-		<div
-			className={isFullScreen ? 'fullScreen container' : 'container'}
-			ref={containerRef}
-		>
-			<div id="CMOnlineUI_container">
-				<c-m-online-view />
-			</div>
-			{/* <>
-                <canvas id="glcanvas" width="800" height="600"></canvas>
-                <canvas id="text" width="800" height="600"></canvas>
-            </> */}
-			{posInput.show !== false ? posInput.data.map(renderComment) : null}
-			{loading ? (
-				<div className="scle_loading">
-					{isHttp ? (
-						<div className="scle_loadImg">
-							<img src={logo} alt="loading" />
-							<Progress
-								strokeColor={{
-									'0%': '#108ee9',
-									'100%': '#87d068',
-								}}
-								percent={percent}
-								status="active"
-							/>
-							<p>{downloadMsg[msgCode]}</p>
-						</div>
-					) : null}
-				</div>
-			) : (
-				showTools && <ScleToolsBar></ScleToolsBar>
-				// showTools && <ScleTools></ScleTools>
-			)}
-			{visible && notation.type !== null && (
-				<Popover
-					content={
-						<div>
-							{input === null ? (
-								<div
-									onDoubleClick={() => {
-										// setInputText(coordinates.content)
+		<div className='out_box'>
+
+			<ScleAttrTree
+				ref={modelTree}
+				showParams={false}
+			></ScleAttrTree>
+
+			<div
+				className={isFullScreen ? 'fullScreen container' : 'container'}
+				ref={containerRef}
+			>
+				{modelTree.current ? <div className='fixed_left_tools'>
+					<div className={`left_tools_btn ${showModelTree ? 'active':''}`} onClick={() => {
+						setModalTree(modelTree.current.toggle())
+					}}>
+						<Icon type="apartment"/>
+					</div>
+
+					<div className={`right_tools_btn ${showParamsTree ? 'active':''}`} onClick={() => setParamsTree(paramsTree.current.toggle())}>
+						<SwitcherOutlined />
+					</div>
+
+				</div>:null}
+				
+				<div id="ui_container">
+					<p-3-d-u-i-view />
+				</div> 
+				{/* <>
+					<canvas id="glcanvas" width="800" height="600"></canvas>
+					<canvas id="text" width="800" height="600"></canvas>
+				</> */}
+				{posInput.show !== false ? posInput.data.map(renderComment) : null}
+				{loading ? (
+					<div className="scle_loading">
+						{isHttp ? (
+							<div className="scle_loadImg">
+								<img src={logo} alt="loading" />
+								<Progress
+									strokeColor={{
+										'0%': '#108ee9',
+										'100%': '#87d068',
 									}}
-								>
-									{coordinates.content}
-								</div>
-							) : (
-								<Input
-									value={input}
-									onChange={(e) =>
-										setInputText(e.target.value)
-									}
-									autoFocus
-									addonAfter={
-										<Icon
-											type="check"
-											onClick={confirmValue}
-										/>
-									}
-									defaultValue={coordinates.content}
+									percent={percent}
+									status="active"
 								/>
-							)}
-						</div>
-					}
-					title={null}
-					placement="top"
-					trigger="click"
-					visible={true}
-					overlayClassName={`scleViewPopver ${notation.type === 'lead' ? 'hideArrow' : ''
-						}`}
-					onVisibleChange={onVisibleChange}
-				>
-					<div
-						className={`gltext ${notation.type === 'lead' ? 'gltext2' : ''
+								<p>{downloadMsg[msgCode]}</p>
+							</div>
+						) : null}
+					</div>
+				) : (
+					showTools && <ScleToolsBar></ScleToolsBar>
+					// showTools && <ScleTools></ScleTools>
+				)}
+				{visible && notation.type !== null && (
+					<Popover
+						content={
+							<div>
+								{input === null ? (
+									<div
+										onDoubleClick={() => {
+											// setInputText(coordinates.content)
+										}}
+									>
+										{coordinates.content}
+									</div>
+								) : (
+									<Input
+										value={input}
+										onChange={(e) =>
+											setInputText(e.target.value)
+										}
+										autoFocus
+										addonAfter={
+											<Icon
+												type="check"
+												onClick={confirmValue}
+											/>
+										}
+										defaultValue={coordinates.content}
+									/>
+								)}
+							</div>
+						}
+						title={null}
+						placement="top"
+						trigger="click"
+						visible={true}
+						overlayClassName={`scleViewPopver ${notation.type === 'lead' ? 'hideArrow' : ''
 							}`}
-						style={{
-							top: coordinates.top,
-							left: coordinates.left,
-						}}
-					></div>
-				</Popover>
-			)}
+						onVisibleChange={onVisibleChange}
+					>
+						<div
+							className={`gltext ${notation.type === 'lead' ? 'gltext2' : ''
+								}`}
+							style={{
+								top: coordinates.top,
+								left: coordinates.left,
+							}}
+						></div>
+					</Popover>
+				)}
 
-			{notation.type === 'table' && (
-				<div className="gltext" style={notation.tableStyle}>
-					<Table {...notation} rowKey="index" />
-				</div>
-			)}
+				{notation.type === 'table' && (
+					<div className="gltext" style={notation.tableStyle}>
+						<Table {...notation} rowKey="index" />
+					</div>
+				)}
 
-			{/* getobjectscenter */}
+				{/* getobjectscenter */}
+			</div>
+			<div>
+				<ScleAttrTree
+					ref={paramsTree}
+					showParams={true}
+				></ScleAttrTree>
+			</div>
 		</div>
 	);
 }

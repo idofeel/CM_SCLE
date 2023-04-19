@@ -15,10 +15,12 @@ import {
   IEVersion,
   IsPhone,
 } from "../../../utils/Browser";
+import { scleCustomEvent } from '../../../utils';
+
 import ToolsBarContext from "../ToolsBarContext";
 
 const IconFont = Icon.createFromIconfontCN({
-  scriptUrl: "./CMOnlineToolkit/iconfont.js",
+  scriptUrl: "./P3D_OnlineToolkit/iconfont.js",
 });
 const renderTitle = (title) => (IsPhone() ? null : title);
 
@@ -30,7 +32,7 @@ function ScleRest(props) {
   return (
     <>
       <Tooltip title={renderTitle("复位")}>
-        <Icon type="home" {...props} onClick={() => window.setHome()} />
+        <Icon type="home" {...props} onClick={() => window.P3D_Home()} />
       </Tooltip>
     </>
   );
@@ -89,8 +91,8 @@ function ScleHide(props) {
   function toggle(bl) {
     const isHide = icon === "eye";
     setIcon(isHide ? "eye-invisible" : "eye");
-    window.setVisible(isHide);
-    window.setVisibleTree(isHide);
+    window.P3D_SetSelObjVisible(isHide);
+    scleCustomEvent('setVisible',isHide)
   }
 
   useEffect(() => {
@@ -190,7 +192,7 @@ function ScleOpacity(props) {
             onChange={(value) => {
               isPickNull(() => {
                 setAlpha(value);
-                window.setTransparent(value);
+                window.D_SetObjTransparent(value);
               });
             }}
           />
@@ -226,7 +228,7 @@ function ScleBgColor(props) {
             window.setBackground(e.target.value * 1);
           }}
         >
-          <Radio.Button value="0">淡蓝色</Radio.Button>
+          <Radio.Button value="0">淡蓝色1</Radio.Button>
           <Radio.Button value="1">浅白色</Radio.Button>
           <Radio.Button value="2">银灰色</Radio.Button>
         </Radio.Group>
@@ -268,8 +270,8 @@ function ScleViewDirection(props) {
               <DivBox
                 key={item.value}
                 {...item}
-                onTouchEnd={() => window.setView(item.value)}
-                onClick={() => window.setView(item.value)}
+                onTouchEnd={() => window.P3D_ChangeView(item.value)}
+                onClick={() => window.P3D_ChangeView(item.value)}
               />
             ))
           ) : (
@@ -277,7 +279,7 @@ function ScleViewDirection(props) {
               defaultValue={0}
               buttonStyle="solid"
               onChange={(item) => {
-                window.setView(item.target.value);
+                window.P3D_ChangeView(item.target.value);
               }}
             >
               {viewDirections.map((item) => (
@@ -359,7 +361,7 @@ function DivBox(props) {
 }
 
 function isPickNull(cb = () => { }) {
-  return window.getPickStatus() < 1 ? message.info("需先选中模型") : cb();
+  return window.P3D_GetPickElements()._arrPickElements.length === 0() ? message.info("需先选中模型") : cb();
 }
 
 export {
