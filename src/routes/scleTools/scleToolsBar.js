@@ -799,12 +799,13 @@ export default class scleTools extends PureComponent {
 				defaultValue="0"
 				buttonStyle="solid"
 				onChange={(e) => {
-					window.setBackground(e.target.value * 1)
+					console.log(e.target.value);
+					window.P3D_LIB.P3D_SetBkImage(e.target.value)
 				}}
 			>
-				<Radio.Button value="0">淡蓝色</Radio.Button>
-				<Radio.Button value="1">浅白色</Radio.Button>
-				<Radio.Button value="2">银灰色</Radio.Button>
+				<Radio.Button value="blue.jpg">淡蓝色</Radio.Button>
+				<Radio.Button value="white.jpg">浅白色</Radio.Button>
+				<Radio.Button value="grey.jpg">银灰色</Radio.Button>
 			</Radio.Group>
 		)
 	}

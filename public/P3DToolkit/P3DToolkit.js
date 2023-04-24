@@ -226,7 +226,7 @@ function P3D_CALLBACKS() {
 let isLoadedLib = false;
 
 // 动态加载P3DToolkit依赖库，解决不同 vue 版本兼容的问题
-function loadP3DToolkitLib (cb) {
+function loadP3DToolkitLib (cb) {    
     // P3DToolkit库依赖列表，并按顺序加载
     const P3D_LIB_DEPENDENCY_LIST = [
         { type: 'text/javascript', src: 'P3DToolkit/UI/P3Dvendor.js'},
@@ -236,7 +236,7 @@ function loadP3DToolkitLib (cb) {
         { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/module.js'},
         { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},
-    ]  
+    ] 
    
     // 库已经加载过了，无需再次加载，直接返回
     if (isLoadedLib) {
@@ -287,6 +287,11 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_Version = P3D_Version;
     this.P3D_CreateComponet = P3D_CreateComponet;
     this.P3D_DestoryComponet = P3D_DestoryComponet;
+
+    this.P3D_LoadPMIFlag = P3D_LoadPMIFlag;
+    this.P3D_LoadSurfaceAndCurveFlag = P3D_LoadSurfaceAndCurveFlag;
+    this.P3D_LoadSectionFlag = P3D_LoadSectionFlag;
+
     this.P3D_InitData = P3D_InitData;
     this.P3D_UninitData = P3D_UninitData;
 
@@ -442,6 +447,33 @@ var g_LoadFileTimeTimeID;
 function P3D_Version() {
     return P3DTOOLKIT_VERSION;
 }
+
+// PMI数据
+function P3D_LoadPMIFlag(flag) {
+    if (flag == true){
+        g_ExportPMI = 1;
+    }else{
+        g_ExportPMI = 0;
+    }
+}
+
+// 曲面和曲线数据，测试时使用
+function P3D_LoadSurfaceAndCurveFlag(flag) {
+    if (flag == true){
+        g_ExportSurfaceAndCurve = 1;
+    }else{
+        g_ExportSurfaceAndCurve = 0;
+    }
+};
+
+// 剖切数据
+function P3D_LoadSectionFlag (flag) {
+    if (flag == true){
+        g_ExportSection = 1;
+    }else{
+        g_ExportSection = 0;
+    }
+};
 
 // 加载数据
 function P3D_InitData(streamdata, licdata) {
