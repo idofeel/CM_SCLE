@@ -108,7 +108,7 @@ export default class ScleAttrTree extends PureComponent {
 
       <>
         {!this.props.showParams ? (
-          <div ref={el => this.modelTree = el} className={`tree_box attr_tree ${this.state.show?'':'hideTree'}`}>
+          <div ref={el => this.modelTree = el} className={`tree_box attr_tree ${this.state.show?'':''}`}>
             <div>
               <h4 className="title">模型树</h4>
               <Tree
@@ -214,7 +214,7 @@ export default class ScleAttrTree extends PureComponent {
             </div>
           </div>
         ) : (
-          <div ref={el => this.paramsTree = el}  className={`tree_box ${this.state.show?'':'hideTree'}`}>
+          <div ref={el => this.paramsTree = el}  className={`tree_box ${this.state.show?'':''}`}>
             <h4 className="title">参数</h4>
             <Table
               className="attrTable"

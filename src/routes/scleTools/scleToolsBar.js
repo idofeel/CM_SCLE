@@ -359,7 +359,7 @@ export default class scleTools extends PureComponent {
 		
 		return (
 			<>
-				{/* <Drawer
+				<Drawer
 					title={null}
 					closable={false}
 					mask={false}
@@ -406,7 +406,7 @@ export default class scleTools extends PureComponent {
 					}}>
 						<SwitcherOutlined />
 					</div>
-				</Drawer> */}
+				</Drawer>
 
 				{/* <div className='fixed_left_tools'>
 					<div className={`left_tools_btn ${this.state.drawerVisible && !this.state.showParams ? 'active':''}`} onClick={() => this.handleShowTree()}>
@@ -420,7 +420,7 @@ export default class scleTools extends PureComponent {
 				</div> */}
 				{
 					this.state.showSectioning? 
-				<Draggable handle='.ant-card-head-title' >
+				<Draggable handle='.pq_card_title' >
 
 					<Card className='pq_card'  style={{ width: 300 }} size="small">
 						<Spin spinning={this.state.loading}>
@@ -743,7 +743,7 @@ export default class scleTools extends PureComponent {
 							background: e.rgb
 						})
 						const p3dtoolkitlib = window.P3D_LIB;
-						p3dtoolkitlib.P3D_SetSelObjColor(r / 255, g / 255, b / 255, a)
+						p3dtoolkitlib.P3D_GetSelObjIDs().forEach(id=>p3dtoolkitlib.P3D_SetObjColor(id, r / 255, g / 255, b / 255, a))
 					})
 				}}
 				color={this.state.background}

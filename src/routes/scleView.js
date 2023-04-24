@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useReducer } from 'react';
-import { message, Popover, Progress, Table, Input, Icon, Tooltip } from 'antd';
+import { message, Popover, Progress, Table, Input, Icon, Tooltip,Spin } from 'antd';
 import { get, queryString } from '../utils';
 import ScleToolsBar from './scleTools/scleToolsBar';
 // import ScleTools from './scleTools'
@@ -63,7 +63,7 @@ function ScleView () {
 		],
 		show: false, // 是否显示
 	});
-
+	const [pageLoading, setPageLoading] = useState(false)
 	// function showInput() {
 	//     const option = {
 	//         data: [
@@ -259,8 +259,6 @@ function ScleView () {
 
 	useEffect(() => {
 		window.addEventListener('loadCMOnlineLibEnd', () => {
-			
-
 			window.P3D_LIBReady = false;
 			// 重新赋值指针
 			scleControl = window.P3DUIAPI;
@@ -328,6 +326,9 @@ function ScleView () {
 			scleControl.refreshNotation();
 		});
 
+		window.addEventListener('setPageLoading',(e)=>{
+			setPageLoading(e.detail)
+		})
 
 	}, []);
 
@@ -411,18 +412,19 @@ function ScleView () {
 	}
 
 	return (
+	
 		<div className='out_box'>
-
-			<ScleAttrTree
+			{pageLoading&&<Spin tip="打开文件中，请您耐心等待..." spinning={pageLoading} className='page_loading'></Spin>}
+			{/* <ScleAttrTree
 				ref={modelTree}
 				showParams={false}
-			></ScleAttrTree>
+			></ScleAttrTree> */}
 
 			<div
 				className={isFullScreen ? 'fullScreen container' : 'container'}
 				ref={containerRef}
 			>
-				{modelTree.current ? <div className='fixed_left_tools'>
+				{/* {modelTree.current ? <div className='fixed_left_tools'>
 					<div className={`left_tools_btn ${showModelTree ? 'active':''}`} onClick={() => {
 						setModalTree(modelTree.current.toggle())
 					}}>
@@ -433,7 +435,7 @@ function ScleView () {
 						<SwitcherOutlined />
 					</div>
 
-				</div>:null}
+				</div>:null} */}
 				
 				<div id="ui_container">
 					<p-3-d-u-i-view />
@@ -521,13 +523,14 @@ function ScleView () {
 
 				{/* getobjectscenter */}
 			</div>
-			<div>
+			{/* <div>
 				<ScleAttrTree
 					ref={paramsTree}
 					showParams={true}
 				></ScleAttrTree>
-			</div>
+			</div> */}
 		</div>
+
 	);
 }
 

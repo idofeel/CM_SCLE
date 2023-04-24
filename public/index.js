@@ -134,6 +134,7 @@
 			this.loadEnd()
 		},
 		loadEnd: function () {
+			scleCustomEvent('setPageLoading', false)
 			scleCustomEvent('scleStreamReady')
 			scleCustomEvent('onScleReady')
 			window.setPickObjectParameters = function () {
@@ -170,7 +171,7 @@
 			let link = queryString(window.location.href).link;
 
 			const path = link || fileName;
-
+			scleCustomEvent('setPageLoading', true)
 			// if (path.endsWith('.scle')) {
 				window.P3D_LIB.P3D_InitData(res, "13NHl5eTEyMjExMTUyMzEyMTXlhoXpg6jmtYvor5U=");
 			// } else if (path.endsWith('.cle')) {
