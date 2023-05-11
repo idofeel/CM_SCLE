@@ -4,7 +4,8 @@
 /node_modules
 # /public/js
 # /public/Resource
-/public/*.scle
+/public/*cle
+*/dist
 /public/*.xml
 *.cle
 *.scle

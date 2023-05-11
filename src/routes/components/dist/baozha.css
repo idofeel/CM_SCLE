@@ -1,0 +1,27 @@
+.card_title {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  cursor: grab;
+}
+.exp_card {
+  position: absolute;
+  bottom: 70px;
+  right: 70px;
+  z-index: 999;
+}
+.silder_bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.silder_bar .silder {
+  flex: 1;
+  margin-right: 20px;
+}
+.boom_radios .ant-radio-wrapper {
+  margin-bottom: 10px;
+  width: 100px;
+}

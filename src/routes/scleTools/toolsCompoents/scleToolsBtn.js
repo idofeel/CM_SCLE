@@ -91,7 +91,8 @@ function ScleHide(props) {
   function toggle(bl) {
     const isHide = icon === "eye";
     setIcon(isHide ? "eye-invisible" : "eye");
-    window.P3D_SetSelObjVisible(isHide);
+    const objIds = window.P3D_GetSelObjIDs();
+		objIds.forEach(i=> window.P3D_SetObjVisible(i, isHide))
     scleCustomEvent('setVisible',isHide)
   }
 

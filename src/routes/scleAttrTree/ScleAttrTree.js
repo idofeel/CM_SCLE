@@ -4,6 +4,7 @@ import "./scleAttrTree.less";
 import { IsPhone } from "../../utils/Browser";
 import { DoubleRightOutlined } from '@ant-design/icons';
 import { scleCustomEvent } from '../../utils';
+import SceneAnimation from "../SceneAnimation/SceneAnimation";
 
 
 const { TabPane } = Tabs;
@@ -109,9 +110,10 @@ export default class ScleAttrTree extends PureComponent {
       <>
         {!this.props.showParams ? (
           <div ref={el => this.modelTree = el} className={`tree_box attr_tree ${this.state.show?'':''}`}>
-            <div>
-              <h4 className="title">模型树</h4>
-              <Tree
+
+            <Tabs defaultActiveKey="1" size="small">
+            <TabPane tab="模型树" key="1">
+            <Tree
                 checkable
                 checkedKeys={treeNodeCheckedKeys}
                 selectedKeys={treeNodeSelectKeys}
@@ -151,7 +153,16 @@ export default class ScleAttrTree extends PureComponent {
               >
                 {this.renderTreeNodes(treeData)}
               </Tree>
-            </div>
+
+            </TabPane>
+            <TabPane tab="场景事件" key="2">
+             <SceneAnimation/>
+            </TabPane>
+          </Tabs>
+              {/* <h4 className="title">模型树</h4> */}
+            
+
+
             <div className={`anoot ${this.state.hideAnoot? 'hideAnootbox': ''}`}>
               <h4 className="title"> 标注<DoubleRightOutlined className={`down ${this.state.hideAnoot? 'hideAnoot': ''}`} onClick={e=>{
                 this.setState({

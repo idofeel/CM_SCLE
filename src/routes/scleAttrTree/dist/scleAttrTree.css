@@ -1,0 +1,87 @@
+.scleAttrTree {
+  text-align: center;
+}
+.scleAttrTree .ant-tabs-content {
+  text-align: left;
+}
+.ant-tree {
+  overflow-x: auto;
+  width: 99%;
+}
+.ant-tree .ant-tree-node-content-wrapper {
+  line-height: 1;
+  height: auto;
+  line-height: normal;
+  padding: 0;
+}
+.ant-tree .ant-tree-node-content-wrapper:hover {
+  background: transparent;
+}
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  padding: 0;
+}
+.ant-tree .ant-tree-title > span {
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.ant-tree .ant-tree-title > span:hover {
+  background: #e6f7ff;
+}
+.ant-tree .tree_selected {
+  background: #bae7ff;
+}
+.attrTable .ant-table-thead > tr > th {
+  background: transparent;
+}
+.title {
+  padding: 10px;
+  border-bottom: 1px solid rgba(174, 174, 174, 0.438);
+}
+.ant-drawer-body {
+  height: 100%;
+}
+.tree_box {
+  width: 100%;
+  transition: width 0.3s ease;
+}
+.tree_box > * {
+  width: inherit;
+}
+.tree_box .ant-tabs-content {
+  flex: 1;
+  overflow: hidden;
+}
+.hideTree {
+  width: 0;
+}
+.attr_tree {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.attr_tree > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.attr_tree > div .ant-tree {
+  overflow: auto;
+  height: 100%;
+}
+.attr_tree > .anoot {
+  height: 35%;
+  flex: none;
+}
+.down {
+  transform: rotate(90deg) !important;
+  float: right;
+  cursor: pointer;
+}
+.down.hideAnoot {
+  transform: rotate(-90deg) !important;
+}
+.hideAnootbox {
+  height: 52px !important;
+  flex: none !important;
+}

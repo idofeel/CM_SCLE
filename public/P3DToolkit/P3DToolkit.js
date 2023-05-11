@@ -1,7 +1,7 @@
 //===================================================================================================
 
 // 版本号
-const P3DTOOLKIT_VERSION = "3.0.0.3001";
+const P3DTOOLKIT_VERSION = "3.0.0.3004";
 
 // 模型树
 function P3D_MODELTREENODE() {
@@ -91,7 +91,7 @@ function P3D_COMMENTINFO() {
 	this._bIsFront = false;							// 是否前端显示
 	this._bIsScreenAnnot = true;					// 是否为屏幕标注（若为屏幕标注,则"是否前端显示"无意义）
 
-	this.attachPos = new P3D_BASEFLOAT3();			// 放置位置
+	this._attachPos = new P3D_BASEFLOAT3();			// 放置位置
     this._arrLeaderPos = new Array();			    // 引线位置，存储P3D_BASEFLOAT3对象
     this._arrLeaderObjId = new Array();			    // 引线所指物件id
 
@@ -233,8 +233,9 @@ function loadP3DToolkitLib (cb) {
         { type: 'text/javascript', src: 'P3DToolkit/UI/app.js'},
         { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl1.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/Math/module.js'},
-        { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/module.js'},
-        { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/module.js'},
+        { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/Module.js'},
+        { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/Module.js'},
+        { type: 'module', src: 'P3DToolkit/p3dKernel/Material/Module.js'},
         { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},
     ] 
    
@@ -359,6 +360,9 @@ function P3DToolkitLib(dom, callbacks, settings) {
 
     this.P3D_ChangeView = P3D_ChangeView;
     this.P3D_SetViewOnSelObjs = P3D_SetViewOnSelObjs;
+    this.P3D_ViewRotate = P3D_ViewRotate;
+    this.P3D_ViewScale = P3D_ViewScale;
+    this.P3D_ViewSlide = P3D_ViewSlide;
     this.P3D_RecoderView = P3D_RecoderView;
     this.P3D_SetCameraView = P3D_SetCameraView;
     this.P3D_GetCameraView = P3D_GetCameraView;
@@ -521,15 +525,19 @@ function P3D_RecoderView(w, h) {
 // angleY：模型向Y轴正方向旋转
 // angleZ：模型饶Z轴正方向旋转，鼠标操作通常为0
 function P3D_ViewRotate(angleX, angleY, angleZ) {
-    glRunTime.rotate(angleX, angleY, angleZ);
+    setCameraRotate(angleX, angleY, angleZ);
 }
 
 // 视图操作：视角缩放
-// scale > 1.0表示放大一步
-// scale < 1.0表示缩小一步
+// scale > 0表示放大一步
+// scale < 0表示缩小一步
 // 一步：对应于鼠标滚轮滚动一次
 function P3D_ViewScale(scale) {
-    glRunTime.scale(scale);
+    setCameraZoom(scale);
+}
+
+function P3D_ViewSlide(distX, distY, distZ) {
+    setCameraSlide(distX, distY);
 }
 
 // 模型复位
@@ -907,8 +915,8 @@ function P3D_SetCameraView(camera) {
 }
 
 // 获取当前状态的摄像机参数，P3D_CAMERA
-function P3D_GetCameraView(camera) {
-    return getCameraCurView(camera);
+function P3D_GetCameraView() {
+    return getCameraCurView();
 }
 
 function P3D_CameraLockUpAxis(isLock) {

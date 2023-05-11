@@ -14,7 +14,7 @@ import {
 	Button,
 	Spin
 } from 'antd'
-import { PureComponent } from 'react'
+import { PureComponent, createRef } from 'react'
 import { ChromePicker } from 'react-color'
 import {
 	fullScreen,
@@ -29,6 +29,12 @@ import { scleCustomEvent } from '../../utils'
 import { DoubleRightOutlined, DoubleLeftOutlined,SwitcherOutlined } from '@ant-design/icons';
 
 import Draggable from 'react-draggable'; 
+
+import Baozha from '../components/baozha'
+import RenderModel from '../components/renderModel/renderModel'
+import Projection from '../components/projection/projection'
+
+
 
 
 const IconFont = Icon.createFromIconfontCN({
@@ -47,6 +53,25 @@ export default class scleTools extends PureComponent {
 	#tools = [
 		// eslint-disable-next-line no-undef
 		{ type: 'home', title: '复位', onClick: () => window.P3D_Home(P3D_HOME_TYPE_ALL) },
+		{
+			type: 'icon-shituxuanranmoshi',
+			title: '渲染模式',
+			isFont: true,
+			popover:()=> <RenderModel show={this.state.activeTab === 'icon-shituxuanranmoshi'}  ref={this.renderModelRef} onClose={()=>{
+				this.setState({activeTab:null})
+			}}/>
+		},
+		{
+			type: 'icon-touying',
+			title: '投影模式',
+			isFont: true,
+			popover:()=> <Projection show={this.state.activeTab === 'icon-touying'}  ref={this.projectionRef} onClose={()=>{
+				this.setState({activeTab:null})
+			}}/>
+			// onClick:()=>{
+			// 	this.projectionRef.current.toggle()
+			// }
+		},
 		{
 			type: 'drag',
 			title: '移动零件'
@@ -86,6 +111,11 @@ export default class scleTools extends PureComponent {
 			type: 'icon-shitupouqiehe',
 			isFont: true,
 			onClick: () => this.handleOpenSectionNotification()
+		},
+		{
+			type: 'icon-goujianbaozha',
+			isFont: true,
+			onClick: () => this.handleBaozha()
 		},
 		{
 			type: 'icon-a-ziyuan10',
@@ -253,6 +283,11 @@ export default class scleTools extends PureComponent {
 	}
 	isMove = false
 	totalFrames = 0
+
+
+	baozhaRef = createRef();
+	renderModelRef = createRef();
+	projectionRef = createRef();
 
 	componentDidMount() {
 		window.isPhone = IsPhone()
@@ -483,6 +518,16 @@ export default class scleTools extends PureComponent {
 						{this.renderTools()}
 					</Tabs>
 				</div>
+
+				<Baozha show={this.state.activeTab === 'icon-goujianbaozha'} ref={this.baozhaRef} onClose={()=>{ this.setState({activeTab:null})}}/>
+				{/* <RenderModel show={this.state.activeTab === 'icon-shituxuanranmoshi'}  ref={this.renderModelRef} onClose={()=>{
+					this.setState({activeTab:null})
+				}}/> */}
+				
+				{/* <Projection show={this.state.activeTab === 'icon-touying'}  ref={this.projectionRef} onClose={()=>{
+					this.setState({activeTab:null})
+				}}/> */}
+
 			</>
 		)
 	}
@@ -907,7 +952,10 @@ export default class scleTools extends PureComponent {
 			this.isPickNull(() => {
 				newTools[index].type = 'eye-invisible'
 				newTools[index].title = '隐藏'
-				window.P3D_SetSelObjVisible(true)
+
+				const objIds = window.P3D_GetSelObjIDs();
+				objIds.forEach(i=> window.P3D_SetObjVisible(i, true))
+				
 				newTools[index].pickObjectVisible = true
 				if (this.sclAttrTree.setVisible) {
 					this.sclAttrTree.setVisible(true)
@@ -917,7 +965,9 @@ export default class scleTools extends PureComponent {
 			this.isPickNull(() => {
 				newTools[index].type = 'eye'
 				newTools[index].title = '显示'
-				window.P3D_SetSelObjVisible(false)
+				const objIds = window.P3D_GetSelObjIDs();
+				objIds.forEach(i=> window.P3D_SetObjVisible(i, false))
+				
 				newTools[index].pickObjectVisible = false
 				if (this.sclAttrTree.setVisible) {
 					this.sclAttrTree.setVisible(false)
@@ -1052,6 +1102,19 @@ export default class scleTools extends PureComponent {
 		})
 		
 	}
+
+	handleBaozha(){
+		// let {activeTab} = this.state
+		// console.log(activeTab);
+		// activeTab = activeTab === 'icon-goujianbaozha'? null:'icon-goujianbaozha'
+		// this.setState({
+		// 	activeTab
+		// })
+		this.baozhaRef.current.toggle()
+		// 开始爆炸
+		window.P3D_ExplodeStart()
+	}
+	
 
 	findToolsIndex(keys){
 		return keys.map(key => this.#tools.findIndex(i=>i.key === key))

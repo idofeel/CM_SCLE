@@ -6,9 +6,10 @@ import ScleToolsBar from './scleTools/scleToolsBar';
 import { IsPhone } from '../utils/Browser';
 import SC from './scleControl';
 import { scleCustomEvent } from '../utils';
-import ScleAttrTree from './scleAttrTree/ScleAttrTree'
 
-import {SwitcherOutlined } from '@ant-design/icons';
+// import ScleAttrTree from './scleAttrTree/ScleAttrTree'
+
+// import {SwitcherOutlined } from '@ant-design/icons';
 import './scle.less';
 
 let scleControl = SC;
@@ -21,7 +22,7 @@ function ScleView () {
 	const [isFullScreen, setFullscreen] = useState(false);
 	const [loading, setLoading] = useState(true);
 	// const [isHttp] = useState(window.location.origin.startsWith('http'));
-	const [isHttp] = useState(window.location.href.includes('link='));
+	const [isHttp] = useState(window.location.href.includes('docuri='));
 	const [percent, setPercent] = useState(0);
 	const obj = useRef({});
 	const [notation, setNotation] = useReducer((state, action) => {
@@ -117,7 +118,7 @@ function ScleView () {
 
 	const addScleEvent = () => {
 		window.isPhone = IsPhone();
-		console.log(containerRef.current);
+		// console.log(containerRef.current);
 		// containerRef.current.addEventListener('transitionend', function () {
 		// 	window.canvasOnResize && window.canvasOnResize()
 		// })
@@ -138,6 +139,11 @@ function ScleView () {
 				// window.canvasOnResize();
 			});
 		});
+
+
+		toggleTools(false)
+		toggleTools(true)
+
 
 	};
 
@@ -200,7 +206,7 @@ function ScleView () {
 	};
 
 	const openScle = () => {
-		let { title, link, pid, lic } = queryString(window.location.href);
+		let { title,docuri: link, pid, lic } = queryString(window.location.href);
 		document.title = title || '三维模型';
 		if (pid) {
 			return openNetSCle(pid, lic);
@@ -259,6 +265,7 @@ function ScleView () {
 
 	useEffect(() => {
 		window.addEventListener('loadCMOnlineLibEnd', () => {
+			console.log('?loadCMOnlineLibEnd');
 			window.P3D_LIBReady = false;
 			// 重新赋值指针
 			scleControl = window.P3DUIAPI;

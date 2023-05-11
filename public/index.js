@@ -168,11 +168,16 @@
 				return json
 			}
 
-			let link = queryString(window.location.href).link;
+			let link = queryString(window.location.href).docuri;
 
 			const path = link || fileName;
 			scleCustomEvent('setPageLoading', true)
 			// if (path.endsWith('.scle')) {
+				window.P3D_LIB.P3D_LoadSurfaceAndCurveFlag(1);
+				window.P3D_LIB.P3D_LoadSectionFlag(1);
+				window.P3D_LIB.P3D_LoadPMIFlag(1);
+				window.P3D_LIB.P3D_SetNvgVisible(true);
+
 				window.P3D_LIB.P3D_InitData(res, "13NHl5eTEyMjExMTUyMzEyMTXlhoXpg6jmtYvor5U=");
 			// } else if (path.endsWith('.cle')) {
 			// 	Module.onData(res);
