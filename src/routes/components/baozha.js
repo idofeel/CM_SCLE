@@ -18,7 +18,7 @@ import './baozha.less'
 function Baozha (props, ref) {
     const [expMode, setExpMode] = useState(3)
     const [progress, setProgress] = useState(0)
-    const [show, setShow] = useState(false)
+    const [show, setVisible] = useState(false)
 
 
     const expModes = [
@@ -46,6 +46,12 @@ function Baozha (props, ref) {
         setProgress(0)
         window.P3D_ExplodeStart(null, e.target.value, 4, 100);
     }
+
+    function setShow(bl){
+        setVisible(bl)
+        if(!bl)reset()
+    }
+
 
     function handleSliderChange (value) {
         setProgress(value)

@@ -113,7 +113,8 @@ export default class ScleAttrTree extends PureComponent {
 
             <Tabs defaultActiveKey="1" size="small">
             <TabPane tab="模型树" key="1">
-            <Tree
+            
+              <Tree
                 checkable
                 checkedKeys={treeNodeCheckedKeys}
                 selectedKeys={treeNodeSelectKeys}
@@ -155,6 +156,7 @@ export default class ScleAttrTree extends PureComponent {
               </Tree>
 
             </TabPane>
+
             <TabPane tab="场景事件" key="2">
              <SceneAnimation/>
             </TabPane>

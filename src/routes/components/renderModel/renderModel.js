@@ -45,6 +45,10 @@ const RenderModel = (props, ref) => {
             name: 'x光模式',
             value: 6
         },
+        {
+            name: '高级模式',
+            value: 7
+        },
     ]
 
     function onChange (e) {

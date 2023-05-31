@@ -18,7 +18,7 @@ export default function SceneAnimation () {
 
     window.P3D_GetAllSceneAnimNodeData(data);
 
-// console.log(data);
+console.log(data);
     const animaNodeData = useReducer((state, action) => {
         return
     }, data)
@@ -41,7 +41,7 @@ export default function SceneAnimation () {
             window.P3D_PlaySceneAnimRange(i._uStart, i._uEnd)
         }}
     >
-          <TreeNode icon={<Icon type="play-circle" />} title={'场景事件'} key={'root'}>
+        <TreeNode icon={<Icon type="play-circle" />} title={'场景事件'} key={'root'}>
             {  RenderNode(data) }
         </TreeNode>
        
@@ -51,13 +51,12 @@ export default function SceneAnimation () {
 
 
 function RenderNode(data) {
-
-   
-   return  data.map((i) => {
+    if(!data.length) return null
+   return data.map((i) => {
         if(i._arrSubNode && i._arrSubNode.length){
             return <TreeNode icon={<Icon type="play-circle" />} title={i._strName} key={i._uTimeNodeID} item={i} >{RenderNode(i._arrSubNode)} </TreeNode>
         }
-        return <TreeNode icon={<Icon type="play-circle" />} title={i._strName} key={i._uTimeNodeID} item={i}> </TreeNode>
+        return <TreeNode icon={<Icon type="play-circle" />} title={i._strName} key={i._uTimeNodeID} item={i}></TreeNode>
     })
 
 }

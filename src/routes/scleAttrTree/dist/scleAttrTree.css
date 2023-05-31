@@ -49,7 +49,7 @@
 }
 .tree_box .ant-tabs-content {
   flex: 1;
-  overflow: hidden;
+  height: 75%;
 }
 .hideTree {
   width: 0;
