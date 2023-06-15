@@ -1,7 +1,7 @@
 //===================================================================================================
 
 // 版本号
-const P3DTOOLKIT_VERSION = "3.0.0.3004";
+const P3DTOOLKIT_VERSION = "3.0.0.3013";
 
 // 模型树
 function P3D_MODELTREENODE() {
@@ -68,7 +68,7 @@ function P3D_SCENEANIMNODE() {
 
 // 拾取三维物体
 function P3D_PICK_ELEMENT() {
-    this._uPickType = P3D_PICK_TYPE_NONE;           // 拾取的元素类型，见P3D_PICK_TYPE枚举值
+    this._uPickType = P3D_ELEMENT_TYPE_NONE;           // 拾取的元素类型，见P3D_PICK_TYPE枚举值
     this._arrPickElements = new Array();            // 拾取元素的ID数组，单选时只有一个元素
 }
 
@@ -156,14 +156,14 @@ const P3D_RUNTIME_MODE_MEASURE = 1;
 const P3D_RUNTIME_MODE_SECTION = 2;
 const P3D_RUNTIME_MODE_PMI = 3;
 
-const P3D_PICK_TYPE_NONE = 0;
-const P3D_PICK_TYPE_PART = 1;
-const P3D_PICK_TYPE_SURFACE = 2;
-const P3D_PICK_TYPE_CURVE = 3;
-const P3D_PICK_TYPE_POINT = 4;
-const P3D_PICK_TYPE_OPT_COORD = 10;
-const P3D_PICK_TYPE_OPT_PLANE = 11;
-const P3D_PICK_TYPE_PMI_ITEM = 20;
+const P3D_ELEMENT_TYPE_NONE = 0;
+const P3D_ELEMENT_TYPE_PART = 1;
+const P3D_ELEMENT_TYPE_SURFACE = 2;
+const P3D_ELEMENT_TYPE_CURVE = 3;
+const P3D_ELEMENT_TYPE_POINT = 4;
+const P3D_ELEMENT_TYPE_OPT_COORD = 10;
+const P3D_ELEMENT_TYPE_OPT_PLANE = 11;
+const P3D_ELEMENT_TYPE_PMI_ITEM = 20;
 
 const P3D_OBJ_MOVE_TYPE_WINDOW = 0;
 const P3D_OBJ_MOVE_TYPE_WORLD_PARMS = 1;
@@ -218,6 +218,8 @@ function P3D_CALLBACKS() {
     this.P3D_OnCommentCreateCallback = function(commentId) { }
     // 回调函数，批注信息删除完毕
     this.P3D_OnCommentDeleteCallback = function(commentId) { }
+    // 回调函数，导入模型后返回objectID的偏移值
+    this.P3D_OnImportModelCallback = function(offsetObjId) { }
 }
 
 //===================================================================================================
@@ -227,18 +229,19 @@ let isLoadedLib = false;
 
 // 动态加载P3DToolkit依赖库，解决不同 vue 版本兼容的问题
 function loadP3DToolkitLib (cb) {    
-    // P3DToolkit库依赖列表，并按顺序加载
-    const P3D_LIB_DEPENDENCY_LIST = [
+     // P3DToolkit库依赖列表，并按顺序加载
+     const P3D_LIB_DEPENDENCY_LIST = [
         { type: 'text/javascript', src: 'P3DToolkit/UI/P3Dvendor.js'},
         { type: 'text/javascript', src: 'P3DToolkit/UI/app.js'},
-        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl1.js'},
+        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl1.js'},        
         { type: 'module', src: 'P3DToolkit/p3dKernel/Math/module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/Module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/Module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/Material/Module.js'},
-        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},
-    ] 
-   
+        { type: 'module', src: 'P3DToolkit/p3dKernel/Engine/Shaders/PBR/module.js'},
+        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},       
+    ]
+
     // 库已经加载过了，无需再次加载，直接返回
     if (isLoadedLib) {
         cb && cb(false, '');
@@ -288,13 +291,11 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_Version = P3D_Version;
     this.P3D_CreateComponet = P3D_CreateComponet;
     this.P3D_DestoryComponet = P3D_DestoryComponet;
-
-    this.P3D_LoadPMIFlag = P3D_LoadPMIFlag;
-    this.P3D_LoadSurfaceAndCurveFlag = P3D_LoadSurfaceAndCurveFlag;
-    this.P3D_LoadSectionFlag = P3D_LoadSectionFlag;
-
+    this.P3D_ConfigureLoader = P3D_ConfigureLoader;
     this.P3D_InitData = P3D_InitData;
     this.P3D_UninitData = P3D_UninitData;
+    this.P3D_ImportData = P3D_ImportData;
+    this.P3D_ExportData = P3D_ExportData;
 
     this.P3D_GetSelObjIDs = P3D_GetSelObjIDs;
     this.P3D_SetSelStatusByObjIDs = P3D_SetSelStatusByObjIDs;
@@ -328,7 +329,10 @@ function P3DToolkitLib(dom, callbacks, settings) {
 
     this.P3D_Home = P3D_Home;
     this.P3D_GetPickElements = P3D_GetPickElements;
+    this.P3D_SetElementColor = P3D_SetElementColor;
+    this.P3D_ResetElementColor = P3D_ResetElementColor;
     this.P3D_SetBkImage = P3D_SetBkImage;
+    this.P3D_SetBkImageUrl = P3D_SetBkImageUrl;
     this.P3D_SetBkColor = P3D_SetBkColor;
     this.P3D_GetBkColor = P3D_GetBkColor;
     this.P3D_SetSelShowFlag = P3D_SetSelShowFlag;
@@ -359,6 +363,7 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_SetCommentVisible = P3D_SetCommentVisible;
 
     this.P3D_ChangeView = P3D_ChangeView;
+    this.P3D_EnableViewAnim = P3D_EnableViewAnim;
     this.P3D_SetViewOnSelObjs = P3D_SetViewOnSelObjs;
     this.P3D_ViewRotate = P3D_ViewRotate;
     this.P3D_ViewScale = P3D_ViewScale;
@@ -369,6 +374,7 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_CameraLockUpAxis = P3D_CameraLockUpAxis;
     this.P3D_CameraSetProjectType = P3D_CameraSetProjectType;
     this.P3D_CameraControlMode = P3D_CameraControlMode;
+    this.P3D_ViewResize = P3D_ViewResize;
 
     this.P3D_InitMeasure = P3D_InitMeasure;
     this.P3D_UnInitMeasure = P3D_UnInitMeasure;
@@ -409,6 +415,7 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_SetPmiDispColor = P3D_SetPmiDispColor;
     this.P3D_SetPmiSelDispColor = P3D_SetPmiSelDispColor;
     this.P3D_ResetPmiDispColor = P3D_ResetPmiDispColor;
+    this.P3D_ResetPmiSelDispColor = P3D_ResetPmiSelDispColor;
 
     this.P3D_InitSection = P3D_InitSection;
     this.P3D_UnInitSection = P3D_UnInitSection;
@@ -452,37 +459,16 @@ function P3D_Version() {
     return P3DTOOLKIT_VERSION;
 }
 
-// PMI数据
-function P3D_LoadPMIFlag(flag) {
-    if (flag == true){
-        g_ExportPMI = 1;
-    }else{
-        g_ExportPMI = 0;
-    }
+function P3D_ConfigureLoader(isLoadPmi, isLoadDeom, isLoadSection) {
+    g_ExportPMI = isLoadPmi;
+    g_ExportSurfaceAndCurve = isLoadDeom;
+    g_ExportSection = isLoadSection;
 }
-
-// 曲面和曲线数据，测试时使用
-function P3D_LoadSurfaceAndCurveFlag(flag) {
-    if (flag == true){
-        g_ExportSurfaceAndCurve = 1;
-    }else{
-        g_ExportSurfaceAndCurve = 0;
-    }
-};
-
-// 剖切数据
-function P3D_LoadSectionFlag (flag) {
-    if (flag == true){
-        g_ExportSection = 1;
-    }else{
-        g_ExportSection = 0;
-    }
-};
 
 // 加载数据
 function P3D_InitData(streamdata, licdata) {
     P3D_UninitData();
-    KernelInitData(streamdata, licdata);    
+    KernelInitData(streamdata, licdata, startRender);    
 }
 
 // 清除数据：模型数据、批注、PMI数据等
@@ -490,6 +476,16 @@ function P3D_UninitData() {
     clearModel();
     // 释放解析数据流
     UnitCleStream();
+}
+
+// 导入新模型
+function P3D_ImportData(streamdata, licdata) {
+    KernelInitData(streamdata, licdata, importModel);
+}
+
+// 导出模型
+function P3D_ExportData() {
+    console.log("not support");
 }
 
 // 销毁组件，清除所有数据：模型数据、批注、PMI数据、场景数据、背景等所有资源
@@ -507,6 +503,10 @@ function P3D_CreateComponet(dom) {
 // 视图切换
 function P3D_ChangeView(type) {
     glRunTime.shiftView(type);
+}
+
+function P3D_EnableViewAnim(enable) {
+    enableCameraAnimation(enable);
 }
 
 // 设置聚焦到选中物件上，模型整体围绕所选零件旋转
@@ -550,6 +550,38 @@ function P3D_GetPickElements() {
     var p3dPickElem = new P3D_PICK_ELEMENT();
     transP3DTookkitPickElem(p3dPickElem, glRunTime.curPickUnit);
     return p3dPickElem;
+}
+
+function P3D_SetElementColor(elemnetType, isHighlight, r, g, b) {
+    if (elemnetType == P3D_ELEMENT_TYPE_PART && isHighlight) {
+        return glRunTime.setObjectHighlightMaterial(r, g, b, 1.0);
+    } else if (elemnetType == P3D_ELEMENT_TYPE_SURFACE && isHighlight) {
+        return glRunTime.setObjectSurfaceHighlightMaterial(r, g, b, 1.0);
+    } else if (elemnetType == P3D_ELEMENT_TYPE_PMI_ITEM) {
+        if (isHighlight) {
+            return P3D_SetPmiSelDispColor(r, g, b);
+        } else {
+            return P3D_SetPmiDispColor(r, g, b);
+        }
+    }
+    console.log("operation not support");
+    return false;
+}
+
+function P3D_ResetElementColor(elemnetType, isHighlight) {
+    if (elemnetType == P3D_ELEMENT_TYPE_PART && isHighlight) {
+        return glRunTime.resetObjectHighlightMaterial();
+    } else if (elemnetType == P3D_ELEMENT_TYPE_SURFACE && isHighlight) {
+        return glRunTime.resetObjectSurfaceHighlightMaterial();
+    } else if (elemnetType == P3D_ELEMENT_TYPE_PMI_ITEM) {
+        if (isHighlight) {
+            return P3D_ResetPmiSelDispColor();
+        } else {
+            return P3D_ResetPmiDispColor();
+        }
+    }
+    console.log("operation not support");
+    return false;
 }
 
 // 获取选择的物件Id，返回值为array类型
@@ -720,6 +752,10 @@ function P3D_SetBkImage(imageName) {
     }
     glRunTime.addUsrBackground(g_bgFoder + imageName);
     g_bgImage.push(imageName);
+}
+
+function P3D_SetBkImageUrl(imgUrl) {
+    glRunTime.addUsrBackground(imgUrl);
 }
 
 // 设置背景颜色
@@ -946,6 +982,10 @@ function P3D_CameraControlMode(controlMode) {
     setCameraControlMode(controlMode);
 }
 
+function P3D_ViewResize(width, height) {
+    doCanvasResize(width, height);
+}
+
 // 初始化测量信息
 function P3D_InitMeasure() {
     return startMeasureMode();
@@ -1012,7 +1052,7 @@ function P3D_GetMouseCaptureObjID() {
 
 // 获取材质信息列表
 function P3D_GetMetialList() {
-    glRunTime.getObjectMetialList(-1);
+    return glRunTime.getObjectMetialList(-1);
 }
 
 function P3D_GetObjMaterialList(objID) {
@@ -1034,7 +1074,7 @@ function P3D_SetObjectMaterialBasis(objID, objSubsetIndexs, uMtlID, basisBuff) {
 
 // 取消物件的材质
 function P3D_ClearObjMaterial(objID) {
-    glRunTime.clearObjectSurfaceMaterial(objID);
+    return glRunTime.clearObjectMaterialById(objID);
 }
 
 // 获取模型列表
@@ -1112,7 +1152,7 @@ function P3D_IsAnnotVisible(uAnnotID) {
 
 // 设置标注的显示/隐藏状态
 function P3D_SetAnnotVisible(arrAnnotIDs, bVisible) {
-    for (let i in arrAnnotIDs) {
+    for (let i = 0; i < arrAnnotIDs.length; ++i) {
         g_scenePmiManager.setPmiItemVisibleById(arrAnnotIDs[i], bVisible);
     }
 }
@@ -1124,7 +1164,7 @@ function P3D_GetSelAnnotID() {
 
 // 选取标注
 function P3D_SelectAnnot(arrAnnotIDs) {
-    for (let i in arrAnnotIDs) {
+    for (let i = 0; i < arrAnnotIDs.length; ++i) {
         g_scenePmiManager.pickItemById(arrAnnotIDs[i], true);
     }
 }
@@ -1148,11 +1188,16 @@ function P3D_SetPmiDispColor(r, g, b) {
     return g_scenePmiManager.setPmiDisplayColor(r, g, b);
 }
 
+function P3D_ResetPmiDispColor() {
+    return g_scenePmiManager.resetPmiColor();
+}
+
 function P3D_SetPmiSelDispColor(r, g, b) {
     return g_scenePmiManager.setPmiSelectColor(r, g, b);
 }
-function P3D_ResetPmiDispColor() {
-    return g_scenePmiManager.resetPmiColor();
+
+function P3D_ResetPmiSelDispColor() {
+    return g_scenePmiManager.resetPmiSelectColor();
 }
 
 function P3D_InitSection(callbackFunc) {

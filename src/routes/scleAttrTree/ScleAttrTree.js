@@ -873,14 +873,14 @@ export default class ScleAttrTree extends PureComponent {
       }
 
       // eslint-disable-next-line
-      if (pickElem._uPickType == P3D_PICK_TYPE_PART) {
+      if (pickElem._uPickType == P3D_ELEMENT_TYPE_PART) {
           // console.log("type: 零件" +
           //             "; elems: " , pickElem._arrPickElements[0] ,
           //             "; 名称: " , cmlib.P3D_GetObjName(pickElem._arrPickElements[0]) ,
           //             "; 参数: ", cmlib.P3D_GetObjParams(pickElem._arrPickElements[0]));
         this.pickObjectParameters();
       // eslint-disable-next-line
-      } else if (pickElem._uPickType == P3D_PICK_TYPE_PMI_ITEM) {
+      } else if (pickElem._uPickType == P3D_ELEMENT_TYPE_PMI_ITEM) {
           // console.log("type: PMI" +
           //             "; elems: " + pickElem._arrPickElements[0] +
           //             "; 名称: " + cmlib.P3D_GetAnnotName(pickElem._arrPickElements[0]));

@@ -992,11 +992,23 @@ export default class scleTools extends PureComponent {
 			exitFullscreen()
 		}
 
+		
+
 		// console.log(item, 'icon-shitupouqiehe', this.state.activeTab);
-		if(this.state.activeTab === 'icon-shitupouqiehe' && item.type !== 'icon-shitupouqiehe'){
+		if(this.state.activeTab === '' && item.type !== 'icon-shitupouqiehe'){
 			this.handleOpenSectionNotification(false)
 		}
 
+		if (item.type === 'icon-goujianbaozha') {
+			let {activeTab} = this.state
+			activeTab = activeTab === 'icon-goujianbaozha'? null:'icon-goujianbaozha'
+
+			this.setState({
+				activeTab
+			})
+		}
+
+		
 
 		this.setState(
 			{
@@ -1104,12 +1116,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	handleBaozha(){
-		// let {activeTab} = this.state
-		// console.log(activeTab);
-		// activeTab = activeTab === 'icon-goujianbaozha'? null:'icon-goujianbaozha'
-		// this.setState({
-		// 	activeTab
-		// })
+		
 		this.baozhaRef.current.toggle()
 		// 开始爆炸
 		window.P3D_ExplodeStart()

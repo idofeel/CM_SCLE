@@ -173,12 +173,10 @@
 			const path = link || fileName;
 			scleCustomEvent('setPageLoading', true)
 			// if (path.endsWith('.scle')) {
-				window.P3D_LIB.P3D_LoadSurfaceAndCurveFlag(1);
-				window.P3D_LIB.P3D_LoadSectionFlag(1);
-				window.P3D_LIB.P3D_LoadPMIFlag(1);
+				window.P3D_LIB.P3D_ConfigureLoader(1, 1, 1);
 				window.P3D_LIB.P3D_SetNvgVisible(true);
 
-				window.P3D_LIB.P3D_InitData(res, "13NHl5eTEyMzA1MzAyMzEwMDHlhoXpg6jmtYvor5U=");
+				window.P3D_LIB.P3D_InitData(res, "vUISaXn/oRYOsDh6woBzknZwo/q74b2Ew2fwY+MTmRj6boTEcqKpHlleasyFqamJHv+SDg==");
 			// } else if (path.endsWith('.cle')) {
 			// 	Module.onData(res);
 			// }
