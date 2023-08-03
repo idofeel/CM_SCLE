@@ -72,7 +72,7 @@ function MeasureTools (props) {
         const showIcons = ['icon--yincangceliang', 'icon-xianshiceliang'];
         const eyeIndex = tools.findIndex(i=> showIcons.includes(i.type));
         tools[eyeIndex].type = visible ? showIcons[0] : showIcons[1]
-        tools[eyeIndex].title = visible ? '显示' : '    隐藏'
+        tools[eyeIndex].title = visible ? '显示' : '隐藏'
         setTools([...tools])
     }, [visible])
 
@@ -119,12 +119,10 @@ function Measure (props) {
     }
     // 子测量菜单
     return <>
-        <ToolsBar onHide={onHide}>
-            {measureName === 'OBJECT' ? ObjectMeasure() : null}
-            {measureName === 'ANGLE' ? AngleMeasure() : null}
-            {measureName === 'DISTANCE' ? DistanceMeasure() : null}
-            {measureName === 'CURVE' ? CurveMeasure() : null}
-        </ToolsBar>
+            {measureName === 'OBJECT' ? <ObjectMeasure onHide={onHide}/> : null}
+            {measureName === 'ANGLE' ? <AngleMeasure onHide={onHide}/> : null}
+            {measureName === 'DISTANCE' ? <DistanceMeasure onHide={onHide}/> : null}
+            {measureName === 'CURVE' ? <CurveMeasure onHide={onHide}/> : null}
     </>
 }
 

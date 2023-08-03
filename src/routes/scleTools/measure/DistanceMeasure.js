@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Drawer, Icon, Tooltip, Tabs } from "antd";
 
@@ -13,9 +14,16 @@ import {
     P3D_MEASURE_DISTANCE_TWO_PLANES
 } from './constant'
 import PIcon from './PIcon';
+import ToolsBar from "./toolsBar";
 
-const DistanceMeasure = () => {
+
+const DistanceMeasure = (props) => {
     const setMeasureMode = (name) => window.P3D_SetMeasureMode(name);
+
+    const [selectKey, setSelectKey] = useState(P3D_MEASURE_DISTANCE_AUTO);
+    useEffect(() => {
+        setMeasureMode(selectKey)
+    }, [selectKey])
 
     const tools = [
         { type: 'icon-AI_zhineng', isFont: true, title: '智能测量', name: P3D_MEASURE_DISTANCE_AUTO, onClick: setMeasureMode },
@@ -27,15 +35,17 @@ const DistanceMeasure = () => {
         { type: 'icon-47gongyegongcheng_celiang', isFont: true, title: '平面到平面', name: P3D_MEASURE_DISTANCE_TWO_PLANES, onClick: setMeasureMode },
 
     ]
-    return tools.map((i, index) => {
+    return <ToolsBar onHide={props.onHide}>{tools.map((i, index) => {
         return <SwiperSlide key={index}>
             <Tooltip title={i.title}>
-                <PIcon type={i.type} isFont={i.isFont} className="prev_icon" onClick={() => {
+                <PIcon type={i.type} isFont={i.isFont} style={{color:selectKey===i.name? '#1890ff':"#333"}} className="prev_icon" onClick={() => {
                     i.onClick(i.name)
+                    setSelectKey(i.name)
                 }} />
             </Tooltip>
         </SwiperSlide>
-    })
+    })}
+    </ToolsBar>
 }
 
 export default DistanceMeasure;
