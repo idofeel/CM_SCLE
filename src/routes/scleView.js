@@ -207,12 +207,21 @@ function ScleView () {
 
 	const openScle = () => {
 		let { title,docuri: link, pid, lic } = queryString(window.location.href);
+
+
+		// const query = window.location.href.split('?');
+		
+		// console.log(query[1]);
+
+
+
 		document.title = title || '三维模型';
 		if (pid) {
 			return openNetSCle(pid, lic);
 		}
 		if (link) {
 			window.g_strResbaseUrl = link.replace(/(.scle|.zip|.cle)$/, '/');
+			console.log(link);
 			window.P3DUIAPI.getByRequest(link);
 			return;
 		} else {
@@ -280,16 +289,17 @@ function ScleView () {
 		// eslint-disable-next-line
 
 		function asyncLoad () {
-			// console.log(window.P3D_CALLBACKS);
+			console.log(window.Vue, window.CMOnlineView);
+			window.CMOnlineView.default.install(window.Vue);
+			new window.Vue({
+				el: '#ui_container',
+			});
 			if (window.P3D_CALLBACKS) {
 				const cmcallbacks = new window.P3D_CALLBACKS();
 				cmcallbacks.P3D_OnLoadModelEndCallback = function () {
 					scleCustomEvent('CMOnLoadModelEndCallback');
 					scleControl.loadEnd();
-					window.CMOnlineView.default.install(window.Vue);
-					new window.Vue({
-						el: '#ui_container',
-					});
+					
 				}
 
 				cmcallbacks.P3D_OnMouseUpCallBack = function (e) {

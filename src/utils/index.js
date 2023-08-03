@@ -7,20 +7,23 @@ function scleCustomEvent(name, detail) {
 }
 
 const queryString = (url) => {
+
 	let param = url.split('?'),
 		// type = (param[0] || '').split('://'),
 		json = param.length > 0 ? parseUrl(param[1]) : {}
+	console.log(param, json);
 
 	return json
 }
 
 const parseUrl = (url) => {
 	if (!url || url == null) return {}
-	let queryArr = decodeURIComponent(url).split('&'),
+	let queryArr = url.split('&'),
 		result = {}
 	queryArr.forEach(function (item) {
-		result[item.split('=')[0]] = item.split('=')[1]
+		result[item.split('=')[0]] = decodeURIComponent(item.split('=')[1])
 	})
+	console.log(result);
 	return result
 }
 

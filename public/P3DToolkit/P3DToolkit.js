@@ -1,7 +1,7 @@
 //===================================================================================================
 
 // 版本号
-const P3DTOOLKIT_VERSION = "3.0.0.3013";
+const P3DTOOLKIT_VERSION = "3.0.0.3017";
 
 // 模型树
 function P3D_MODELTREENODE() {
@@ -68,7 +68,7 @@ function P3D_SCENEANIMNODE() {
 
 // 拾取三维物体
 function P3D_PICK_ELEMENT() {
-    this._uPickType = P3D_ELEMENT_TYPE_NONE;           // 拾取的元素类型，见P3D_PICK_TYPE枚举值
+    this._uPickType = P3D_ELEMENT_TYPE_NONE;        // 拾取的元素类型，见P3D_PICK_TYPE枚举值
     this._arrPickElements = new Array();            // 拾取元素的ID数组，单选时只有一个元素
 }
 
@@ -83,8 +83,8 @@ function P3D_COMMENTINFO() {
 	this._szText = '';			                    // 注释内容
 
 	this._planeOrigin = new P3D_BASEFLOAT3();		// 三维注释平面原点坐标
-	this._planeX = new P3D_BASEFLOAT3();				// 三维注释平面坐标系x轴方向
-	this._planeY = new P3D_BASEFLOAT3();				// 三维注释平面坐标系y轴方向
+	this._planeX = new P3D_BASEFLOAT3();			// 三维注释平面坐标系x轴方向
+	this._planeY = new P3D_BASEFLOAT3();			// 三维注释平面坐标系y轴方向
 	this. _planeZ = new P3D_BASEFLOAT3();			// 三维注释平面坐标系z轴方向
 
 	this._bVisible = true;							// 是否可见
@@ -114,6 +114,26 @@ function P3D_SETTINGS() {
     this.defaultCanvasTransparency = false;
 }
 
+// 测量的几何信息
+function GeomteyInfo() {
+    this.elementType = 0;
+    this.objectIndex = -1;
+    this.geomSurfaceIndex = -1;
+    this.geomCurveIndex = -1;
+    this.geomPointIndex = -1;
+    this.freePoint = new Point3(0, 0, 0);
+}
+
+// 测量信息
+function MeasureView() {
+    this.id = 0;                                // 测量视图ID
+    this.measureType = P3D_MEASURE_NONE;        // 测量类型，参考P3D_MEASURE_***定义
+    this.arrGeomtryInfo = new Array();          // 测量对象的几何ID，包括：物件ID，曲面ID，曲线ID，顶点ID
+    this.isScreen = true;                       // 测量结果显示是否位于屏幕
+    this.attachPos = new Point3(0, 0, 0);       // 屏幕放置坐标
+    this.measureResult = new Array();           // 测量结果，外部可以不保留该接口
+}
+
 //===================================================================================================
 
 const P3D_HOME_TYPE_ALL = 0;
@@ -126,17 +146,38 @@ const P3D_HOME_TYPE_CAMERA = 6;
 
 const P3D_MEASURE_NONE = 0;
 const P3D_MEASURE_OBJECT = 1;
-const P3D_MEASURE_SURFACE = 2;
-const P3D_MEASURE_CURVE = 3;
-const P3D_MEASURE_TWO_CURVES = 4;
-const P3D_MEASURE_POINT = 5;
-const P3D_MEASURE_TWO_POINTS = 6;
+const P3D_MEASURE_OBJECT_AUTO = 2;
+const P3D_MEASURE_OBJECT_VOLUME = 3;
+const P3D_MEASURE_OBJECT_SURFACE_AREA = 4;
+const P3D_MEASURE_OBJECT_MASS = 5;
+const P3D_MEASURE_OBJECT_MASS_CENTER = 6;
+const P3D_MEASURE_OBJECT_BOUNDING_BOX = 7;
+const P3D_MEASURE_CURVE = 10;
+const P3D_MEASURE_CURVE_AUTO = 11;
+const P3D_MEASURE_CURVE_LINE = 12;
+const P3D_MEASURE_CURVE_ARC = 13;
+const P3D_MEASURE_ANGLE = 20;
+const P3D_MEASURE_ANGLE_AUTO = 21;
+const P3D_MEASURE_ANGLE_TWO_LINES = 22;
+const P3D_MEASURE_ANGLE_TWO_PALNES = 23;
+const P3D_MEASURE_ANGLE_LINE_PALNE = 24;
+const P3D_MEASURE_DISTANCE = 30;
+const P3D_MEASURE_DISTANCE_AUTO = 31;
+const P3D_MEASURE_DISTANCE_TWO_POINTS = 32;
+const P3D_MEASURE_DISTANCE_POINT_LINE = 33;
+const P3D_MEASURE_DISTANCE_POINT_PLANE = 34;
+const P3D_MEASURE_DISTANCE_TWO_LINES = 35;
+const P3D_MEASURE_DISTANCE_LINE_PLANE = 36;
+const P3D_MEASURE_DISTANCE_TWO_PLANES = 37;
+const P3D_MEASURE_DISTANCE_END = 40;
 
 const P3D_CAPTURE_NONE = 0;
 const P3D_CAPTURE_OBJECT = 1;
+const P3D_CAPTURE_SURFACE = 2;
 const P3D_CAPTURE_GEOM_SURFACE = 3;
 const P3D_CAPTURE_GEOM_CURVE = 4;
 const P3D_CAPTURE_GEOM_POINT = 5;
+const P3D_CAPTURE_FREE_POINT = 6;
 
 const P3D_BASE_OPT_MODE_DEFAULT = 0;
 const P3D_BASE_OPT_MODE_MOVE = 1;
@@ -218,14 +259,16 @@ function P3D_CALLBACKS() {
     this.P3D_OnCommentCreateCallback = function(commentId) { }
     // 回调函数，批注信息删除完毕
     this.P3D_OnCommentDeleteCallback = function(commentId) { }
-    // 回调函数，导入模型后返回objectID的偏移值
-    this.P3D_OnImportModelCallback = function(offsetObjId) { }
+    // 回调函数，导入模型后返回导入的标签值和objectID的偏移值
+    this.P3D_OnImportModelCallback = function(importTag, offsetObjId) { }
 }
 
 //===================================================================================================
 
 // P3DToolkit库是否已经加载完毕
 let isLoadedLib = false;
+var g_BasisModule = false;
+let g_P3DModule = true; 
 
 // 动态加载P3DToolkit依赖库，解决不同 vue 版本兼容的问题
 function loadP3DToolkitLib (cb) {    
@@ -235,11 +278,13 @@ function loadP3DToolkitLib (cb) {
         { type: 'text/javascript', src: 'P3DToolkit/UI/app.js'},
         { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl1.js'},        
         { type: 'module', src: 'P3DToolkit/p3dKernel/Math/module.js'},
-        { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/Module.js'},
-        { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/Module.js'},
+        { type: 'module', src: 'P3DToolkit/p3dKernel/Camera/module.js'},
+        { type: 'module', src: 'P3DToolkit/p3dKernel/P3D/module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/Material/Module.js'},
         { type: 'module', src: 'P3DToolkit/p3dKernel/Engine/Shaders/PBR/module.js'},
-        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},       
+        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/p3dKerenl2.js'},  
+        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/basis_transcoder.js' },
+        { type: 'text/javascript', src: 'P3DToolkit/p3dKernel/P3DTranscoder.js' },     
     ]
 
     // 库已经加载过了，无需再次加载，直接返回
@@ -296,6 +341,7 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_UninitData = P3D_UninitData;
     this.P3D_ImportData = P3D_ImportData;
     this.P3D_ExportData = P3D_ExportData;
+    this.P3D_DeleteData = P3D_DeleteData;
 
     this.P3D_GetSelObjIDs = P3D_GetSelObjIDs;
     this.P3D_SetSelStatusByObjIDs = P3D_SetSelStatusByObjIDs;
@@ -337,9 +383,10 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_GetBkColor = P3D_GetBkColor;
     this.P3D_SetSelShowFlag = P3D_SetSelShowFlag;
     this.P3D_SetMultSelFlag = P3D_SetMultSelFlag;
-    this.P3D_SetMouseCaptureFlag = P3D_SetMouseCaptureFlag;
-    this.P3D_SetMouseCaptureMode = P3D_SetMouseCaptureMode;
-    this.P3D_GetMouseCaptureObjID = P3D_GetMouseCaptureObjID;
+    this.P3D_SetObjectCaptureFlag = P3D_SetObjectCaptureFlag;
+    this.P3D_GetCaptureObjectID = P3D_GetCaptureObjectID;
+    this.P3D_SetGeomCaptureMode = P3D_SetGeomCaptureMode;
+    this.P3D_GetGeomCaptureFlag = P3D_GetGeomCaptureFlag;
     this.P3D_SetMouseOperatorMode = P3D_SetMouseOperatorMode;
     this.P3D_SetRenderMode = P3D_SetRenderMode;
     this.P3D_SetMSAAMode = P3D_SetMSAAMode;
@@ -382,9 +429,10 @@ function P3DToolkitLib(dom, callbacks, settings) {
     this.P3D_GetMeasureUnitIndex = P3D_GetMeasureUnitIndex;
     this.P3D_SetMeasureUnitVisibe = P3D_SetMeasureUnitVisibe;
     this.P3D_DeleteMeasureUnit = P3D_DeleteMeasureUnit;
-    this.P3D_ExportMeasureUint = P3D_ExportMeasureUint;
+    this.P3D_ExportMeasureUnit = P3D_ExportMeasureUnit;
+    this.P3D_ImportMeasureUnit = P3D_ImportMeasureUnit;
 
-    this.P3D_GetMetialList = P3D_GetMetialList;
+    this.P3D_GetMaterialList = P3D_GetMaterialList;
     this.P3D_GetObjMaterialList = P3D_GetObjMaterialList;
     this.P3D_SetObjMaterialID = P3D_SetObjMaterialID;
     this.P3D_SetObjMaterialIDEx = P3D_SetObjMaterialIDEx;
@@ -484,8 +532,12 @@ function P3D_ImportData(streamdata, licdata) {
 }
 
 // 导出模型
-function P3D_ExportData() {
+function P3D_ExportData(importTag) {
     console.log("not support");
+}
+
+function P3D_DeleteData(importTag, arrObjID) {
+    return glRunTime.deleteScleModel(importTag);
 }
 
 // 销毁组件，清除所有数据：模型数据、批注、PMI数据、场景数据、背景等所有资源
@@ -818,12 +870,8 @@ function P3D_SetObjMoveByParams(x, y, z) {
 }
 
 // 设置鼠标动态捕捉物件ID标记
-function P3D_SetMouseCaptureFlag(flag) {
-    if (flag == 0) {
-        isMotionCapture = false;
-    } else {
-        isMotionCapture = true;
-    }
+function P3D_SetObjectCaptureFlag(flag) {
+    return glRunTime.enableCaptureObject(flag);
 }
 
 // 设置基础操作类型
@@ -1025,33 +1073,36 @@ function P3D_DeleteMeasureUnit(index) {
 // index: 选取的测量单元索引。
 // 如果是-1则表示导出全部测量单元。
 // 如果是-2则表示导出当前已拾取的测量单元。
-function P3D_ExportMeasureUint(index) {
+function P3D_ExportMeasureUnit(index) {
     return exportMeasureUnits(index);
+}
+
+function P3D_ImportMeasureUnit(measureUnit) {
+    return importMeasureUnits(measureUnit);
 }
 
 // 设置鼠标动态捕捉类型
 // 实时获取鼠标当前指向的几何元素
 // captureMode：如果为NONE则表示关闭捕捉
 // 其余有效值为：物件、几何曲面、几何曲线、几何顶点
-function P3D_SetMouseCaptureMode(captureMode) {
+function P3D_SetGeomCaptureMode(captureMode, isEnable) {
     if (!g_sceneGeomtryOn) {
-        return;
+        return false;
     }
-    if (captureMode == P3D_CAPTURE_NONE) {
-        isMotionCapture = false;
-    } else {
-        isMotionCapture = true;
-    }
-    glRunTime.setCaptureMode(captureMode);
+    return glRunTime.setCaptureModeEnable(captureMode, isEnable);
+}
+
+function P3D_GetGeomCaptureFlag() {
+    return glRunTime.getCaptureFilter();
 }
 
 // 获取鼠标动态指向的物件Id
-function P3D_GetMouseCaptureObjID() {
+function P3D_GetCaptureObjectID() {
     return motionCaptureObjID;
 }
 
 // 获取材质信息列表
-function P3D_GetMetialList() {
+function P3D_GetMaterialList() {
     return glRunTime.getObjectMetialList(-1);
 }
 

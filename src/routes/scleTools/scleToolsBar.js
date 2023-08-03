@@ -26,13 +26,14 @@ import ScleAttrTree from '../scleAttrTree/ScleAttrTree'
 
 import './scleTools.less'
 import { scleCustomEvent } from '../../utils'
-import { DoubleRightOutlined, DoubleLeftOutlined,SwitcherOutlined } from '@ant-design/icons';
+import { DoubleRightOutlined, DoubleLeftOutlined, SwitcherOutlined } from '@ant-design/icons';
 
-import Draggable from 'react-draggable'; 
+import Draggable from 'react-draggable';
 
 import Baozha from '../components/baozha'
 import RenderModel from '../components/renderModel/renderModel'
 import Projection from '../components/projection/projection'
+import Measure from './measure/measure'
 
 
 
@@ -57,17 +58,17 @@ export default class scleTools extends PureComponent {
 			type: 'icon-shituxuanranmoshi',
 			title: '渲染模式',
 			isFont: true,
-			popover:()=> <RenderModel show={this.state.activeTab === 'icon-shituxuanranmoshi'}  ref={this.renderModelRef} onClose={()=>{
-				this.setState({activeTab:null})
-			}}/>
+			popover: () => <RenderModel show={this.state.activeTab === 'icon-shituxuanranmoshi'} ref={this.renderModelRef} onClose={() => {
+				this.setState({ activeTab: null })
+			}} />
 		},
 		{
 			type: 'icon-touying',
 			title: '投影模式',
 			isFont: true,
-			popover:()=> <Projection show={this.state.activeTab === 'icon-touying'}  ref={this.projectionRef} onClose={()=>{
-				this.setState({activeTab:null})
-			}}/>
+			popover: () => <Projection show={this.state.activeTab === 'icon-touying'} ref={this.projectionRef} onClose={() => {
+				this.setState({ activeTab: null })
+			}} />
 			// onClick:()=>{
 			// 	this.projectionRef.current.toggle()
 			// }
@@ -121,13 +122,13 @@ export default class scleTools extends PureComponent {
 			type: 'icon-a-ziyuan10',
 			isFont: true,
 			onClick: () => {
-				window.startMeasureMode();
-				this.setState({
-					tools: [...this.#measurement]
-				})
+				// window.startMeasureMode();
+				// this.setState({
+				// 	tools: [...this.#measurement]
+				// })
 			}
 		},
-		
+
 		{
 			type: 'play-circle',
 			title: '播放',
@@ -137,8 +138,8 @@ export default class scleTools extends PureComponent {
 				})
 			}
 		},
-			
-			{ type: 'fullscreen', title: '全屏',key: "fullscreen", }
+
+		{ type: 'fullscreen', title: '全屏', key: "fullscreen", }
 	]
 
 
@@ -275,11 +276,11 @@ export default class scleTools extends PureComponent {
 		alpha: 1,
 		drawerVisible: false,
 		showParams: false,
-		showSectioning:false,
+		showSectioning: false,
 		axis: null,
 		checkedAxis: [],
-		switched:false,
-		loading:true
+		switched: false,
+		loading: true
 	}
 	isMove = false
 	totalFrames = 0
@@ -289,7 +290,7 @@ export default class scleTools extends PureComponent {
 	renderModelRef = createRef();
 	projectionRef = createRef();
 
-	componentDidMount() {
+	componentDidMount () {
 		window.isPhone = IsPhone()
 
 			// window.addEventListener("fullscreenchange", () =>
@@ -352,10 +353,10 @@ export default class scleTools extends PureComponent {
 
 		window.addEventListener("treeNodeSelect", (item) => {
 			this.pickObjectParameters()
-		 },{});
+		}, {});
 
 	}
-	componentWillUnmount() {
+	componentWillUnmount () {
 		window.removeEventListener(
 			'scleStreamReady',
 			this.scleStreamReady.bind(this),
@@ -370,18 +371,18 @@ export default class scleTools extends PureComponent {
 		)
 
 		window.removeEventListener("treeNodeSelect", () => {
-			
-		},{});
+
+		}, {});
 		this.setState = () => { }
 	}
 	//   scleStreamReady
-	scleStreamReady() {
+	scleStreamReady () {
 		// this.totalFrames = window.getTotalFrames()
 		this.totalFrames = window.P3D_LIB.P3D_GetAnimFrames()
 
 		window.setAnmiIcon = this.setAnmiIcon
 
-		window.addEventListener('P3D_OnAnimRefreshCallBack', e=>{
+		window.addEventListener('P3D_OnAnimRefreshCallBack', e => {
 			this.getCurFrame(e.detail)
 		})
 
@@ -390,8 +391,8 @@ export default class scleTools extends PureComponent {
 		// window.getCurFrame = (CurFrame) => this.getCurFrame(CurFrame)
 	}
 
-	render() {
-		
+	render () {
+
 		return (
 			<>
 				<Drawer
@@ -412,8 +413,8 @@ export default class scleTools extends PureComponent {
 						ref={(el) => (this.sclAttrTree = el)}
 						showParams={false}
 					></ScleAttrTree>
-					<div className={`expand_box ${this.state.drawerVisible?'active':''}`}  onClick={()=>this.drawerToggle()}>
-						<Icon type="apartment"/>
+					<div className={`expand_box ${this.state.drawerVisible ? 'active' : ''}`} onClick={() => this.drawerToggle()}>
+						<Icon type="apartment" />
 					</div>
 				</Drawer>
 
@@ -434,7 +435,7 @@ export default class scleTools extends PureComponent {
 					<ScleAttrTree
 						showParams={true}
 					></ScleAttrTree>
-					<div className={`expand_box expand_box2 ${this.state.showParams?'active':''}`} onClick={()=>{
+					<div className={`expand_box expand_box2 ${this.state.showParams ? 'active' : ''}`} onClick={() => {
 						this.setState({
 							showParams: !this.state.showParams
 						})
@@ -454,76 +455,93 @@ export default class scleTools extends PureComponent {
 
 				</div> */}
 				{
-					this.state.showSectioning? 
-				<Draggable handle='.pq_card_title' >
+					this.state.showSectioning ?
+						<Draggable handle='.pq_card_title' >
 
-					<Card className='pq_card'  style={{ width: 300 }} size="small">
-						<Spin spinning={this.state.loading}>
-							<div className='pq_card_title'>
-							<Card.Meta title="选择切割面"></Card.Meta>
-							<Icon type="close" className='close_icon' onClick={()=> this.handleOpenSectionNotification(false)}/>
-							</div>
-						<div>
-							<Checkbox.Group style={{ width: '100%' }} value={this.state.checkedAxis} onChange={e=>this.onCheckedChange(e)}>
-								<div className="checkbox_item">
-									<div>
-									<Checkbox value={0} checked={this.state.checkedAxis.includes(0)} onChange={e=>this.checkedChange(e)}></Checkbox>
-									<span className={this.state.axis === 0?'activeAxis':''} onClick={e=> {e.stopPropagation();
-										;this.slectAxis(0)}}>沿X轴切割</span>
+							<Card className='pq_card' style={{ width: 300 }} size="small">
+								<Spin spinning={this.state.loading}>
+									<div className='pq_card_title'>
+										<Card.Meta title="选择切割面"></Card.Meta>
+										<Icon type="close" className='close_icon' onClick={() => this.handleOpenSectionNotification(false)} />
 									</div>
-									
-									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.P3D_SetClipRevert(0)}/>
-								</div>
-								<div className="checkbox_item">
 									<div>
-									<Checkbox  value={1} checked={this.state.checkedAxis.includes(1)} onChange={e=>this.checkedChange(e)}></Checkbox>
-									<span className={this.state.axis === 1?'activeAxis':''} onClick={e=> {e.stopPropagation();
-										;this.slectAxis(1)}}>沿Y轴切割</span>
+										<Checkbox.Group style={{ width: '100%' }} value={this.state.checkedAxis} onChange={e => this.onCheckedChange(e)}>
+											<div className="checkbox_item">
+												<div>
+													<Checkbox value={0} checked={this.state.checkedAxis.includes(0)} onChange={e => this.checkedChange(e)}></Checkbox>
+													<span className={this.state.axis === 0 ? 'activeAxis' : ''} onClick={e => {
+														e.stopPropagation();
+														; this.slectAxis(0)
+													}}>沿X轴切割</span>
+												</div>
 
+												<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={() => this.P3D_SetClipRevert(0)} />
+											</div>
+											<div className="checkbox_item">
+												<div>
+													<Checkbox value={1} checked={this.state.checkedAxis.includes(1)} onChange={e => this.checkedChange(e)}></Checkbox>
+													<span className={this.state.axis === 1 ? 'activeAxis' : ''} onClick={e => {
+														e.stopPropagation();
+														; this.slectAxis(1)
+													}}>沿Y轴切割</span>
+
+												</div>
+												<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={() => this.P3D_SetClipRevert(1)} />
+											</div>
+											<div className="checkbox_item">
+
+												<div>
+													<Checkbox value={2} checked={this.state.checkedAxis.includes(2)} onChange={e => this.checkedChange(e)}>
+													</Checkbox>
+													<span className={this.state.axis === 2 ? 'activeAxis' : ''} onClick={e => {
+														e.stopPropagation();
+														; this.slectAxis(2)
+													}}>沿Z轴切割</span>
+												</div>
+
+												<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={() => this.P3D_SetClipRevert(2)} />
+											</div>
+										</Checkbox.Group>
+										<div className="checkbox_item">
+											切面隐藏
+											<Switch checked={this.state.switched} onChange={(e) => this.switchChange(e)} />
+										</div>
+
+										<Button block style={{ marginTop: 40 }} onClick={() => this.handleReset()}>全部重置</Button>
 									</div>
-									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.P3D_SetClipRevert(1)}/>
-								</div>
-								<div className="checkbox_item">
-									
-									<div>
-									<Checkbox value={2} checked={this.state.checkedAxis.includes(2)} onChange={e=>this.checkedChange(e)}>
-									</Checkbox>
-									<span className={this.state.axis === 2?'activeAxis':''} onClick={e=> {e.stopPropagation();
-										;this.slectAxis( 2)}}>沿Z轴切割</span>
-									</div>
-									
-									<IconFont className="checkbox_item_icon" type="icon-jiaohuanshuju" onClick={()=>this.P3D_SetClipRevert(2)}/>
-								</div>
-							</Checkbox.Group>
-							<div className="checkbox_item">
-								切面隐藏
-								<Switch checked={this.state.switched} onChange={(e)=> this.switchChange(e)}/>
-							</div>
+								</Spin>
+							</Card>
 
-							<Button block style={{marginTop:40}} onClick={()=>this.handleReset()}>全部重置</Button>
-						</div>
-						</Spin>
-					</Card>
+						</Draggable>
+						: null
+				}
 
-     			</Draggable>
-				: null
-			}
+
 				<div className="scleToolsBar">
-					<Tabs
+					{this.state.activeTab === 'icon-a-ziyuan10' ? <Measure onHide={() => {
+						this.setState({
+							activeTab: null
+						})
+					}} /> : <Tabs
 						activeKey={this.state.activeTab}
 						tabPosition="bottom"
 						animated={false}
 						onChange={(activeTab) => this.setState({ activeTab })}
 					>
 						{this.renderTools()}
-					</Tabs>
+					</Tabs>}
+
+
+
+
+
 				</div>
 
-				<Baozha show={this.state.activeTab === 'icon-goujianbaozha'} ref={this.baozhaRef} onClose={()=>{ this.setState({activeTab:null})}}/>
+				<Baozha show={this.state.activeTab === 'icon-goujianbaozha'} ref={this.baozhaRef} onClose={() => { this.setState({ activeTab: null }) }} />
 				{/* <RenderModel show={this.state.activeTab === 'icon-shituxuanranmoshi'}  ref={this.renderModelRef} onClose={()=>{
 					this.setState({activeTab:null})
 				}}/> */}
-				
+
 				{/* <Projection show={this.state.activeTab === 'icon-touying'}  ref={this.projectionRef} onClose={()=>{
 					this.setState({activeTab:null})
 				}}/> */}
@@ -533,58 +551,58 @@ export default class scleTools extends PureComponent {
 	}
 
 	// 选中轴
-	slectAxis(currentAxis){
-		if(this.state.axis === currentAxis) return;
+	slectAxis (currentAxis) {
+		if (this.state.axis === currentAxis) return;
 
-		const {checkedAxis} = this.state;
+		const { checkedAxis } = this.state;
 
 		const isCheck = checkedAxis.includes(currentAxis)
 
-		if(!isCheck) {
+		if (!isCheck) {
 			this.onCheckedChange(checkedAxis.concat(currentAxis));
 
-		}else{
-			
-			this.setState({ axis: currentAxis ,switched:false});
+		} else {
+
+			this.setState({ axis: currentAxis, switched: false });
 			// 选中当前起切面
 			this.setSection(currentAxis, true);
-			
+
 			this.setClipVisible(currentAxis);
 		}
 
 	}
 
-	setClipVisible(index, bl = true){
-		const axis = [0,1,2];
+	setClipVisible (index, bl = true) {
+		const axis = [0, 1, 2];
 		// axis.forEach(i=> cmlib.P3D_SetClipVisible(i, false));
-		axis.includes(index) && p3dtoolkitlib.P3D_SetClipVisible(index,  bl);
+		axis.includes(index) && p3dtoolkitlib.P3D_SetClipVisible(index, bl);
 
 	}
 
 	// 复选框选中
-	onCheckedChange(e){
-		if(e.length === 0)return;
-		let {axis,checkedAxis } = this.state;
-		const checkAxis = e.find(i=> !checkedAxis.includes(i));
-		const prevAxis = checkedAxis[checkedAxis.length-1];
+	onCheckedChange (e) {
+		if (e.length === 0) return;
+		let { axis, checkedAxis } = this.state;
+		const checkAxis = e.find(i => !checkedAxis.includes(i));
+		const prevAxis = checkedAxis[checkedAxis.length - 1];
 		// console.log(checkAxis, e);
-		if(checkAxis !== undefined){
+		if (checkAxis !== undefined) {
 			axis = checkAxis;
 			// 选中时，清除上一个切面；
 			// 选中当前起切面
 			this.setSection(axis, true);
 
-		}else{
-			const prev = checkedAxis.find(i=> !e.includes(i));
+		} else {
+			const prev = checkedAxis.find(i => !e.includes(i));
 			this.setSection(prev, false);
-			
+
 			axis = e[0];
 			// // 设置当前剖切
 			this.setSection(axis, true);
 
 		}
 		// // 新增
-	
+
 
 		this.setState({
 			checkedAxis: e,
@@ -594,57 +612,57 @@ export default class scleTools extends PureComponent {
 
 		this.setClipVisible(axis);
 
-	
+
 
 	}
 
-	checkedChange(e){
-	// 	const {value, checked}= e.target;
-	// 	if(!checked && this.state.checkedAxis.length === 1)return;
-	// 	this.setSection(value, checked);
+	checkedChange (e) {
+		// 	const {value, checked}= e.target;
+		// 	if(!checked && this.state.checkedAxis.length === 1)return;
+		// 	this.setSection(value, checked);
 
-		
+
 	}
 
-	setSection(axis, checked){
+	setSection (axis, checked) {
 
 		setTimeout(() => {
-			const arr= ['x','y','z']
+			const arr = ['x', 'y', 'z']
 			try {
-				
+
 				// console.log(`显示${arr[axis]}剖切`, checked);
 				p3dtoolkitlib.P3D_SetClipEnable(axis, checked);
 
-				if(checked) {
+				if (checked) {
 					// console.log(`选中${arr[axis]}轴`);
 					p3dtoolkitlib.P3D_SelectClip(axis);
 				}
-				
+
 			} catch (error) {
 				// console.log(error);
 			}
 		});
 	}
 
-	switchChange(e){
+	switchChange (e) {
 		// console.log(e);
-		
-		[0,1,2].forEach(i=> p3dtoolkitlib.P3D_SetClipVisible(i, !e))
-		
 
-		this.setState({switched: e})
+		[0, 1, 2].forEach(i => p3dtoolkitlib.P3D_SetClipVisible(i, !e))
+
+
+		this.setState({ switched: e })
 	}
 
-	P3D_SetClipRevert(index){
+	P3D_SetClipRevert (index) {
 		// cmlib.P3D_SelectClip(index);
 
 		p3dtoolkitlib.P3D_SetClipRevert(index);
 	}
 
-	handleReset(){
+	handleReset () {
 		this.setState({
-			checkedAxis:[0],
-			axis:0,
+			checkedAxis: [0],
+			axis: 0,
 		})
 
 		this.setClipVisible(0);
@@ -654,8 +672,8 @@ export default class scleTools extends PureComponent {
 	}
 
 
-	
-	drawerToggle() {
+
+	drawerToggle () {
 		this.setState({
 			drawerVisible: !this.state.drawerVisible,
 			// showParams:  false
@@ -663,32 +681,32 @@ export default class scleTools extends PureComponent {
 		})
 	}
 
-	
-	handleShowTree(){
-		const {showParams,drawerVisible} = this.state;
+
+	handleShowTree () {
+		const { showParams, drawerVisible } = this.state;
 		this.setState({
 			drawerVisible: !(drawerVisible && !showParams),
-			showParams:  false
+			showParams: false
 		})
 	}
 
-	handleShowParams (){
-		const {showParams,drawerVisible} = this.state;
-		
+	handleShowParams () {
+		const { showParams, drawerVisible } = this.state;
+
 		this.setState({
 			drawerVisible: !(drawerVisible && showParams),
-			showParams:  true
+			showParams: true
 		})
 	}
 
-	hideDrawer() {
+	hideDrawer () {
 		this.setState({
 			drawerVisible: false,
 			activeTab: null
 		})
 	}
 
-	renderTools() {
+	renderTools () {
 		const { tools } = this.state
 		return tools.map((item, index) => (
 			<TabPane
@@ -704,7 +722,7 @@ export default class scleTools extends PureComponent {
 		))
 	}
 
-	renderAnnotation() {
+	renderAnnotation () {
 		return <div className="annotation_icons">
 			<Tooltip title={'创建批注'}>
 				<Icon
@@ -743,14 +761,14 @@ export default class scleTools extends PureComponent {
 	}
 
 
-	renderTipsPopover(item, index) {
+	renderTipsPopover (item, index) {
 		return (
 			<Tooltip title={item.title}>
 				{this.renderPopover(item, index)}
 			</Tooltip>
 		)
 	}
-	renderPopover(item, index) {
+	renderPopover (item, index) {
 		return item.popover ? (
 			<Popover
 				content={item.popover()}
@@ -778,7 +796,7 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
-	renderColor() {
+	renderColor () {
 		return (
 			<ChromePicker
 				onChange={(e) => {
@@ -788,7 +806,7 @@ export default class scleTools extends PureComponent {
 							background: e.rgb
 						})
 						const p3dtoolkitlib = window.P3D_LIB;
-						p3dtoolkitlib.P3D_GetSelObjIDs().forEach(id=>p3dtoolkitlib.P3D_SetObjColor(id, r / 255, g / 255, b / 255, a))
+						p3dtoolkitlib.P3D_GetSelObjIDs().forEach(id => p3dtoolkitlib.P3D_SetObjColor(id, r / 255, g / 255, b / 255, a))
 					})
 				}}
 				color={this.state.background}
@@ -796,7 +814,7 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
-	renderPlayerBar(item, index) {
+	renderPlayerBar (item, index) {
 		return (
 			<Slider
 				className="progressSlider"
@@ -814,7 +832,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	// 渲染透明度进度条
-	renderSlider() {
+	renderSlider () {
 		return (
 			<div className="transparent">
 				<Slider
@@ -828,7 +846,7 @@ export default class scleTools extends PureComponent {
 							this.setState({
 								alpha: value
 							})
-    						const objIds = window.P3D_GetSelObjIDs();
+							const objIds = window.P3D_GetSelObjIDs();
 							window.P3D_LIB.P3D_SetObjTransparent(objIds, value)
 						})
 					}}
@@ -838,7 +856,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	// 渲染背景色
-	renderBackground() {
+	renderBackground () {
 		return (
 			<Radio.Group
 				defaultValue="0"
@@ -855,7 +873,7 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
-	renderViewDire() {
+	renderViewDire () {
 		const bg = { background: 'rgba(24,144,255, 0.6)' }
 		const viewDirections = [
 			{ title: '正视图', value: 0, forward: bg },
@@ -896,7 +914,7 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
-	renderToolsIcon(item, index) {
+	renderToolsIcon (item, index) {
 		return item.isFont ? (
 			<IconFont
 				type={item.type}
@@ -917,14 +935,14 @@ export default class scleTools extends PureComponent {
 	}
 
 	// player
-	playHandle(item, index) {
+	playHandle (item, index) {
 		const newTools = this.state.tools
 		if (item.type === 'play-circle') {
 			newTools[index] = {
 				type: 'pause-circle',
 				title: '暂停'
 			}
-			const  g_bPause= newTools.length ===3;
+			const g_bPause = newTools.length === 3;
 			if (g_bPause) {
 				window.P3D_LIB.P3D_AnimResume();
 			} else {
@@ -944,7 +962,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	// 工具栏 触发事件统一处理
-	toolsClickHandle(item, index) {
+	toolsClickHandle (item, index) {
 		// console.log(item);
 		const newTools = this.state.tools
 
@@ -954,8 +972,8 @@ export default class scleTools extends PureComponent {
 				newTools[index].title = '隐藏'
 
 				const objIds = window.P3D_GetSelObjIDs();
-				objIds.forEach(i=> window.P3D_SetObjVisible(i, true))
-				
+				objIds.forEach(i => window.P3D_SetObjVisible(i, true))
+
 				newTools[index].pickObjectVisible = true
 				if (this.sclAttrTree.setVisible) {
 					this.sclAttrTree.setVisible(true)
@@ -966,8 +984,8 @@ export default class scleTools extends PureComponent {
 				newTools[index].type = 'eye'
 				newTools[index].title = '显示'
 				const objIds = window.P3D_GetSelObjIDs();
-				objIds.forEach(i=> window.P3D_SetObjVisible(i, false))
-				
+				objIds.forEach(i => window.P3D_SetObjVisible(i, false))
+
 				newTools[index].pickObjectVisible = false
 				if (this.sclAttrTree.setVisible) {
 					this.sclAttrTree.setVisible(false)
@@ -992,23 +1010,23 @@ export default class scleTools extends PureComponent {
 			exitFullscreen()
 		}
 
-		
+
 
 		// console.log(item, 'icon-shitupouqiehe', this.state.activeTab);
-		if(this.state.activeTab === '' && item.type !== 'icon-shitupouqiehe'){
+		if (this.state.activeTab === '' && item.type !== 'icon-shitupouqiehe') {
 			this.handleOpenSectionNotification(false)
 		}
 
 		if (item.type === 'icon-goujianbaozha') {
-			let {activeTab} = this.state
-			activeTab = activeTab === 'icon-goujianbaozha'? null:'icon-goujianbaozha'
+			let { activeTab } = this.state
+			activeTab = activeTab === 'icon-goujianbaozha' ? null : 'icon-goujianbaozha'
 
 			this.setState({
 				activeTab
 			})
 		}
 
-		
+
 
 		this.setState(
 			{
@@ -1054,12 +1072,12 @@ export default class scleTools extends PureComponent {
 		)
 	}
 
-	moveHandle() {
+	moveHandle () {
 		this.isMove = !this.isMove
 		window.P3D_SetObjMoveByWindow(this.isMove)
 	}
 
-	fullScreenHandle(fullScreen) {
+	fullScreenHandle (fullScreen) {
 		const icon = fullScreen ? 'fullscreen-exit' : 'fullscreen'
 		const newTools = this.state.tools
 		const [fullScreenIndex] = this.findToolsIndex(['fullscreen']);
@@ -1067,11 +1085,11 @@ export default class scleTools extends PureComponent {
 		this.setState({ tools: [...newTools], activeTab: null })
 	}
 
-	pickObjectParameters() {
-    	const objIds = window.P3D_GetSelObjIDs();
-		if(!objIds && objIds.length === 0) return;
+	pickObjectParameters () {
+		const objIds = window.P3D_GetSelObjIDs();
+		if (!objIds && objIds.length === 0) return;
 
-		const visible = objIds.length === 1 ? window.P3D_LIB.P3D_GetObjVisible(objIds[0]):false;
+		const visible = objIds.length === 1 ? window.P3D_LIB.P3D_GetObjVisible(objIds[0]) : false;
 
 		const [visibleIndex, alphaIndex] = this.findToolsIndex(['show', 'toumingdu']);
 		const newTools = this.state.tools
@@ -1092,43 +1110,43 @@ export default class scleTools extends PureComponent {
 		})
 	}
 
-	handleOpenSectionNotification(show){
+	handleOpenSectionNotification (show) {
 		const showSectioning = show !== undefined ? !!show : !this.state.showSectioning
 		this.setState({
-			showSectioning, 
-			activeTab: showSectioning? 'icon-shitupouqiehe': null,
-			loading: !show 
+			showSectioning,
+			activeTab: showSectioning ? 'icon-shitupouqiehe' : null,
+			loading: !show
 		})
 
-		setTimeout(()=>{
+		setTimeout(() => {
 			try {
 				// console.log('showSectioning',showSectioning?'开始剖切':'结束剖切');
-				showSectioning ? p3dtoolkitlib.P3D_InitSection() : p3dtoolkitlib.P3D_UnInitSection();  
+				showSectioning ? p3dtoolkitlib.P3D_InitSection() : p3dtoolkitlib.P3D_UnInitSection();
 				this.handleReset()
 			} catch (error) {
 				// error
-			}finally{
+			} finally {
 				// console.log('loadingend');
-				this.setState({loading:false});
+				this.setState({ loading: false });
 			}
 		})
-		
+
 	}
 
-	handleBaozha(){
-		
+	handleBaozha () {
+
 		this.baozhaRef.current.toggle()
 		// 开始爆炸
 		window.P3D_ExplodeStart()
 	}
-	
 
-	findToolsIndex(keys){
-		return keys.map(key => this.#tools.findIndex(i=>i.key === key))
+
+	findToolsIndex (keys) {
+		return keys.map(key => this.#tools.findIndex(i => i.key === key))
 	}
 
 	//   停止播放
-	playerStop() {
+	playerStop () {
 		scleCustomEvent('playerStop')
 		window.animTerminal()
 		this.setState({
@@ -1137,13 +1155,13 @@ export default class scleTools extends PureComponent {
 	}
 
 	// 退出测量
-	exitMeasurement() {
+	exitMeasurement () {
 		this.setState({
 			tools: [...this.#tools]
-		})	
+		})
 	}
 
-	changeVisible(visible, index) {
+	changeVisible (visible, index) {
 		const newTools = this.state.tools
 		newTools[index].visible = visible
 		this.setState({
@@ -1152,7 +1170,7 @@ export default class scleTools extends PureComponent {
 	}
 
 	isPickNull = (callback = () => { }) => {
-    	const objIds = window.P3D_GetSelObjIDs();
+		const objIds = window.P3D_GetSelObjIDs();
 
 		if (!objIds || objIds.length === 0) {
 			this.setState({
@@ -1192,7 +1210,7 @@ export default class scleTools extends PureComponent {
 		})
 	}
 
-	getCurFrame(CurFrame) {
+	getCurFrame (CurFrame) {
 		const playPercent = (CurFrame / this.totalFrames) * 100
 		// console.log(CurFrame, this.totalFrames);
 		this.setState({
@@ -1201,7 +1219,7 @@ export default class scleTools extends PureComponent {
 	}
 }
 
-function DivBox(props) {
+function DivBox (props) {
 	const { up, down, left, right, forward, back } = props
 
 	return (

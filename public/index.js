@@ -155,10 +155,10 @@
 		startLoadFile: function (res, fileName) {
 			const parseUrl = function (url){
 				if (!url || url == null) return {}
-				let queryArr = decodeURIComponent(url).split('&'),
+				let queryArr = url.split('&'),
 					result = {}
 				queryArr.forEach(function (item) {
-					result[item.split('=')[0]] = item.split('=')[1]
+					result[item.split('=')[0]] = decodeURIComponent(item.split('=')[1])
 				})
 				return result
 			}
