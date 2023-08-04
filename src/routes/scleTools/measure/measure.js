@@ -68,13 +68,13 @@ function MeasureTools (props) {
     }, [allVisible])
 
 
-    useEffect(()=>{
-        const showIcons = ['icon--yincangceliang', 'icon-xianshiceliang'];
-        const eyeIndex = tools.findIndex(i=> showIcons.includes(i.type));
-        tools[eyeIndex].type = visible ? showIcons[0] : showIcons[1]
-        tools[eyeIndex].title = visible ? '显示' : '隐藏'
-        setTools([...tools])
-    }, [visible])
+    // useEffect(()=>{
+    //     const showIcons = ['icon--yincangceliang', 'icon-xianshiceliang'];
+    //     const eyeIndex = tools.findIndex(i=> showIcons.includes(i.type));
+    //     tools[eyeIndex].type = visible ? showIcons[0] : showIcons[1]
+    //     tools[eyeIndex].title = visible ? '显示' : '隐藏'
+    //     setTools([...tools])
+    // }, [visible])
 
 
     // 
