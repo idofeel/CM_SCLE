@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Drawer, Icon, Tooltip, Tabs } from "antd";
+import { Drawer, Icon, Tooltip, Tabs, Checkbox } from "antd";
 
 
 import {
@@ -15,12 +15,14 @@ import {
 } from './constant'
 import PIcon from './PIcon';
 import ToolsBar from "./toolsBar";
+const P3D_CAPTURE_FREE_POINT = 6;
 
 
 const DistanceMeasure = (props) => {
     const setMeasureMode = (name) => window.P3D_SetMeasureMode(name);
 
     const [selectKey, setSelectKey] = useState(P3D_MEASURE_DISTANCE_AUTO);
+    const [captureFreePoint, setCaptureFreePoint] = useState(false);
     useEffect(() => {
         setMeasureMode(selectKey)
     }, [selectKey])
@@ -35,16 +37,24 @@ const DistanceMeasure = (props) => {
         { type: 'icon-47gongyegongcheng_celiang', isFont: true, title: '平面到平面', name: P3D_MEASURE_DISTANCE_TWO_PLANES, onClick: setMeasureMode },
 
     ]
-    return <ToolsBar onHide={props.onHide}>{tools.map((i, index) => {
-        return <SwiperSlide key={index}>
-            <Tooltip title={i.title}>
-                <PIcon type={i.type} isFont={i.isFont} style={{color:selectKey===i.name? '#1890ff':"#333"}} className="prev_icon" onClick={() => {
-                    i.onClick(i.name)
-                    setSelectKey(i.name)
-                }} />
-            </Tooltip>
+    return <ToolsBar onHide={props.onHide}>
+        {tools.map((i, index) => {
+            return <SwiperSlide key={index}>
+                <Tooltip title={i.title}>
+                    <PIcon type={i.type} isFont={i.isFont} style={{ color: selectKey === i.name ? '#1890ff' : "#333" }} className="prev_icon" onClick={() => {
+                        i.onClick(i.name)
+                        setSelectKey(i.name)
+                    }} />
+                </Tooltip>
+            </SwiperSlide>
+        })}
+        <SwiperSlide>
+            <Checkbox checked={captureFreePoint} onChange={e => {
+                window.P3D_SetGeomCaptureMode(P3D_CAPTURE_FREE_POINT, e.target.checked);
+                setCaptureFreePoint(e.target.checked)
+            }}></Checkbox>
         </SwiperSlide>
-    })}
+
     </ToolsBar>
 }
 

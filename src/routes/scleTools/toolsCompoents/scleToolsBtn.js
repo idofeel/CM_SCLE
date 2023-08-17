@@ -20,7 +20,7 @@ import { scleCustomEvent } from '../../../utils';
 import ToolsBarContext from "../ToolsBarContext";
 
 const IconFont = Icon.createFromIconfontCN({
-  scriptUrl: "./P3D_OnlineToolkit/iconfont.js",
+  scriptUrl: "./localiconfont/iconfont.js",
 });
 const renderTitle = (title) => (IsPhone() ? null : title);
 
