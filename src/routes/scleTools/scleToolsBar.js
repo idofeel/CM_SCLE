@@ -553,7 +553,6 @@ export default class scleTools extends PureComponent {
 	// 选中轴
 	slectAxis (currentAxis) {
 
-
 		if (this.state.axis === currentAxis) return;
 
 		const { checkedAxis } = this.state;
@@ -572,7 +571,10 @@ export default class scleTools extends PureComponent {
 
 		}
 
-		this.setClipVisible(currentAxis)
+		p3dtoolkitlib.P3D_SetClipVisible(currentAxis, true)
+			
+		this.setState({switched:false})
+		// this.setClipVisible(currentAxis)
 
 	}
 
@@ -613,12 +615,10 @@ export default class scleTools extends PureComponent {
 		this.setState({
 			checkedAxis: e,
 			axis,
+			switched:false
 		})
 
-
-		this.setClipVisible(axis);
-
-
+		p3dtoolkitlib.P3D_SetClipVisible(axis, true)
 
 	}
 
@@ -653,9 +653,9 @@ export default class scleTools extends PureComponent {
 	switchChange (e) {
 		// console.log(e);
 
-		// [0, 1, 2].forEach(i => p3dtoolkitlib.P3D_SetClipVisible(i, !e))
+		[0, 1, 2].forEach(i => p3dtoolkitlib.P3D_SetClipVisible(i, !e))
 
-		p3dtoolkitlib.P3D_SetClipVisible(this.state.axis, !e)
+		// p3dtoolkitlib.P3D_SetClipVisible(this.state.axis, !e)
 
 		this.setState({ switched: e })
 	}
